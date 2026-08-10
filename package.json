@@ -1,0 +1,14 @@
+{
+  "name": "vorn-connectors",
+  "private": true,
+  "type": "module",
+  "packageManager": "yarn@4.10.3",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "yarn workspaces foreach -Apt run build",
+    "test": "yarn workspaces foreach -Ap run test",
+    "typecheck": "yarn workspaces foreach -Ap run typecheck"
+  }
+}

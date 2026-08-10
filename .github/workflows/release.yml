@@ -1,0 +1,46 @@
+name: Release
+
+# Tagged per connector — `ado-v0.2.0` publishes only that package. A connector
+# releasing on its own schedule is the whole reason these live outside the app.
+on:
+  push:
+    tags:
+      - '*-v*'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - run: corepack enable
+      - run: yarn install --immutable
+
+      - name: Resolve the package from the tag
+        id: pkg
+        run: |
+          name="${GITHUB_REF_NAME%%-v*}"
+          version="${GITHUB_REF_NAME##*-v}"
+          echo "dir=packages/$name" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Publishing $name@$version"
+
+      - name: Check the tag matches the package
+        run: |
+          declared=$(node -p "require('./${{ steps.pkg.outputs.dir }}/package.json').version")
+          if [ "$declared" != "${{ steps.pkg.outputs.version }}" ]; then
+            echo "::error::Tag says ${{ steps.pkg.outputs.version }} but package.json says $declared"
+            exit 1
+          fi
+
+      - run: yarn workspaces foreach -Apt --from "${{ steps.pkg.outputs.dir }}" run build
+      - run: yarn npm publish --access public
+        working-directory: ${{ steps.pkg.outputs.dir }}
+        env:
+          YARN_NPM_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: corepack enable
+      - run: yarn install --immutable
+      - run: yarn typecheck
+      - run: yarn test
+      - run: yarn build
+
+      # A package with no test script is not caught by `yarn test` — it is
+      # skipped, which looks identical to passing.
+      - name: Check every package is wired into the gate
+        run: node scripts/check-packages.mjs
+
+      # The catalog is what the app reads to offer a connector. A malformed
+      # entry, or one naming a package that is not in this repo, would surface
+      # as a missing connector in the UI rather than as a failed build.
+      - name: Validate catalog
+        run: node scripts/check-catalog.mjs

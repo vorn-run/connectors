@@ -1,7 +1,7 @@
 {
   "name": "@vornrun/connector-ado",
   "version": "0.1.0",
-  "description": "Azure DevOps connector for Vorn — trigger workflows from work items a WIQL query returns.",
+  "description": "Azure DevOps connector for Vorn \u2014 trigger workflows from work items a WIQL query returns.",
   "type": "module",
   "license": "MIT",
   "repository": {
@@ -33,5 +33,17 @@
     "tsup": "^8.5.1",
     "typescript": "^6.0.3",
     "vitest": "^4.1.10"
+  },
+  "vorn": {
+    "category": "Development",
+    "keywords": [
+      "azure devops",
+      "ado",
+      "work items",
+      "wiql",
+      "boards",
+      "tfs"
+    ],
+    "auth": "Signs in with your Azure identity \u2014 `az login` is usually all it needs."
   }
 }

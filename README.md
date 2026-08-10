@@ -60,10 +60,11 @@ catalog.json         the list the app offers under Connections → Add
 scripts/             repository checks run in CI
 ```
 
-`catalog.json` holds only a pointer — id, name, blurb, package name. What a
-connection actually needs (its config fields, triggers and actions) comes from
-probing the package itself, so the list can never drift into a stale second copy
-of a connector's definition.
+`catalog.json` is generated from the connectors themselves — each one's id,
+icon, triggers, actions and the settings it will ask for come out of its own
+manifest, so the list cannot advertise a trigger that has since been renamed.
+Run `node scripts/build-catalog.mjs` after changing a connector; CI checks the
+committed file still matches.
 
 ## Developing
 
@@ -105,9 +106,13 @@ test can poll it and assert on real items without spawning anything.
 
 ## Adding a connector
 
-Add `packages/<id>/`, then an entry in `catalog.json` pointing at it. Tests run
-with coverage thresholds, and `node scripts/check-packages.mjs` checks the
-package is wired into the build the same way the others are — CI runs both.
+Add `packages/<id>/`, then run `yarn build && node scripts/build-catalog.mjs` to
+put it in the catalog. Anything the manifest has no opinion about — the category
+it lists under, the words people will search for, one line on how it signs in —
+goes in that package's `package.json` under `"vorn"`.
+
+Tests run with coverage thresholds, and `node scripts/check-packages.mjs` checks
+the package is wired into the build the same way the others are. CI runs both.
 
 Write the implementation from the service's own published API documentation, and
 link to it in the package README so the next person can check it. Existing

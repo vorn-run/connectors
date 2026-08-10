@@ -24,8 +24,8 @@ jobs:
       - name: Check every package is wired into the gate
         run: node scripts/check-packages.mjs
 
-      # The catalog is what the app reads to offer a connector. A malformed
-      # entry, or one naming a package that is not in this repo, would surface
-      # as a missing connector in the UI rather than as a failed build.
-      - name: Validate catalog
-        run: node scripts/check-catalog.mjs
+      # catalog.json is generated from the connectors' own manifests. Checking
+      # it here means a renamed trigger cannot leave the app advertising the old
+      # one, which nothing else would catch until someone tried to use it.
+      - name: Check the catalog matches the connectors
+        run: node scripts/build-catalog.mjs --check

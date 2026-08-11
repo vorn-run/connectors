@@ -28,6 +28,7 @@ jobs:
           name="${GITHUB_REF_NAME%%-v*}"
           version="${GITHUB_REF_NAME##*-v}"
           echo "dir=packages/$name" >> "$GITHUB_OUTPUT"
+          echo "workspace=$(node -p "require('./packages/$name/package.json').name")" >> "$GITHUB_OUTPUT"
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "Publishing $name@$version"
 
@@ -39,7 +40,9 @@ jobs:
             exit 1
           fi
 
-      - run: yarn workspaces foreach -Apt --from "${{ steps.pkg.outputs.dir }}" run build
+      # Just this package: a connector depends on the published SDK, not on
+      # another workspace, so there is no dependency graph to walk.
+      - run: yarn workspace ${{ steps.pkg.outputs.workspace }} run build
       - run: yarn npm publish --access public
         working-directory: ${{ steps.pkg.outputs.dir }}
         env:

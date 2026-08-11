@@ -43,6 +43,50 @@ export type WitApi = {
     top?: number
   ): Promise<{ workItems?: { id?: number }[] }>
   getWorkItems(ids: number[]): Promise<WorkItem[]>
+  createWorkItem(
+    customHeaders: unknown,
+    document: JsonPatchOperation[],
+    project: string,
+    type: string
+  ): Promise<WorkItem>
+  updateWorkItem(
+    customHeaders: unknown,
+    document: JsonPatchOperation[],
+    id: number
+  ): Promise<WorkItem>
+}
+
+/**
+ * How Azure DevOps takes a write.
+ *
+ * Work items are edited with a JSON Patch document rather than a body of
+ * fields, which is what makes a partial update possible at all: the request
+ * says which fields to touch and leaves everything else alone.
+ */
+export interface JsonPatchOperation {
+  op: 'add' | 'replace' | 'remove'
+  path: string
+  value?: unknown
+}
+
+/**
+ * Turn a map of fields into the patch the API expects.
+ *
+ * `add` rather than `replace` throughout: on a work item being created there is
+ * nothing to replace, and on an existing one Azure DevOps treats `add` on a
+ * field that is already set as an overwrite. `replace` would fail on any field
+ * that happened to be empty.
+ */
+export function fieldPatch(fields: Record<string, unknown>): JsonPatchOperation[] {
+  return Object.entries(fields)
+    .filter(([, value]) => value !== undefined && value !== '')
+    .map(([field, value]) => ({
+      op: 'add' as const,
+      // A field reference name is a path segment, and one containing a slash
+      // would otherwise be read as two.
+      path: `/fields/${field.replace(/~/g, '~0').replace(/\//g, '~1')}`,
+      value
+    }))
 }
 
 /** Organization name from either a bare name or the URL people paste. */
@@ -187,4 +231,39 @@ export async function readWorkItems(wit: WitApi, ids: number[]): Promise<WorkIte
     explain(error)
   }
   return items
+}
+
+/**
+ * Create a work item.
+ *
+ * Never idempotent: calling it twice makes two work items, which is why the
+ * action declares itself as such and an agent retrying a failed step is told.
+ */
+export async function createWorkItem(
+  wit: WitApi,
+  opts: { project: string; type: string; fields: Record<string, unknown> }
+): Promise<WorkItem> {
+  try {
+    return await wit.createWorkItem(null, fieldPatch(opts.fields), opts.project, opts.type)
+  } catch (error) {
+    explain(error)
+  }
+}
+
+/** Change fields on an existing work item, leaving the rest alone. */
+export async function updateWorkItem(
+  wit: WitApi,
+  opts: { id: number; fields: Record<string, unknown> }
+): Promise<WorkItem> {
+  const patch = fieldPatch(opts.fields)
+  if (patch.length === 0) {
+    // An empty patch is accepted and changes nothing, which reads in a run as
+    // a step that worked. It did not do what it was asked.
+    throw new Error('No fields to update. Set at least one of title, state or description.')
+  }
+  try {
+    return await wit.updateWorkItem(null, patch, opts.id)
+  } catch (error) {
+    explain(error)
+  }
 }

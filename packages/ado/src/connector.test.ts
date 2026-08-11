@@ -18,6 +18,7 @@ interface Call {
   team: { project?: string } | undefined
   top: number | undefined
   ids: number[][]
+  wrote?: Record<string, unknown>
 }
 
 /** A stand-in for the SDK's WorkItemTracking API, returning fixed work items. */
@@ -33,6 +34,14 @@ function respondWith(items: WorkItem[]) {
     getWorkItems: vi.fn(async (ids: number[]) => {
       call.ids.push(ids)
       return items.filter((item) => ids.includes(item.id ?? -1))
+    }),
+    createWorkItem: vi.fn(async (_headers, document, project, type) => {
+      call.wrote = { document, project, type }
+      return { id: 101, fields: { 'System.Title': 'Created', 'System.State': 'New' } }
+    }),
+    updateWorkItem: vi.fn(async (_headers, document, id) => {
+      call.wrote = { document, id }
+      return { id, fields: { 'System.Title': 'Updated', 'System.State': 'Closed' } }
     })
   }
   return { wit, call }
@@ -167,10 +176,9 @@ describe('ado connector', () => {
     it('refuses a work item with no id rather than dedupe them together', async () => {
       // Vorn dedupes on externalId, so a placeholder would collapse every such
       // item into a single event.
-      const wit: WitApi = {
-        queryByWiql: async () => ({ workItems: [{ id: 1 }] }),
-        getWorkItems: async () => [{ fields: {} }]
-      }
+      const { wit } = respondWith([{ fields: {} }])
+      wit.queryByWiql = async () => ({ workItems: [{ id: 1 }] })
+      wit.getWorkItems = async () => [{ fields: {} }]
       await expect(harness(wit).poll('workItem')).rejects.toThrow(/no id/)
     })
 
@@ -245,5 +253,140 @@ describe('ado connector', () => {
       expect(icon?.paths.length).toBeGreaterThan(0)
       expect(icon?.viewBox).toBe('0 0 24 24')
     })
+  })
+})
+
+describe('createWorkItem action', () => {
+  it('creates on the configured project and returns a link to the board', async () => {
+    const { wit, call } = respondWith([])
+    const result = await harness(wit).execute('createWorkItem', {
+      title: 'Disk full',
+      type: 'Bug',
+      description: 'It is full.',
+      assignedTo: 'someone@example.com'
+    })
+
+    expect(call.wrote).toMatchObject({ project: 'proj', type: 'Bug' })
+    expect(call.wrote?.document).toEqual([
+      { op: 'add', path: '/fields/System.Title', value: 'Disk full' },
+      { op: 'add', path: '/fields/System.Description', value: 'It is full.' },
+      { op: 'add', path: '/fields/System.AssignedTo', value: 'someone@example.com' }
+    ])
+    // The board url, not the REST resource: a step templating {{...url}} into a
+    // message wants something a person can follow.
+    expect(result).toMatchObject({
+      id: 101,
+      url: 'https://dev.azure.com/contoso/proj/_workitems/edit/101',
+      state: 'New'
+    })
+  })
+
+  it('defaults the type, so the simplest call is title only', async () => {
+    const { wit, call } = respondWith([])
+    await harness(wit).execute('createWorkItem', { title: 'Just this' })
+
+    expect(call.wrote).toMatchObject({ type: 'Task' })
+    // Fields nobody supplied are left out rather than sent empty.
+    expect(call.wrote?.document).toEqual([
+      { op: 'add', path: '/fields/System.Title', value: 'Just this' }
+    ])
+  })
+
+  it('describes a bare response rather than rendering "undefined" into a message', async () => {
+    // A create can come back with only an id when the type has no default
+    // title rule, and String(undefined) in a Slack message reads as a bug.
+    const { wit } = respondWith([])
+    wit.createWorkItem = vi.fn(async () => ({}))
+    const result = await harness(wit).execute('createWorkItem', { title: 'x' })
+
+    expect(result).toMatchObject({ id: 0, title: '', state: '' })
+  })
+
+  it('creates on another project when the step names one', async () => {
+    const { wit, call } = respondWith([])
+    await harness(wit).execute('createWorkItem', { title: 'x', project: 'Other' })
+    expect(call.wrote).toMatchObject({ project: 'Other' })
+  })
+
+  it('refuses a title that is only whitespace', async () => {
+    const { wit } = respondWith([])
+    await expect(harness(wit).execute('createWorkItem', { title: '   ' })).rejects.toThrow(
+      /title is required/
+    )
+  })
+
+  it('says which setting is missing rather than failing at the API', async () => {
+    const { wit } = respondWith([])
+    await expect(
+      harness(wit, { organization: 'contoso', query: 'q' }).execute('createWorkItem', {
+        title: 'x'
+      })
+    ).rejects.toThrow('ADO_PROJECT is required')
+  })
+})
+
+describe('updateWorkItem action', () => {
+  it('changes only the fields the step supplied', async () => {
+    const { wit, call } = respondWith([])
+    const result = await harness(wit).execute('updateWorkItem', { id: 42, state: 'Closed' })
+
+    expect(call.wrote).toMatchObject({ id: 42 })
+    expect(call.wrote?.document).toEqual([
+      { op: 'add', path: '/fields/System.State', value: 'Closed' }
+    ])
+    expect(result).toMatchObject({ id: 42, state: 'Closed' })
+  })
+
+  it('takes an id that arrived as text, the way a template renders it', async () => {
+    // {{trigger.item.externalId}} is a string; requiring a number would make
+    // the obvious wiring fail.
+    const { wit, call } = respondWith([])
+    await harness(wit).execute('updateWorkItem', { id: '42', title: 'Renamed' })
+    expect(call.wrote).toMatchObject({ id: 42 })
+  })
+
+  it('lets the SDK reject an id that is not a number at all', async () => {
+    // Declaring the input as a number means this never reaches the action, and
+    // the message names the argument.
+    const { wit } = respondWith([])
+    await expect(
+      harness(wit).execute('updateWorkItem', { id: 'the disk one', title: 'x' })
+    ).rejects.toThrow(/argument "id".*Expected a number/)
+  })
+
+  it('refuses a number that is not a work item id', async () => {
+    // 0 and -1 are numbers, so nothing upstream stops them; PATCH on
+    // /workitems/0 fails with something about a malformed url.
+    const { wit } = respondWith([])
+    await expect(harness(wit).execute('updateWorkItem', { id: 0, title: 'x' })).rejects.toThrow(
+      /must be a work item number/
+    )
+    await expect(harness(wit).execute('updateWorkItem', { id: 1.5, title: 'x' })).rejects.toThrow(
+      /must be a work item number/
+    )
+  })
+
+  it('refuses an update that would change nothing', async () => {
+    const { wit } = respondWith([])
+    await expect(harness(wit).execute('updateWorkItem', { id: 42 })).rejects.toThrow(
+      /No fields to update/
+    )
+  })
+})
+
+describe('what the manifest promises', () => {
+  it('marks creating as not repeatable and updating as repeatable', () => {
+    // An agent retrying a failed step has no other way to know that calling
+    // create twice makes two work items.
+    const actions = createAdoConnector({ getToken }).actions ?? []
+    expect(actions.find((a) => a.type === 'createWorkItem')?.idempotent).toBe(false)
+    expect(actions.find((a) => a.type === 'updateWorkItem')?.idempotent).toBe(true)
+  })
+
+  it('ships the Azure DevOps mark rather than something board-shaped', () => {
+    const icon = createAdoConnector({ getToken }).icon
+    expect(icon?.viewBox).toBe('0 0 24 24')
+    expect(icon?.paths).toHaveLength(1)
+    expect(icon?.paths[0]).toMatch(/^M0 8\.877L2\.247 5\.91/)
   })
 })

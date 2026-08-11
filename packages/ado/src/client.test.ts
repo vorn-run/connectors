@@ -1,7 +1,9 @@
 import { describe, it, expect, vi } from 'vitest'
 import {
   createConnection,
+  createWorkItem,
   defaultCredential,
+  fieldPatch,
   entraToken,
   witApi,
   organizationName,
@@ -9,6 +11,7 @@ import {
   workItemUrl,
   queryWorkItemIds,
   readWorkItems,
+  updateWorkItem,
   ADO_SCOPE,
   type WitApi,
   type WorkItem
@@ -25,6 +28,8 @@ function fakeWit(overrides: Partial<WitApi> = {}): WitApi {
   return {
     queryByWiql: vi.fn(async () => ({ workItems: [] })),
     getWorkItems: vi.fn(async () => [] as WorkItem[]),
+    createWorkItem: vi.fn(async () => ({ id: 1 }) as WorkItem),
+    updateWorkItem: vi.fn(async () => ({ id: 1 }) as WorkItem),
     ...overrides
   }
 }
@@ -220,5 +225,104 @@ describe('auth scope', () => {
     // Getting this wrong does not fail cleanly: the API answers with an HTML
     // sign-in page, so the value is pinned here deliberately.
     expect(ADO_SCOPE).toBe('499b84ac-1321-427f-aa17-267ca6975798/.default')
+  })
+})
+
+describe('fieldPatch', () => {
+  it('names each field as a path the API will take', () => {
+    expect(fieldPatch({ 'System.Title': 'Disk full' })).toEqual([
+      { op: 'add', path: '/fields/System.Title', value: 'Disk full' }
+    ])
+  })
+
+  it('leaves out what was not supplied, so an update touches nothing else', () => {
+    // The whole point of a patch: a blank Description must not blank the
+    // Description that is already there.
+    expect(fieldPatch({ a: 'x', b: undefined, c: '' })).toEqual([
+      { op: 'add', path: '/fields/a', value: 'x' }
+    ])
+  })
+
+  it('escapes a field name that would otherwise read as two path segments', () => {
+    // JSON Pointer, not a URL: `/` and `~` have to be escaped or the server
+    // reads `/fields/Custom/Rank` as a field named Custom containing Rank.
+    expect(fieldPatch({ 'Custom/Rank': 1 })[0].path).toBe('/fields/Custom~1Rank')
+    expect(fieldPatch({ 'A~B': 1 })[0].path).toBe('/fields/A~0B')
+  })
+
+  it('uses add rather than replace, which fails on a field never set', () => {
+    expect(fieldPatch({ a: 1 })[0].op).toBe('add')
+  })
+})
+
+describe('createWorkItem', () => {
+  it('sends the patch to the right project and type', async () => {
+    const wit = fakeWit()
+    await createWorkItem(wit, {
+      project: 'proj',
+      type: 'Bug',
+      fields: { 'System.Title': 'Disk full' }
+    })
+
+    expect(wit.createWorkItem).toHaveBeenCalledWith(
+      null,
+      [{ op: 'add', path: '/fields/System.Title', value: 'Disk full' }],
+      'proj',
+      'Bug'
+    )
+  })
+
+  it('returns what the API made', async () => {
+    const created = { id: 42, fields: { 'System.Title': 'Disk full' } }
+    const wit = fakeWit({ createWorkItem: vi.fn(async () => created) })
+    expect(await createWorkItem(wit, { project: 'p', type: 'Task', fields: {} })).toBe(created)
+  })
+
+  it('explains a sign-in page rather than reporting a parse error', async () => {
+    const wit = fakeWit({
+      createWorkItem: vi.fn(async () => {
+        throw new Error('Unexpected token < in JSON at position 0')
+      })
+    })
+    await expect(
+      createWorkItem(wit, { project: 'p', type: 'Task', fields: {} })
+    ).rejects.toThrow(/sign-in page/)
+  })
+})
+
+describe('updateWorkItem', () => {
+  it('patches only the fields it was given', async () => {
+    const wit = fakeWit()
+    await updateWorkItem(wit, {
+      id: 42,
+      fields: { 'System.State': 'Closed', 'System.Title': undefined }
+    })
+
+    expect(wit.updateWorkItem).toHaveBeenCalledWith(
+      null,
+      [{ op: 'add', path: '/fields/System.State', value: 'Closed' }],
+      42
+    )
+  })
+
+  it('refuses an update that would change nothing', async () => {
+    // An empty patch is accepted and does nothing, which reads in a run as a
+    // step that worked.
+    const wit = fakeWit()
+    await expect(updateWorkItem(wit, { id: 42, fields: {} })).rejects.toThrow(
+      /No fields to update/
+    )
+    expect(wit.updateWorkItem).not.toHaveBeenCalled()
+  })
+
+  it('surfaces a real API error', async () => {
+    const wit = fakeWit({
+      updateWorkItem: vi.fn(async () => {
+        throw new Error('TF401232: Work item 42 does not exist')
+      })
+    })
+    await expect(
+      updateWorkItem(wit, { id: 42, fields: { a: 'b' } })
+    ).rejects.toThrow(/TF401232/)
   })
 })

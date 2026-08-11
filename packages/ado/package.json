@@ -1,6 +1,6 @@
 {
   "name": "@vornrun/connector-ado",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Azure DevOps connector for Vorn \u2014 trigger workflows from work items a WIQL query returns.",
   "type": "module",
   "license": "MIT",

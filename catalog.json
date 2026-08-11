@@ -6,9 +6,10 @@
       "name": "Azure DevOps",
       "description": "Trigger workflows from the work items a WIQL query returns.",
       "packageName": "@vornrun/connector-ado",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "capabilities": [
-        "triggers"
+        "triggers",
+        "actions"
       ],
       "category": "Development",
       "keywords": [
@@ -23,9 +24,7 @@
       "icon": {
         "viewBox": "0 0 24 24",
         "paths": [
-          "M4 4h5v16H4a1 1 0 01-1-1V5a1 1 0 011-1z",
-          "M10.5 4h3v9h-3z",
-          "M15 4h5a1 1 0 011 1v14a1 1 0 01-1 1h-5z"
+          "M0 8.877L2.247 5.91l8.405-3.416V.022l7.37 5.393L2.966 8.338v8.225L0 15.707zm24-4.45v14.651l-5.753 4.9-9.303-3.057v3.056l-5.978-7.416 15.057 1.798V5.415z"
         ]
       },
       "triggers": [
@@ -35,7 +34,18 @@
           "description": "Fires once per work item the WIQL query newly returns."
         }
       ],
-      "actions": [],
+      "actions": [
+        {
+          "type": "createWorkItem",
+          "label": "Create a work item",
+          "description": "Add a work item to the board and return its id and url."
+        },
+        {
+          "type": "updateWorkItem",
+          "label": "Update a work item",
+          "description": "Change the title, state, description or assignee of a work item."
+        }
+      ],
       "env": [
         {
           "name": "ADO_ORGANIZATION",

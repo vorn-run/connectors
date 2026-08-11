@@ -933,6 +933,22 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@vornrun/connector-linear@workspace:packages/linear":
+  version: 0.0.0-use.local
+  resolution: "@vornrun/connector-linear@workspace:packages/linear"
+  dependencies:
+    "@types/node": "npm:^22.10.2"
+    "@vitest/coverage-v8": "npm:^4.1.10"
+    "@vornrun/connector-sdk": "npm:^0.5.5"
+    tsup: "npm:^8.5.1"
+    typescript: "npm:^6.0.3"
+    vitest: "npm:^4.1.10"
+    zod: "npm:^4.4.3"
+  bin:
+    vorn-connector-linear: dist/index.js
+  languageName: unknown
+  linkType: soft
+
 "@vornrun/connector-sdk@npm:^0.5.5":
   version: 0.5.5
   resolution: "@vornrun/connector-sdk@npm:0.5.5"

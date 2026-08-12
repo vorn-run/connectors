@@ -225,6 +225,89 @@
           "required": false
         }
       ]
+    },
+    {
+      "id": "notion",
+      "name": "Notion",
+      "description": "Trigger workflows from Notion database pages, and create or update them.",
+      "packageName": "@vornrun/connector-notion",
+      "version": "0.1.0",
+      "capabilities": [
+        "triggers",
+        "actions"
+      ],
+      "category": "Productivity",
+      "keywords": [
+        "notion",
+        "docs",
+        "database",
+        "pages",
+        "notes",
+        "wiki"
+      ],
+      "auth": "Paste a Notion integration token, then share the pages you want it to see with the connection in Notion. There is no Notion CLI to sign in with.",
+      "icon": {
+        "viewBox": "0 0 24 24",
+        "paths": [
+          "M4.459 4.208c.746.606 1.026.56 2.428.466l13.215-.793c.28 0 .047-.28-.046-.326L17.86 1.968c-.42-.326-.98-.7-2.055-.607L3.01 2.295c-.466.046-.56.28-.374.466z",
+          "M5.25 8.058v13.904c0 .747.373 1.027 1.214.98L20.99 22.1c.841-.046.935-.56.935-1.167V7.122c0-.606-.233-.933-.748-.887l-14.7.855c-.56.047-.746.327-.746.933zm14.28.7c.093.42 0 .84-.42.888l-.68.135v9.966c-.59.317-1.132.498-1.588.498-.727 0-.909-.227-1.453-.907l-4.451-6.992v6.765l1.408.317s0 .816-1.136.816l-3.132.181c-.09-.181 0-.635.317-.726l.818-.226V9.801L8.06 9.71c-.09-.42.137-1.021.784-1.067l3.359-.227 4.678 7.148V9.393l-1.181-.136c-.091-.5.273-.863.727-.908z"
+        ]
+      },
+      "triggers": [
+        {
+          "type": "pageChanged",
+          "label": "A page is created or changed",
+          "description": "Fires once per page in the database that Vorn has not seen at this time. Deleted and moved pages produce no event — polling only sees what still matches."
+        }
+      ],
+      "actions": [
+        {
+          "type": "createPage",
+          "label": "Create a page",
+          "description": "Add a page to the configured data source."
+        },
+        {
+          "type": "updatePage",
+          "label": "Update a page",
+          "description": "Set properties on an existing page."
+        },
+        {
+          "type": "findPages",
+          "label": "Find pages",
+          "description": "Query the configured data source and return the pages it matches."
+        }
+      ],
+      "env": [
+        {
+          "name": "NOTION_TOKEN",
+          "required": true,
+          "description": "An internal integration token or personal API key from notion.so/profile/integrations. There is no Notion CLI to sign in with."
+        },
+        {
+          "name": "NOTION_DATABASE_ID",
+          "required": true,
+          "description": "Paste the database URL, or the 32-character id from it."
+        },
+        {
+          "name": "NOTION_DATA_SOURCE_ID",
+          "required": false,
+          "description": "Only needed when the database has more than one data source. Blank resolves it."
+        },
+        {
+          "name": "NOTION_FILTER",
+          "required": false,
+          "description": "A JSON filter in Notion's own syntax, ANDed with the poll watermark."
+        },
+        {
+          "name": "NOTION_STATUS_PROPERTY",
+          "required": false,
+          "description": "Name of the property carrying status. Blank uses the first status, then select, property."
+        },
+        {
+          "name": "NOTION_LIMIT",
+          "required": false
+        }
+      ]
     }
   ]
 }

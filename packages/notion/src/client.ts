@@ -181,9 +181,28 @@ const RETRY_BASE_MS = 500
  * integration in the workspace, so a fleet of unjittered clients backing off
  * on the same curve re-collides on every attempt.
  */
+/**
+ * Read one header out of either shape an error carries them in.
+ *
+ * `APIResponseError.headers` is a `Headers`, and indexed access on one returns
+ * `undefined` — `Object.entries()` on it is `[]` as well, so nothing about the
+ * failure is visible from the outside. Only `.get()` reads it, and that already
+ * matches case-insensitively. A plain object still reaches here from errors
+ * built by hand, so both are handled rather than betting on either.
+ */
+function headerValue(headers: unknown, lowercaseName: string): string | undefined {
+  if (!headers || typeof headers !== 'object') return undefined
+  const get = (headers as Headers).get
+  if (typeof get === 'function') return (headers as Headers).get(lowercaseName) ?? undefined
+  const record = headers as Record<string, string>
+  const key = Object.keys(record).find((k) => k.toLowerCase() === lowercaseName)
+  return key === undefined ? undefined : record[key]
+}
+
 export function retryDelayMs(error: unknown, attempt: number, random = Math.random): number {
-  const headers = (error as { headers?: Record<string, string> })?.headers
-  const header = headers?.['retry-after'] ?? headers?.['Retry-After']
+  // An HTTP-date `Retry-After` parses to NaN here and falls through to the
+  // backoff below. That is the safe direction, and Notion documents seconds.
+  const header = headerValue((error as { headers?: unknown })?.headers, 'retry-after')
   const seconds = Number(header)
   if (Number.isFinite(seconds) && seconds > 0) return seconds * 1000
   const backoff = RETRY_BASE_MS * 2 ** attempt

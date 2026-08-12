@@ -220,19 +220,35 @@ describe('withExplanation', () => {
 })
 
 describe('retryDelayMs', () => {
+  // The SDK hands back `Headers`, not an object literal. A plain-object
+  // fixture here passes against code that reads the header by index — which
+  // returns `undefined` on a real `Headers` — so the test would go green while
+  // every 429 in production ignored Notion's interval. These use the real type
+  // for that reason.
   it('obeys Retry-After in seconds, because it reflects the shared workspace budget', () => {
     const error = Object.assign(new Error('slow down'), {
       status: 429,
-      headers: { 'retry-after': '7' }
+      headers: new Headers({ 'retry-after': '7' })
     })
     // Not the backoff curve: 7s, exactly as Notion asked.
     expect(retryDelayMs(error, 0, () => 0.5)).toBe(7000)
     expect(retryDelayMs(error, 3, () => 0.5)).toBe(7000)
   })
 
+  it('reads a Headers even though indexing one yields nothing', () => {
+    const headers = new Headers({ 'retry-after': '7' })
+    // The trap, asserted so it cannot quietly stop being true: this is why
+    // indexed access is the wrong way to read these.
+    expect((headers as unknown as Record<string, string>)['retry-after']).toBeUndefined()
+    expect(Object.entries(headers)).toEqual([])
+    expect(retryDelayMs({ headers }, 0, () => 0.5)).toBe(7000)
+  })
+
   it('reads the header whatever case Notion sent it in', () => {
-    const error = Object.assign(new Error('slow down'), { headers: { 'Retry-After': '2' } })
-    expect(retryDelayMs(error, 0, () => 0.5)).toBe(2000)
+    expect(retryDelayMs({ headers: new Headers({ 'Retry-After': '2' }) }, 0, () => 0.5)).toBe(2000)
+    // Errors built by hand still carry a plain object; both shapes work.
+    expect(retryDelayMs({ headers: { 'Retry-After': '2' } }, 0, () => 0.5)).toBe(2000)
+    expect(retryDelayMs({ headers: { 'retry-after': '2' } }, 0, () => 0.5)).toBe(2000)
   })
 
   it('backs off exponentially with full jitter when there is no header', () => {
@@ -245,10 +261,17 @@ describe('retryDelayMs', () => {
   })
 
   it('ignores a Retry-After that is not a usable number', () => {
-    for (const value of ['soon', '0', '-1', '']) {
-      const error = Object.assign(new Error('x'), { headers: { 'retry-after': value } })
+    // 'Wed, 21 Oct 2026 07:28:00 GMT' is the HTTP-date form: legal, and not
+    // something this parses. It has to fall to the backoff, never to NaN.
+    for (const value of ['soon', '0', '-1', '', 'Wed, 21 Oct 2026 07:28:00 GMT']) {
+      const error = Object.assign(new Error('x'), { headers: new Headers({ 'retry-after': value }) })
       expect(retryDelayMs(error, 0, () => 0.5)).toBe(250)
     }
+  })
+
+  it('falls back when the error carries no headers at all', () => {
+    expect(retryDelayMs({ headers: undefined }, 0, () => 0.5)).toBe(250)
+    expect(retryDelayMs({ headers: 'nonsense' }, 0, () => 0.5)).toBe(250)
   })
 })
 

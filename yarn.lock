@@ -446,6 +446,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@notionhq/client@npm:^5.24.0":
+  version: 5.24.0
+  resolution: "@notionhq/client@npm:5.24.0"
+  checksum: 10c0/b348ec997e128afe4b7759731a1d47687043ea99c7215dc08527c972d198e7487019ee64b3f23357d52e67727f0a11c4389c53c435fb71868a2b74f4471d54db
+  languageName: node
+  linkType: hard
+
 "@oxc-project/types@npm:=0.143.0":
   version: 0.143.0
   resolution: "@oxc-project/types@npm:0.143.0"
@@ -946,6 +953,23 @@ __metadata:
     zod: "npm:^4.4.3"
   bin:
     vorn-connector-linear: dist/index.js
+  languageName: unknown
+  linkType: soft
+
+"@vornrun/connector-notion@workspace:packages/notion":
+  version: 0.0.0-use.local
+  resolution: "@vornrun/connector-notion@workspace:packages/notion"
+  dependencies:
+    "@notionhq/client": "npm:^5.24.0"
+    "@types/node": "npm:^22.10.2"
+    "@vitest/coverage-v8": "npm:^4.1.10"
+    "@vornrun/connector-sdk": "npm:^0.5.7"
+    tsup: "npm:^8.5.1"
+    typescript: "npm:^6.0.3"
+    vitest: "npm:^4.1.10"
+    zod: "npm:^4.4.3"
+  bin:
+    vorn-connector-notion: dist/index.js
   languageName: unknown
   linkType: soft
 

@@ -151,6 +151,80 @@
           "description": "How far back the very first poll looks, e.g. 30m, 2h, 7d."
         }
       ]
+    },
+    {
+      "id": "linear",
+      "name": "Linear",
+      "description": "Trigger workflows from Linear issues, and comment or close them from a step.",
+      "packageName": "@vornrun/connector-linear",
+      "version": "0.1.0",
+      "capabilities": [
+        "triggers",
+        "actions"
+      ],
+      "category": "Development",
+      "keywords": [
+        "linear",
+        "issues",
+        "tickets",
+        "engineering",
+        "backlog"
+      ],
+      "auth": "Uses a Linear personal API key, created at linear.app/settings/api.",
+      "icon": {
+        "viewBox": "0 0 24 24",
+        "paths": [
+          "M3.035 12.943c.207 1.98 1.07 3.904 2.587 5.421 1.517 1.517 3.441 2.38 5.42 2.587z",
+          "M3 11.494L12.492 20.986c.806-.045 1.606-.198 2.378-.459L3.459 9.115A9.6 9.6 0 003 11.494z",
+          "M3.867 8.11l12.009 12.009a9.6 9.6 0 001.773-1.123L4.99 6.337a9.6 9.6 0 00-1.123 1.773z",
+          "M5.663 5.595c3.518-3.474 9.186-3.46 12.687.04 3.501 3.501 3.515 9.169.041 12.687z"
+        ]
+      },
+      "triggers": [
+        {
+          "type": "issueCreated",
+          "label": "An issue is created or changed",
+          "description": "Fires for each issue the query returns that Vorn has not seen at this time."
+        }
+      ],
+      "actions": [
+        {
+          "type": "commentOnIssue",
+          "label": "Comment on an issue",
+          "description": "Post a comment on a Linear issue."
+        },
+        {
+          "type": "createIssue",
+          "label": "Create an issue",
+          "description": "Open a new Linear issue and return its identifier and url."
+        },
+        {
+          "type": "closeIssue",
+          "label": "Close an issue",
+          "description": "Move an issue to the first completed state its team defines."
+        }
+      ],
+      "env": [
+        {
+          "name": "LINEAR_API_KEY",
+          "required": true,
+          "description": "Create a personal API key at linear.app/settings/api."
+        },
+        {
+          "name": "LINEAR_TEAM_KEY",
+          "required": false,
+          "description": "Upper-case key such as ENG. Leave blank for every team you can see."
+        },
+        {
+          "name": "LINEAR_STATE_TYPE",
+          "required": false,
+          "description": "One of backlog, unstarted, started, completed, canceled. Blank for all states."
+        },
+        {
+          "name": "LINEAR_LIMIT",
+          "required": false
+        }
+      ]
     }
   ]
 }

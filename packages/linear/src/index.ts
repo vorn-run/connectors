@@ -7,6 +7,6 @@ export type { LinearConnectorOptions } from './connector'
 
 const { version } = createRequire(import.meta.url)('../package.json') as { version: string }
 
-export const adoConnector = createLinearConnector({ version })
+export const linearConnector = createLinearConnector({ version })
 
-serveIfEntryPoint(adoConnector, import.meta.url)
+serveIfEntryPoint(linearConnector, import.meta.url)

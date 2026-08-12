@@ -1,7 +1,7 @@
 {
-  "name": "@vornrun/connector-ado",
-  "version": "0.2.0",
-  "description": "Azure DevOps connector for Vorn — trigger workflows from work items a WIQL query returns.",
+  "name": "@vornrun/connector-linear",
+  "version": "0.1.0",
+  "description": "Trigger workflows from Linear issues.",
   "type": "module",
   "license": "MIT",
   "repository": {
@@ -10,7 +10,7 @@
     "directory": "packages/ado"
   },
   "bin": {
-    "vorn-connector-ado": "dist/index.js"
+    "vorn-connector-linear": "dist/index.js"
   },
   "main": "./dist/index.js",
   "files": [
@@ -22,9 +22,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@azure/identity": "^4.13.1",
-    "@vornrun/connector-sdk": "^0.5.5",
-    "azure-devops-node-api": "15.1.2",
+    "@vornrun/connector-sdk": "^0.5.7",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -37,13 +35,12 @@
   "vorn": {
     "category": "Development",
     "keywords": [
-      "azure devops",
-      "ado",
-      "work items",
-      "wiql",
-      "boards",
-      "tfs"
+      "linear",
+      "issues",
+      "tickets",
+      "engineering",
+      "backlog"
     ],
-    "auth": "Signs in with your Azure identity — `az login` is usually all it needs."
+    "auth": "Uses a Linear personal API key, created at linear.app/settings/api."
   }
 }

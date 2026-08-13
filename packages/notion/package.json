@@ -1,0 +1,63 @@
+{
+  "name": "@vornrun/connector-notion",
+  "version": "0.1.0",
+  "description": "Trigger Vorn workflows from Notion database pages.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Javier Canizalez <javier-canizalez@outlook.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vorn-run/connectors.git",
+    "directory": "packages/notion"
+  },
+  "keywords": [
+    "vorn",
+    "connector",
+    "notion",
+    "mcp"
+  ],
+  "bin": {
+    "vorn-connector-notion": "dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@notionhq/client": "^5.24.0",
+    "@vornrun/connector-sdk": "^0.5.7",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@vitest/coverage-v8": "^4.1.10",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.10"
+  },
+  "vorn": {
+    "category": "Productivity",
+    "keywords": [
+      "notion",
+      "docs",
+      "database",
+      "pages",
+      "notes",
+      "wiki"
+    ],
+    "auth": "Paste a Notion integration token, then share the pages you want it to see with the connection in Notion. There is no Notion CLI to sign in with."
+  }
+}

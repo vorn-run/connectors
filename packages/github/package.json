@@ -1,0 +1,49 @@
+{
+  "name": "@vornrun/connector-github",
+  "version": "0.1.0",
+  "description": "Trigger workflows from GitHub issues and pull requests.",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vorn-run/connectors.git",
+    "directory": "packages/github"
+  },
+  "bin": {
+    "vorn-connector-github": "dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --target node22 --clean",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@octokit/plugin-retry": "^8.1.1",
+    "@octokit/plugin-throttling": "^11.0.5",
+    "@octokit/rest": "^22.0.1",
+    "@vornrun/connector-sdk": "^0.5.7",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@vitest/coverage-v8": "^4.1.10",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.10"
+  },
+  "vorn": {
+    "category": "Development",
+    "keywords": [
+      "github",
+      "issues",
+      "pull requests",
+      "code review",
+      "repositories"
+    ],
+    "auth": "Borrows the GitHub CLI's login — `gh auth login` is all it needs, and no token is stored here."
+  }
+}

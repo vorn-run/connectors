@@ -43,6 +43,38 @@ for (const name of packages) {
 
   const tests = readdirSync(`${dir}/src`).filter((file) => file.endsWith('.test.ts'))
   if (tests.length === 0) problems.push(`${name}: no tests under src/`)
+
+  // The release workflow reads its notes from this file, between the heading
+  // for the version being tagged and the next heading. A missing section fails
+  // the release *after* the tag exists and, worse, after npm has the publish —
+  // which cannot be taken back. Checking it here means the pull request fails
+  // instead, while the version number is still a line in a diff.
+  if (!existsSync(`${dir}/README.md`)) problems.push(`${name}: no README.md`)
+
+  const changelogPath = `${dir}/CHANGELOG.md`
+  if (!existsSync(changelogPath)) {
+    problems.push(`${name}: no CHANGELOG.md, so a release of it would have no notes`)
+  } else {
+    const heading = `## ${pkg.version}`
+    const lines = readFileSync(changelogPath, 'utf8').split('\n')
+    const start = lines.findIndex((line) => line.trim() === heading)
+    if (start === -1) {
+      problems.push(`${name}: CHANGELOG.md has no "${heading}" section for the version in package.json`)
+    } else {
+      const rest = lines.slice(start + 1)
+      const end = rest.findIndex((line) => line.startsWith('## '))
+      const section = (end === -1 ? rest : rest.slice(0, end)).join('').trim()
+      if (section === '') problems.push(`${name}: CHANGELOG.md "${heading}" section is empty`)
+    }
+  }
+
+  // npm never includes CHANGELOG.md on its own, and `files` is what decides.
+  // A changelog that exists in the repo but not in the tarball is not much use
+  // to someone reading the package on npm.
+  const files = pkg.files ?? []
+  for (const required of ['README.md', 'CHANGELOG.md']) {
+    if (!files.includes(required)) problems.push(`${name}: "${required}" is not in package.json "files"`)
+  }
 }
 
 if (problems.length > 0) {

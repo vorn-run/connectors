@@ -29,7 +29,8 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsup",
@@ -38,8 +39,7 @@
   },
   "dependencies": {
     "@notionhq/client": "^5.24.0",
-    "@vornrun/connector-sdk": "^0.5.7",
-    "zod": "^4.4.3"
+    "@vornrun/connector-sdk": "^0.5.7"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

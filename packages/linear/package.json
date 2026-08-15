@@ -22,8 +22,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@vornrun/connector-sdk": "^0.5.7",
-    "zod": "^4.4.3"
+    "@vornrun/connector-sdk": "^0.5.7"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

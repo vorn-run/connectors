@@ -1082,7 +1082,6 @@ __metadata:
     tsup: "npm:^8.5.1"
     typescript: "npm:^6.0.3"
     vitest: "npm:^4.1.10"
-    zod: "npm:^4.4.3"
   bin:
     vorn-connector-ado: dist/index.js
   languageName: unknown
@@ -1101,7 +1100,6 @@ __metadata:
     tsup: "npm:^8.5.1"
     typescript: "npm:^6.0.3"
     vitest: "npm:^4.1.10"
-    zod: "npm:^4.4.3"
   bin:
     vorn-connector-github: dist/index.js
   languageName: unknown
@@ -1119,7 +1117,6 @@ __metadata:
     tsup: "npm:^8.5.1"
     typescript: "npm:^6.0.3"
     vitest: "npm:^4.1.10"
-    zod: "npm:^4.4.3"
   bin:
     vorn-connector-kusto: dist/index.js
   languageName: unknown
@@ -1135,7 +1132,6 @@ __metadata:
     tsup: "npm:^8.5.1"
     typescript: "npm:^6.0.3"
     vitest: "npm:^4.1.10"
-    zod: "npm:^4.4.3"
   bin:
     vorn-connector-linear: dist/index.js
   languageName: unknown
@@ -1152,7 +1148,6 @@ __metadata:
     tsup: "npm:^8.5.1"
     typescript: "npm:^6.0.3"
     vitest: "npm:^4.1.10"
-    zod: "npm:^4.4.3"
   bin:
     vorn-connector-notion: dist/index.js
   languageName: unknown

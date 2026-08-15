@@ -41,8 +41,7 @@
   "dependencies": {
     "@azure/identity": "^4.13.1",
     "@vornrun/connector-sdk": "^0.5.5",
-    "azure-kusto-data": "7.2.0",
-    "zod": "^4.4.3"
+    "azure-kusto-data": "7.2.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

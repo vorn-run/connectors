@@ -44,8 +44,15 @@ jobs:
       # exact commit being published. A tag can point at any commit, including
       # one that never sat on main, and npm publishes are not retractable after
       # 72 hours.
+      #
+      # `yarn build` comes before the catalog check on purpose: that check
+      # imports each package's built dist/ to read its manifest, so on a fresh
+      # checkout it fails with "packages/ado is not built" rather than telling
+      # you anything about the catalog. Every workspace is built, not just the
+      # one being released, because the check reads all five.
       - run: yarn typecheck
       - run: yarn workspace ${{ steps.pkg.outputs.workspace }} run test
+      - run: yarn build
       - run: node scripts/build-catalog.mjs --check
 
       # The release notes come from the package's own CHANGELOG.md, read
@@ -76,9 +83,9 @@ jobs:
             echo 'CHANGELOG_EOF'
           } >> "$GITHUB_OUTPUT"
 
-      # Just this package: a connector depends on the published SDK, not on
-      # another workspace, so there is no dependency graph to walk.
-      - run: yarn workspace ${{ steps.pkg.outputs.workspace }} run build
+      # `yarn build` above already built this package along with the rest, so
+      # what ships is the artifact the catalog check just read rather than a
+      # second, later build of the same source.
       - run: yarn npm publish --access public
         working-directory: ${{ steps.pkg.outputs.dir }}
         env:

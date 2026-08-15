@@ -7,14 +7,16 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/vorn-run/connectors.git",
-    "directory": "packages/ado"
+    "directory": "packages/linear"
   },
   "bin": {
     "vorn-connector-linear": "dist/index.js"
   },
   "main": "./dist/index.js",
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsup src/index.ts --format esm --target node22 --clean",

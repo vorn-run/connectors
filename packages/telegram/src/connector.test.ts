@@ -549,10 +549,11 @@ describe('the messageReceived trigger', () => {
     expect(page.nextCursor).toBe(formatCursor(11))
   })
 
-  it('collapses a message and its own edit when both land in one batch', async () => {
-    // They share an externalId, and the SDK rejects a page with a duplicate.
-    // A page that always throws is never confirmed, so this batch would block
-    // the queue until it expired 24 hours later — which is data loss.
+  it('reports a message and its own edit as two events in one batch', async () => {
+    // The edit carries its edit_date in the id, so it is a different event from
+    // the message it edits. Vorn inserts an item with INSERT OR IGNORE keyed on
+    // this id and has no update path, so an edit reusing the message's id would
+    // be discarded by the host before a workflow ever saw it.
     const original = messageUpdate(7, { text: 'deploy started' })
     const edit: TelegramUpdate = {
       update_id: 8,
@@ -566,14 +567,62 @@ describe('the messageReceived trigger', () => {
 
     const page = await harness.poll('messageReceived')
 
-    expect(page.items).toHaveLength(1)
-    // The later update wins, so what survives is the message's newest state.
-    expect(page.items[0]).toMatchObject({
-      externalId: '-1001234567890:70',
-      title: 'deploy finished',
-      status: 'edited'
-    })
+    expect(page.items.map((item) => item.externalId)).toEqual([
+      '-1001234567890:70',
+      `-1001234567890:70:e${SENT_AT_UNIX + 30}`
+    ])
+    expect(page.items[1]).toMatchObject({ title: 'deploy finished', status: 'edited' })
     expect(page.nextCursor).toBe(formatCursor(9))
+  })
+
+  it('gives an edit an id the host has not already stored', async () => {
+    // The defect this guards: an edit arriving in a later poll than the message
+    // it edits. Sharing the message's id, it collided with the row already in
+    // connector_inbox and was dropped, which made the `edited` status
+    // unreachable for every message that had already been delivered.
+    const original = messageUpdate(7, { text: 'deploy started' })
+    const edit: TelegramUpdate = {
+      update_id: 8,
+      edited_message: {
+        ...original.message!,
+        text: 'deploy finished',
+        edit_date: SENT_AT_UNIX + 30
+      }
+    }
+    const { harness } = harnessFor({ getUpdates: [ok([original]), ok([edit])] })
+
+    const first = await harness.poll('messageReceived')
+    const second = await harness.poll('messageReceived', { cursor: first.nextCursor })
+
+    expect(first.items[0].externalId).toBe('-1001234567890:70')
+    expect(second.items[0].externalId).toBe(`-1001234567890:70:e${SENT_AT_UNIX + 30}`)
+    expect(second.items[0].externalId).not.toBe(first.items[0].externalId)
+    expect(second.items[0]).toMatchObject({ title: 'deploy finished', status: 'edited' })
+  })
+
+  it('collapses two edits Telegram stamped in the same second', async () => {
+    // edit_date is seconds, so this pair genuinely shares an id. The SDK
+    // rejects a page carrying a duplicate, and a page that always throws is
+    // never confirmed — that batch would block the queue for 24 hours.
+    const original = messageUpdate(7, { text: 'first' })
+    const editAt = SENT_AT_UNIX + 30
+    const editOne: TelegramUpdate = {
+      update_id: 8,
+      edited_message: { ...original.message!, text: 'second', edit_date: editAt }
+    }
+    const editTwo: TelegramUpdate = {
+      update_id: 9,
+      edited_message: { ...original.message!, text: 'third', edit_date: editAt }
+    }
+    const { harness } = harnessFor({ getUpdates: [ok([editOne, editTwo])] })
+
+    const page = await harness.poll('messageReceived')
+
+    expect(page.items).toHaveLength(1)
+    expect(page.items[0]).toMatchObject({
+      externalId: `-1001234567890:70:e${editAt}`,
+      title: 'third'
+    })
   })
 
   it('waits out a flood control answer and polls again', async () => {

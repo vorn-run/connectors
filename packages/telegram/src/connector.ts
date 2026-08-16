@@ -278,6 +278,18 @@ export function matchesChat(chat: TelegramChat, wanted?: string): boolean {
  * `message_id` as "unique message identifier inside this chat". Every other
  * connector here has a globally unique id; this one cannot.
  *
+ * An edit adds `:e<edit_date>`, so it is a *different* event from the message it
+ * edits. That is not decoration. Vorn stores an item with
+ * `INSERT OR IGNORE ... UNIQUE (workflow_id, connection_id, event_type,
+ * event_id)`, and `event_id` is this field — so an edit that reused the
+ * message's id would be dropped by the host before any workflow saw it, and the
+ * `edited` status below would be unreachable for every message already
+ * delivered. There is no update path: a repeated id is discarded, not applied.
+ *
+ * The cost is that editing a message starts a second run rather than revising
+ * the first, which is the honest shape of what Telegram reports. Two edits
+ * inside the same second collapse into one, because `edit_date` is seconds.
+ *
  * There is no `url`. Telegram's Bot API documents no permalink for a message,
  * and the `t.me` forms that circulate are not in the reference and do not work
  * for private chats. An invented link that 404s is worse than no link.
@@ -294,7 +306,10 @@ export function updateToItem(
   const author = message.from
 
   return {
-    externalId: `${message.chat.id}:${message.message_id}`,
+    externalId:
+      message.edit_date === undefined
+        ? `${message.chat.id}:${message.message_id}`
+        : `${message.chat.id}:${message.message_id}:e${message.edit_date}`,
     // A photo with no caption has no text at all, and the SDK rejects an item
     // with an empty title.
     title: title || `Message ${message.message_id} in ${chatLabel(message.chat)}`,
@@ -402,11 +417,14 @@ export function createTelegramConnector(options: TelegramConnectorOptions = {}) 
       throw explainGetUpdatesFailure(error)
     }
 
-    // Keyed by externalId, because a message and an edit of it can land in the
-    // same batch and both map to the same id. The SDK rejects a page with a
-    // duplicate id, and a page that always throws is never confirmed — the
-    // batch would block the queue until it expired. The later update wins, so
-    // what survives is the message's newest state.
+    // Keyed by externalId because the SDK rejects a page carrying a duplicate,
+    // and a page that always throws is never confirmed — that batch would block
+    // the queue until it expired 24 hours later, which is data loss.
+    //
+    // A message and an edit of it now differ (the edit carries its edit_date),
+    // so both survive a batch that holds the pair. What this still collapses is
+    // a genuine repeat: the same update seen twice, or two edits Telegram
+    // stamped in the same second. The later one wins.
     const items = new Map<string, ConnectorItem>()
     for (const update of updates) {
       const found = messageOf(update)

@@ -25,8 +25,9 @@ being confirmed inside one, and a negative offset — the one call Telegram
 documents as destructive — can never reach the wire.
 
 Consequences worth knowing before you connect it: one bot token can only be read
-by one connection, there is no backfill, and `vorn-connector check --live`
-consumes real messages. The README says all of this louder.
+by one connection, there is no backfill, editing a message starts a second run
+rather than revising the first, and `vorn-connector check --live` consumes real
+messages. The README says all of this louder.
 
 Built against Telegram's own Bot API reference at 10.2, hand-rolled at zero
 dependencies. There is no vendor SDK to prefer — Telegram maintains none — and

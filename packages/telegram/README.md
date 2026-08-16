@@ -100,6 +100,14 @@ a globally unique id and this one cannot. Items carry no `url`: the Bot API
 documents no permalink for a message, and the `t.me` forms that circulate are
 not in the reference and do not resolve for private chats.
 
+**An edit is a separate run, not a revision of the first.** Its id carries the
+edit's timestamp — `chatId:messageId:e<edit_date>` — so editing a message starts
+a new run rather than changing the task the original made. That is forced rather
+than chosen: Vorn files an item under its id and discards one it has already
+seen, with no path to apply an update, so an edit reusing the message's id would
+never reach a workflow at all. Two edits inside the same second arrive as one,
+because Telegram stamps `edit_date` in whole seconds.
+
 | Message | Task status |
 | --- | --- |
 | `received` | `todo` |

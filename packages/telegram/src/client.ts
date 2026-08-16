@@ -310,9 +310,12 @@ export async function getUpdates(options: GetUpdatesOptions): Promise<TelegramUp
       ...(offset !== undefined && { offset }),
       limit: options.limit,
       timeout: options.timeoutSeconds,
-      // Sent on every call. Whether Telegram remembers the last value per token
-      // between calls is not documented, so the connector never depends on the
-      // answer.
+      // Sent on every call, though the reference says "if not specified, the
+      // previous setting will be used" — precisely because that setting is
+      // remembered per token, outlives this process, and is writable by anything
+      // else holding the same token. Restating it each time is how a poll gets
+      // the types this connection asked for rather than the ones something else
+      // left behind.
       allowed_updates: options.allowedUpdates
     },
     ...(options.fetchImpl && { fetchImpl: options.fetchImpl }),

@@ -149,10 +149,11 @@ update with nothing mappable in it — are confirmed along with the rest. That i
 deliberate: leaving them unconfirmed would re-read them on every poll for the
 life of the connection.
 
-A message and an edit of it can arrive in the same batch, and they share an id.
-Vorn rejects a page containing the same id twice, and a page that always fails
-is never confirmed — the batch would block the queue until it expired. So the
-two are collapsed into one item carrying the newest state.
+A message and an edit of it can arrive in the same batch. They are two events
+and arrive as two items, because the edit's id carries its `edit_date`. What is
+still collapsed is a genuine repeat — the same update twice, or two edits
+Telegram stamped in the same second — because Vorn rejects a page containing one
+id twice, and a page that always fails is never confirmed.
 
 ## Actions
 

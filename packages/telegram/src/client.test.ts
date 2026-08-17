@@ -339,8 +339,8 @@ describe('getUpdates', () => {
       offset: 42,
       limit: 100,
       timeout: 10,
-      // Sent on every call: whether Telegram remembers the last value is
-      // undocumented, so the connector never depends on the answer.
+      // Sent on every call because the setting is remembered per token and
+      // outlives this process, so anything else holding it could have set it.
       allowed_updates: ['message', 'edited_message']
     })
   })

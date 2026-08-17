@@ -306,10 +306,12 @@ export function updateToItem(
   const author = message.from
 
   return {
-    externalId:
-      message.edit_date === undefined
-        ? `${message.chat.id}:${message.message_id}`
-        : `${message.chat.id}:${message.message_id}:e${message.edit_date}`,
+    // Keyed on the update type, not on edit_date being present: the reference
+    // marks that field optional, and an edit reusing the message's id is
+    // discarded by the host rather than delivered.
+    externalId: EDIT_TYPES.has(type)
+      ? `${message.chat.id}:${message.message_id}:e${message.edit_date ?? message.date}`
+      : `${message.chat.id}:${message.message_id}`,
     // A photo with no caption has no text at all, and the SDK rejects an item
     // with an empty title.
     title: title || `Message ${message.message_id} in ${chatLabel(message.chat)}`,

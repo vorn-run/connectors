@@ -1,0 +1,38 @@
+{
+  "meta": {
+    "id": "triage-new-tasks",
+    "name": "Triage new tasks",
+    "description": "When a task is created, have an agent read it and say what it will take.",
+    "steps": ["Task created", "Agent"],
+    "category": "Tasks"
+  },
+  "version": 1,
+  "slug": "triage-new-tasks",
+  "name": "Triage new tasks",
+  "icon": "ListChecks",
+  "iconColor": "#7d9471",
+  "nodes": [
+    {
+      "id": "trigger",
+      "type": "trigger",
+      "label": "When Task Created",
+      "config": { "triggerType": "taskCreated" },
+      "position": { "x": 0, "y": 0 }
+    },
+    {
+      "id": "triage",
+      "type": "launchAgent",
+      "label": "Launch Agent",
+      "slug": "launch-agent",
+      "config": {
+        "agentType": "claude",
+        "projectName": "{{project.name}}",
+        "projectPath": "{{project.path}}",
+        "headless": true,
+        "prompt": "Read this task and reply with the files it touches and a rough size:\n\n{{task.title}}\n\n{{task.description}}"
+      },
+      "position": { "x": 0, "y": 0 }
+    }
+  ],
+  "edges": [{ "id": "e1", "source": "trigger", "target": "triage" }]
+}

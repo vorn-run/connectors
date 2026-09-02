@@ -19,6 +19,7 @@ import { readFileSync, writeFileSync, readdirSync, existsSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 import { resolve } from 'node:path'
 import { connectorManifest } from '@vornrun/connector-sdk'
+import { catalogEntry, readTemplateFiles } from './templates.mjs'
 
 const CATALOG_VERSION = 1
 
@@ -95,7 +96,12 @@ const dirs = readdirSync('packages', { withFileTypes: true })
 const connectors = []
 for (const dir of dirs) connectors.push(await entryFor(dir))
 
-const catalog = JSON.stringify({ version: CATALOG_VERSION, connectors }, null, 2) + '\n'
+// Templates ride the same document because the app fetches one file: a second
+// URL would be a second thing to be stale, offline, or half-published.
+const templates = readTemplateFiles().map((file) => catalogEntry(file.document))
+
+const catalog = JSON.stringify({ version: CATALOG_VERSION, connectors, templates }, null, 2) + '\n'
+const summary = `${connectors.length} connector(s), ${templates.length} template(s)`
 
 if (process.argv.includes('--check')) {
   const current = existsSync('catalog.json') ? readFileSync('catalog.json', 'utf8') : ''
@@ -103,8 +109,8 @@ if (process.argv.includes('--check')) {
     console.error('catalog.json is stale — run `node scripts/build-catalog.mjs` and commit it.')
     process.exit(1)
   }
-  console.log(`catalog ok — ${connectors.length} connector(s), matching their manifests`)
+  console.log(`catalog ok — ${summary}, matching their manifests`)
 } else {
   writeFileSync('catalog.json', catalog)
-  console.log(`catalog written — ${connectors.length} connector(s)`)
+  console.log(`catalog written — ${summary}`)
 }

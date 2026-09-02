@@ -56,6 +56,7 @@ and timestamp if they are not called `Id` and `Timestamp`.
 
 ```
 packages/<name>/     one npm package per connector
+templates/           workflows a new workflow can start from
 catalog.json         the list the app offers under Connections → Add
 scripts/             repository checks run in CI
 ```
@@ -65,6 +66,43 @@ icon, triggers, actions and the settings it will ask for come out of its own
 manifest, so the list cannot advertise a trigger that has since been renamed.
 Run `node scripts/build-catalog.mjs` after changing a connector; CI checks the
 committed file still matches.
+
+## Contribute a template
+
+A template is a starting point for a new workflow: someone picks it instead of
+an empty canvas and gets a wired one, with anything it still needs — a
+connection, an HTTP profile — named on the step that wants it.
+
+Templates are exported workflows, so building one is building a workflow:
+
+1. Build it in Vorn and run it, so you know it works.
+2. **Export as file** from the workflow's menu.
+3. Add the file to `templates/` and give it a `meta` block:
+
+```json
+{
+  "meta": {
+    "id": "morning-digest",
+    "name": "Morning digest",
+    "description": "Every weekday morning, gather what changed overnight and have an agent write it up.",
+    "steps": ["Schedule", "Script", "Agent"],
+    "category": "Reporting"
+  },
+  "version": 1,
+  "...": "the rest of the exported file, unchanged"
+}
+```
+
+The filename is `<id>.vorn-workflow.json`, and `meta.steps` is the chain as
+someone scanning the list would read it.
+
+4. Run `node scripts/check-templates.mjs`, then
+   `node scripts/build-catalog.mjs` to put it in the catalog, and commit both.
+
+Export already replaces your paths with `{{project.path}}` and leaves connection
+ids and webhook tokens behind — each install resolves its own. CI checks that
+again: a machine path, a published token, or a step type the app cannot draw
+fails the build rather than reaching anyone.
 
 ## Developing
 

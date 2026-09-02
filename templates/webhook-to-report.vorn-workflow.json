@@ -1,0 +1,54 @@
+{
+  "meta": {
+    "id": "webhook-to-report",
+    "name": "Webhook to report",
+    "description": "Take a request from another system, look at what it says, and post the ones that matter on somewhere else.",
+    "steps": ["Webhook", "Condition", "HTTP request"],
+    "category": "Integrations"
+  },
+  "version": 1,
+  "slug": "webhook-to-report",
+  "name": "Webhook to report",
+  "icon": "Webhook",
+  "iconColor": "#6f8faf",
+  "requires": [{ "kind": "httpProfile", "nodeId": "report", "name": "reporting API" }],
+  "nodes": [
+    {
+      "id": "trigger",
+      "type": "trigger",
+      "label": "Webhook",
+      "config": { "triggerType": "webhook", "method": "POST", "token": "" },
+      "position": { "x": 0, "y": 0 }
+    },
+    {
+      "id": "check",
+      "type": "condition",
+      "label": "Condition",
+      "slug": "condition",
+      "config": {
+        "variable": "{{trigger.body.severity}}",
+        "operator": "contains",
+        "value": "bug"
+      },
+      "position": { "x": 0, "y": 0 }
+    },
+    {
+      "id": "report",
+      "type": "httpRequest",
+      "label": "HTTP Request",
+      "slug": "http-request",
+      "config": {
+        "nodeType": "httpRequest",
+        "method": "POST",
+        "url": "/reports",
+        "headers": { "Content-Type": "application/json" },
+        "body": "{\"summary\": \"{{trigger.body.summary}}\"}"
+      },
+      "position": { "x": 0, "y": 0 }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "source": "trigger", "target": "check" },
+    { "id": "e2", "source": "check", "target": "report", "conditionBranch": "true" }
+  ]
+}

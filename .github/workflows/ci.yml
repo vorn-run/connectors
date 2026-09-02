@@ -24,6 +24,12 @@ jobs:
       - name: Check every package is wired into the gate
         run: node scripts/check-packages.mjs
 
+      # A template is published to every install at once and arrives as data
+      # the editor walks, so a step type this build cannot draw is a broken
+      # canvas on someone else's machine rather than a failure here.
+      - name: Check the templates would open
+        run: node scripts/check-templates.mjs
+
       # catalog.json is generated from the connectors' own manifests. Checking
       # it here means a renamed trigger cannot leave the app advertising the old
       # one, which nothing else would catch until someone tried to use it.

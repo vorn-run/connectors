@@ -7,10 +7,7 @@
       "description": "Trigger workflows from the work items a WIQL query returns.",
       "packageName": "@vornrun/connector-ado",
       "version": "0.2.2",
-      "capabilities": [
-        "triggers",
-        "actions"
-      ],
+      "capabilities": ["triggers", "actions"],
       "category": "Development",
       "keywords": [
         "azure devops",
@@ -89,10 +86,7 @@
       "description": "Trigger workflows from GitHub issues and pull requests, and open, close or comment on them from a step.",
       "packageName": "@vornrun/connector-github",
       "version": "0.1.2",
-      "capabilities": [
-        "triggers",
-        "actions"
-      ],
+      "capabilities": ["triggers", "actions"],
       "category": "Development",
       "keywords": [
         "github",
@@ -176,10 +170,7 @@
       "description": "Trigger workflows from GitLab issues, merge requests and pipeline results, and create or comment on issues and merge requests from a step.",
       "packageName": "@vornrun/connector-gitlab",
       "version": "0.1.1",
-      "capabilities": [
-        "triggers",
-        "actions"
-      ],
+      "capabilities": ["triggers", "actions"],
       "category": "Development",
       "keywords": [
         "gitlab",
@@ -293,10 +284,7 @@
       "description": "Trigger workflows from the rows a KQL query returns.",
       "packageName": "@vornrun/connector-kusto",
       "version": "0.6.2",
-      "capabilities": [
-        "triggers",
-        "actions"
-      ],
+      "capabilities": ["triggers", "actions"],
       "category": "Data & observability",
       "keywords": [
         "kusto",
@@ -392,18 +380,9 @@
       "description": "Trigger workflows from Linear issues, and comment or close them from a step.",
       "packageName": "@vornrun/connector-linear",
       "version": "0.1.2",
-      "capabilities": [
-        "triggers",
-        "actions"
-      ],
+      "capabilities": ["triggers", "actions"],
       "category": "Development",
-      "keywords": [
-        "linear",
-        "issues",
-        "tickets",
-        "engineering",
-        "backlog"
-      ],
+      "keywords": ["linear", "issues", "tickets", "engineering", "backlog"],
       "auth": "Uses a Linear personal API key, created at linear.app/settings/api.",
       "authRung": "key",
       "verified": {
@@ -481,19 +460,9 @@
       "description": "Trigger workflows from Notion database pages, and create or update them.",
       "packageName": "@vornrun/connector-notion",
       "version": "0.1.2",
-      "capabilities": [
-        "triggers",
-        "actions"
-      ],
+      "capabilities": ["triggers", "actions"],
       "category": "Productivity",
-      "keywords": [
-        "notion",
-        "docs",
-        "database",
-        "pages",
-        "notes",
-        "wiki"
-      ],
+      "keywords": ["notion", "docs", "database", "pages", "notes", "wiki"],
       "auth": "Paste a Notion integration token, then share the pages you want it to see with the connection in Notion. There is no Notion CLI to sign in with.",
       "authRung": "key",
       "verified": {
@@ -579,10 +548,7 @@
       "description": "Trigger workflows from new rows in a PostgreSQL database, and query or write to it from a step.",
       "packageName": "@vornrun/connector-postgres",
       "version": "0.1.1",
-      "capabilities": [
-        "triggers",
-        "actions"
-      ],
+      "capabilities": ["triggers", "actions"],
       "category": "Data & observability",
       "keywords": [
         "postgres",
@@ -714,10 +680,7 @@
       "description": "Trigger workflows from Slack messages, thread replies and channel members, and post, reply or react from a step.",
       "packageName": "@vornrun/connector-slack",
       "version": "0.1.0",
-      "capabilities": [
-        "triggers",
-        "actions"
-      ],
+      "capabilities": ["triggers", "actions"],
       "category": "Communication",
       "keywords": [
         "slack",
@@ -841,11 +804,7 @@
       "id": "morning-digest",
       "name": "Morning digest",
       "description": "Every weekday morning, gather what changed overnight and have an agent write it up.",
-      "steps": [
-        "Schedule",
-        "Script",
-        "Agent"
-      ],
+      "steps": ["Schedule", "Script", "Agent"],
       "category": "Reporting",
       "portable": {
         "version": 1,
@@ -919,10 +878,7 @@
       "id": "triage-new-tasks",
       "name": "Triage new tasks",
       "description": "When a task is created, have an agent read it and say what it will take.",
-      "steps": [
-        "Task created",
-        "Agent"
-      ],
+      "steps": ["Task created", "Agent"],
       "category": "Tasks",
       "portable": {
         "version": 1,
@@ -974,11 +930,7 @@
       "id": "webhook-to-report",
       "name": "Webhook to report",
       "description": "Take a request from another system, look at what it says, and post the ones that matter on somewhere else.",
-      "steps": [
-        "Webhook",
-        "Condition",
-        "HTTP request"
-      ],
+      "steps": ["Webhook", "Condition", "HTTP request"],
       "category": "Integrations",
       "portable": {
         "version": 1,

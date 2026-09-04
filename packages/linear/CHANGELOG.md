@@ -22,7 +22,7 @@ Trigger a workflow from Linear issues, and let a workflow step write back.
 - **Signing in:** a Linear personal API key, created at
   linear.app/settings/api.
 
-Status is mapped from Linear's state *type* rather than its name, so a team can
+Status is mapped from Linear's state _type_ rather than its name, so a team can
 rename "In Progress" to whatever it likes without breaking the mapping.
 
 Built against Linear's GraphQL API directly rather than on their SDK. The SDK is

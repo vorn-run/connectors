@@ -186,7 +186,7 @@ describe('messageInChannel', () => {
     expect(second.nextCursor).toBe(first.nextCursor)
   })
 
-  it('stops a catch-up walk after ten pages', async () => {
+  it('stops a walk after ten pages, whether or not it has a cursor', async () => {
     const h = harness((url) => ({
       ok: true,
       messages: [
@@ -196,9 +196,35 @@ describe('messageInChannel', () => {
     }))
 
     const first = await h.poll('messageInChannel')
-    await h.poll('messageInChannel', { cursor: first.nextCursor })
+    expect(h.calls).toHaveLength(10)
 
-    expect(h.calls).toHaveLength(11)
+    await h.poll('messageInChannel', { cursor: first.nextCursor })
+    expect(h.calls).toHaveLength(20)
+  })
+
+  it('walks on past a short page until it holds the configured limit, not counting skipped messages', async () => {
+    const h = harness(
+      (url) => {
+        const cursor = url.searchParams.get('cursor')
+        if (cursor === 'p2') {
+          return { ok: true, messages: [{ type: 'message', user: 'U1', text: 'B', ts: '1700000002.000000' }], response_metadata: { next_cursor: 'p3' } }
+        }
+        return {
+          ok: true,
+          messages: [
+            { type: 'message', user: 'U1', text: 'C', ts: '1700000003.000000' },
+            { type: 'message', bot_id: 'B1', text: 'noise', ts: '1700000002.500000' }
+          ],
+          response_metadata: { next_cursor: 'p2' }
+        }
+      },
+      { limit: '2' }
+    )
+
+    const page = await h.poll('messageInChannel')
+
+    expect(h.calls).toHaveLength(2)
+    expect(page.items.map((item) => item.title)).toEqual(['B', 'C'])
   })
 
   it('honours the configured page size within Slack’s bounds', async () => {

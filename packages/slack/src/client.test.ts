@@ -124,7 +124,7 @@ describe('slackPages', () => {
       { channel: 'C1', limit: 2 },
       { token, fetch: fetchImpl },
       (page) => page.members,
-      10
+      { items: Number.POSITIVE_INFINITY, pages: 10 }
     )
 
     expect(members).toEqual(['U1', 'U2', 'U3'])
@@ -141,14 +141,14 @@ describe('slackPages', () => {
       { channel: 'C1' },
       { token, fetch: fetchImpl },
       (page) => page.members ?? [],
-      10
+      { items: Number.POSITIVE_INFINITY, pages: 10 }
     )
 
     expect(members).toEqual(['U1'])
     expect(calls).toHaveLength(1)
   })
 
-  it('stops at maxPages rather than following a cursor forever', async () => {
+  it('stops at the page bound rather than following a cursor forever', async () => {
     const { fetchImpl, calls } = fakeFetch([
       { body: { ok: true, members: ['U1'], response_metadata: { next_cursor: 'again' } } }
     ])
@@ -158,10 +158,29 @@ describe('slackPages', () => {
       { channel: 'C1' },
       { token, fetch: fetchImpl },
       (page) => page.members,
-      3
+      { items: Number.POSITIVE_INFINITY, pages: 3 }
     )
 
     expect(members).toEqual(['U1', 'U1', 'U1'])
     expect(calls).toHaveLength(3)
+  })
+
+  it('stops once it holds as many entries as asked for', async () => {
+    const { fetchImpl, calls } = fakeFetch([
+      { body: { ok: true, members: ['U1'], response_metadata: { next_cursor: 'p2' } } },
+      { body: { ok: true, members: ['U2', 'U3'], response_metadata: { next_cursor: 'p3' } } },
+      { body: { ok: true, members: ['U4'] } }
+    ])
+
+    const members = await slackPages<{ members: string[] }, string>(
+      'conversations.members',
+      { channel: 'C1' },
+      { token, fetch: fetchImpl },
+      (page) => page.members,
+      { items: 2, pages: 10 }
+    )
+
+    expect(members).toEqual(['U1', 'U2', 'U3'])
+    expect(calls).toHaveLength(2)
   })
 })

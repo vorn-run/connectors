@@ -49,11 +49,13 @@ methods at one request a minute.
 
 **A message is posted in a channel** reads `conversations.history` and delivers
 messages oldest first. The newest delivered `ts` is the cursor and goes back as
-`oldest`, which is exclusive, so nothing is delivered twice. The first poll
-reads one page, the newest messages, rather than the channel's whole history;
-later polls follow `next_cursor` until they catch up, up to ten pages. Messages
-with a `subtype` (`channel_join`, `channel_topic`, `message_changed`, …) or a
-`bot_id` are skipped unless `includeBots` is `true`. Thread replies only appear
+`oldest`, which is exclusive, so nothing is delivered twice. A poll follows
+`next_cursor` until it holds `limit` messages worth delivering or Slack has no
+more, ten pages at most, so the first poll reads the newest messages rather
+than the channel's whole history. Messages with a `subtype` (`channel_join`,
+`channel_topic`, `message_changed`, …) or a `bot_id` are skipped unless
+`includeBots` is `true`, and skipped messages do not count towards `limit`, so
+a run of bot posts cannot hide the person after it. Thread replies only appear
 here when they were also broadcast to the channel.
 
 **A reply is posted in a thread** reads `conversations.replies` for the

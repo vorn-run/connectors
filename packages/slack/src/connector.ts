@@ -10,7 +10,7 @@ import { slackGet, slackPages, slackPost, type SlackCallOptions, type SlackEnvel
 const DEFAULT_LIMIT = 100
 /** conversations.history refuses a larger page. */
 const MAX_PAGE_SIZE = 999
-/** Pages a catch-up poll follows before leaving the rest for the next one. */
+/** A walk ends at the configured limit; this is the guard for a channel that is all noise. */
 const MAX_HISTORY_PAGES = 10
 const MEMBERS_PAGE_SIZE = 200
 const MAX_MEMBER_PAGES = 50
@@ -171,34 +171,32 @@ async function fetchMessages(context: FetchContext): Promise<ConnectorItem[]> {
   const { config } = context
   const channel = required(config, 'channel', 'SLACK_CHANNEL')
   const includeBots = config.includeBots === 'true'
-  // Slack lists newest first, so without a cursor one page is the newest messages, not the channel's whole history.
+  const limit = pageSize(config)
+  // Skipped messages do not count towards the limit, or a run of bot posts would hide the person after it.
   const messages = await slackPages<MessagesPage, SlackMessage>(
     'conversations.history',
-    { channel, oldest: context.lastItemId, limit: pageSize(config) },
+    { channel, oldest: context.lastItemId, limit },
     auth(context),
-    (page) => page.messages ?? [],
-    context.lastItemId === undefined ? 1 : MAX_HISTORY_PAGES
+    (page) => (page.messages ?? []).filter((message) => includeBots || !isNoise(message)),
+    { items: limit, pages: MAX_HISTORY_PAGES }
   )
-  return newestFirst(messages.filter((message) => includeBots || !isNoise(message))).map(
-    (message) => messageToItem(channel, message)
-  )
+  return newestFirst(messages).map((message) => messageToItem(channel, message))
 }
 
 async function fetchReplies(context: FetchContext): Promise<ConnectorItem[]> {
   const { config } = context
   const channel = required(config, 'channel', 'SLACK_CHANNEL')
   const threadTs = required(config, 'threadTs', 'SLACK_THREAD_TS')
+  const limit = pageSize(config)
+  // The parent rides along in every page; its ts is the thread's.
   const messages = await slackPages<MessagesPage, SlackMessage>(
     'conversations.replies',
-    { channel, ts: threadTs, oldest: context.lastItemId, limit: pageSize(config) },
+    { channel, ts: threadTs, oldest: context.lastItemId, limit },
     auth(context),
-    (page) => page.messages ?? [],
-    MAX_HISTORY_PAGES
+    (page) => (page.messages ?? []).filter((message) => message.ts !== threadTs),
+    { items: limit, pages: MAX_HISTORY_PAGES }
   )
-  // The parent rides along in every page; its ts is the thread's.
-  return newestFirst(messages.filter((message) => message.ts !== threadTs)).map((message) =>
-    messageToItem(channel, message)
-  )
+  return newestFirst(messages).map((message) => messageToItem(channel, message))
 }
 
 async function fetchMembers(context: FetchContext): Promise<ConnectorItem[]> {
@@ -208,7 +206,7 @@ async function fetchMembers(context: FetchContext): Promise<ConnectorItem[]> {
     { channel, limit: MEMBERS_PAGE_SIZE },
     auth(context),
     (page) => page.members ?? [],
-    MAX_MEMBER_PAGES
+    { items: Number.POSITIVE_INFINITY, pages: MAX_MEMBER_PAGES }
   )
   // No updatedAt on purpose: Slack gives no join time, and stamping poll time would redeliver everyone every poll.
   return members.map((user) => ({

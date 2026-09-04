@@ -59,17 +59,23 @@ export async function slackPost<T>(
   return (await readEnvelope(method, response)) as T & SlackEnvelope
 }
 
-/** Follow `next_cursor` until Slack has no more pages or `maxPages` is reached. */
+/** How far a walk goes: it ends at `items` collected, at `pages` fetched, or when Slack has no more. */
+export interface SlackWalk {
+  items: number
+  pages: number
+}
+
+/** Follow `next_cursor` until the walk's bounds are met or Slack has no more pages. */
 export async function slackPages<T, R>(
   method: string,
   params: SlackParams,
   options: SlackCallOptions,
   entries: (page: T & SlackEnvelope) => R[],
-  maxPages: number
+  walk: SlackWalk
 ): Promise<R[]> {
   const collected: R[] = []
   let cursor: string | undefined
-  for (let index = 0; index < maxPages; index++) {
+  for (let index = 0; index < walk.pages && collected.length < walk.items; index++) {
     const page = await slackGet<T>(method, { ...params, cursor }, options)
     collected.push(...entries(page))
     cursor = page.response_metadata?.next_cursor || undefined

@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "version": "0.1.0",
+  "checkedAt": "2026-09-04T13:06:19.548Z",
+  "checks": [
+    "manifest",
+    "auth",
+    "secrets",
+    "actions",
+    "dedupe",
+    "no-lifecycle-scripts",
+    "keywords",
+    "no-runtime-deps",
+    "mock"
+  ]
+}

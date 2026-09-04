@@ -566,6 +566,132 @@
           "required": false
         }
       ]
+    },
+    {
+      "id": "slack",
+      "name": "Slack",
+      "description": "Trigger workflows from Slack messages, thread replies and channel members, and post, reply or react from a step.",
+      "packageName": "@vornrun/connector-slack",
+      "version": "0.1.0",
+      "capabilities": [
+        "triggers",
+        "actions"
+      ],
+      "category": "Communication",
+      "keywords": [
+        "slack",
+        "chat",
+        "messages",
+        "channels",
+        "threads",
+        "reactions",
+        "workspace"
+      ],
+      "auth": "Uses a bot token from a Slack app installed to the workspace: api.slack.com/apps, OAuth & Permissions, Bot User OAuth Token.",
+      "authRung": "key",
+      "verified": {
+        "schema": 1,
+        "version": "0.1.0",
+        "checkedAt": "2026-09-04T13:06:19.548Z",
+        "checks": [
+          "manifest",
+          "auth",
+          "secrets",
+          "actions",
+          "dedupe",
+          "no-lifecycle-scripts",
+          "keywords",
+          "no-runtime-deps",
+          "mock"
+        ]
+      },
+      "icon": {
+        "viewBox": "0 0 24 24",
+        "paths": [
+          "M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zm1.271 0a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zm0 1.271a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zm10.122 2.521a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zm-1.268 0a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zm-2.523 10.122a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zm0-1.268a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"
+        ]
+      },
+      "triggers": [
+        {
+          "type": "messageInChannel",
+          "label": "A message is posted in a channel",
+          "description": "Fires for each new message in the configured channel. Bot and system messages are skipped unless includeBots is true."
+        },
+        {
+          "type": "replyInThread",
+          "label": "A reply is posted in a thread",
+          "description": "Fires for each new reply under the configured parent message."
+        },
+        {
+          "type": "memberJoinedChannel",
+          "label": "A member joins a channel",
+          "description": "Fires once for each user id in the channel that has not been seen before."
+        }
+      ],
+      "actions": [
+        {
+          "type": "postMessage",
+          "label": "Post a message",
+          "description": "Post a message to a channel, optionally under a thread or with Block Kit blocks."
+        },
+        {
+          "type": "replyInThread",
+          "label": "Reply in a thread",
+          "description": "Post a reply under a parent message."
+        },
+        {
+          "type": "addReaction",
+          "label": "Add a reaction",
+          "description": "React to a message with an emoji."
+        },
+        {
+          "type": "listChannels",
+          "label": "List channels",
+          "description": "List the public and private channels the bot can see, unarchived only."
+        },
+        {
+          "type": "getChannel",
+          "label": "Get a channel",
+          "description": "Read one channel by id."
+        },
+        {
+          "type": "findUserByEmail",
+          "label": "Find a user by email",
+          "description": "Look a user up by the address registered on the workspace."
+        },
+        {
+          "type": "getUser",
+          "label": "Get a user",
+          "description": "Read one user by id."
+        }
+      ],
+      "env": [
+        {
+          "name": "SLACK_BOT_TOKEN",
+          "required": true,
+          "description": "Bot User OAuth Token (xoxb-…) of a Slack app installed to the workspace, from api.slack.com/apps under OAuth & Permissions."
+        },
+        {
+          "name": "SLACK_CHANNEL",
+          "required": false,
+          "description": "Channel id such as C0123456789 the triggers watch. The bot must be a member."
+        },
+        {
+          "name": "SLACK_THREAD_TS",
+          "required": false,
+          "description": "The parent message ts, such as 1512085950.000216, for the reply trigger."
+        },
+        {
+          "name": "SLACK_INCLUDE_BOTS",
+          "required": false,
+          "description": "true delivers messages with a subtype or a bot_id too; joins, topic changes, app posts."
+        },
+        {
+          "name": "SLACK_LIMIT",
+          "required": false,
+          "description": "Messages read per request, 1 to 999."
+        }
+      ]
     }
   ],
   "templates": [

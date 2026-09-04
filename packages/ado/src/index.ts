@@ -9,4 +9,8 @@ const { version } = createRequire(import.meta.url)('../package.json') as { versi
 
 export const adoConnector = createAdoConnector({ version })
 
+// The names the SDK's own tooling loads a connector by.
+export { adoConnector as connector }
+export default adoConnector
+
 serveIfEntryPoint(adoConnector, import.meta.url)

@@ -19,4 +19,8 @@ const { version } = createRequire(import.meta.url)('../package.json') as { versi
 
 export const githubConnector = createGitHubConnector({ version })
 
+// The names the SDK's own tooling loads a connector by.
+export { githubConnector as connector }
+export default githubConnector
+
 serveIfEntryPoint(githubConnector, import.meta.url)

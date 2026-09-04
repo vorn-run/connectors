@@ -9,4 +9,8 @@ const { version } = createRequire(import.meta.url)('../package.json') as { versi
 
 export const kustoConnector = createKustoConnector({ version })
 
+// The names the SDK's own tooling loads a connector by.
+export { kustoConnector as connector }
+export default kustoConnector
+
 serveIfEntryPoint(kustoConnector, import.meta.url)

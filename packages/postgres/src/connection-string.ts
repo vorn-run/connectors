@@ -1,11 +1,4 @@
-/**
- * The libpq connection URI, as the manual describes it:
- * `postgresql://[userspec@][hostspec][/dbname][?paramspec]`.
- *
- * Parsed by hand rather than with `URL`, because a URI with several hosts or
- * a password holding a reserved character must fail with a sentence naming
- * the problem, not with "Invalid URL".
- */
+// The libpq connection URI, parsed by hand so a bad one fails with a sentence naming the problem.
 
 export const SSL_MODES = ['disable', 'allow', 'prefer', 'require', 'verify-ca', 'verify-full'] as const
 export type SslMode = (typeof SSL_MODES)[number]

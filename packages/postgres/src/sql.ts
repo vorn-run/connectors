@@ -1,9 +1,4 @@
-/**
- * SQL text builders and identifier quoting.
- *
- * Every builder returns the statement and its parameters separately: a value
- * never enters the text, so nothing a workflow passes can become SQL.
- */
+// SQL text builders and identifier quoting; a value never enters the text, only the parameter list.
 
 export interface Statement {
   text: string

@@ -2,13 +2,7 @@ import { realpathSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { serveConnector, type Connector } from '@vornrun/connector-sdk'
 
-/**
- * True when this module is the process entry point.
- *
- * Compared through `realpathSync` because Vorn launches the connector via the
- * `node_modules/.bin` symlink, where `argv[1]` is the link and
- * `import.meta.url` is its target.
- */
+// True when this module is the entry point, compared through realpathSync because argv[1] may be the .bin symlink.
 export function isEntryPoint(moduleUrl: string, entry = process.argv[1]): boolean {
   if (!entry) return false
   try {

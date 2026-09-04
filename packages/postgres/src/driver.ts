@@ -1,10 +1,4 @@
-/**
- * The `postgres` driver, held behind the smallest surface this connector uses.
- *
- * The driver is a devDependency inlined by tsup, so the packed connector still
- * carries no runtime dependency. Everything below it is structural: a test
- * hands in its own `sql` and no socket is ever opened.
- */
+// The `postgres` driver behind the smallest surface this connector uses; inlined by tsup, injected in tests.
 import { readFileSync } from 'node:fs'
 import postgres from 'postgres'
 import type { ConnectionOptions } from './connection-string'

@@ -2,6 +2,10 @@
 
 All notable changes to `@vornrun/connector-postgres`.
 
+## 0.1.1
+
+Read the version from the bundle instead of a package.json the packed connector does not carry.
+
 ## 0.1.0
 
 First release.

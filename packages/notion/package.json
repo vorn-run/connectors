@@ -1,6 +1,6 @@
 {
   "name": "@vornrun/connector-notion",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Trigger Vorn workflows from Notion database pages.",
   "type": "module",
   "license": "MIT",

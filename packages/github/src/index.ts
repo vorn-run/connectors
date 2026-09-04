@@ -1,9 +1,8 @@
-import { createRequire } from 'node:module'
-import { createGitHubConnector } from './connector'
-import { serveIfEntryPoint } from './entry'
+import { createGitHubConnector } from "./connector";
+import { serveIfEntryPoint } from "./entry";
 
-export { createGitHubConnector, issueToItem, issueNumber } from './connector'
-export type { GitHubConnectorOptions } from './connector'
+export { createGitHubConnector, issueToItem, issueNumber } from "./connector";
+export type { GitHubConnectorOptions } from "./connector";
 export {
   createGitHubClient,
   createTokenSource,
@@ -11,16 +10,23 @@ export {
   ghInstallHint,
   runGh,
   GhNotFoundError,
-  GhSignedOutError
-} from './client'
-export type { GitHubApi, GitHubClient, PreflightResult, RunGh, TokenSource } from './client'
+  GhSignedOutError,
+} from "./client";
+import pkg from "../package.json";
+export type {
+  GitHubApi,
+  GitHubClient,
+  PreflightResult,
+  RunGh,
+  TokenSource,
+} from "./client";
 
-const { version } = createRequire(import.meta.url)('../package.json') as { version: string }
+const { version } = pkg;
 
-export const githubConnector = createGitHubConnector({ version })
+export const githubConnector = createGitHubConnector({ version });
 
 // The names the SDK's own tooling loads a connector by.
-export { githubConnector as connector }
-export default githubConnector
+export { githubConnector as connector };
+export default githubConnector;
 
-serveIfEntryPoint(githubConnector, import.meta.url)
+serveIfEntryPoint(githubConnector, import.meta.url);

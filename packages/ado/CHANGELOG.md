@@ -2,6 +2,10 @@
 
 All notable changes to `@vornrun/connector-ado`.
 
+## 0.2.2
+
+Read the version from the bundle instead of a package.json the packed connector does not carry.
+
 ## 0.2.1
 
 Declares how it signs in: it borrows the Azure CLI's login, so the app can say

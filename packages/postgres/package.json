@@ -1,6 +1,6 @@
 {
   "name": "@vornrun/connector-postgres",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Trigger workflows from new rows in a PostgreSQL database, and query or write to it from a step.",
   "type": "module",
   "license": "MIT",

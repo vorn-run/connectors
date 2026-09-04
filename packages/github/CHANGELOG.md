@@ -2,6 +2,10 @@
 
 All notable changes to `@vornrun/connector-github`.
 
+## 0.1.2
+
+Read the version from the bundle instead of a package.json the packed connector does not carry.
+
 ## 0.1.1
 
 Declares how it signs in: it borrows the GitHub CLI's login, so the app can say

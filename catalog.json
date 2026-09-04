@@ -6,7 +6,7 @@
       "name": "Azure DevOps",
       "description": "Trigger workflows from the work items a WIQL query returns.",
       "packageName": "@vornrun/connector-ado",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "capabilities": [
         "triggers",
         "actions"
@@ -24,8 +24,8 @@
       "authRung": "cli",
       "verified": {
         "schema": 1,
-        "version": "0.2.1",
-        "checkedAt": "2026-09-04T00:31:32.450Z",
+        "version": "0.2.2",
+        "checkedAt": "2026-09-04T22:55:19.978Z",
         "checks": [
           "auth",
           "secrets",
@@ -35,7 +35,7 @@
           "no-runtime-deps"
         ]
       },
-      "packUrl": "https://github.com/vorn-run/connectors/releases/download/ado-v0.2.1/ado-0.2.1.vorn.tgz",
+      "packUrl": "https://github.com/vorn-run/connectors/releases/download/ado-v0.2.2/ado-0.2.2.vorn.tgz",
       "icon": {
         "viewBox": "0 0 24 24",
         "paths": [
@@ -88,7 +88,7 @@
       "name": "GitHub",
       "description": "Trigger workflows from GitHub issues and pull requests, and open, close or comment on them from a step.",
       "packageName": "@vornrun/connector-github",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "capabilities": [
         "triggers",
         "actions"
@@ -105,8 +105,8 @@
       "authRung": "cli",
       "verified": {
         "schema": 1,
-        "version": "0.1.1",
-        "checkedAt": "2026-09-04T00:31:32.928Z",
+        "version": "0.1.2",
+        "checkedAt": "2026-09-04T22:55:21.748Z",
         "checks": [
           "auth",
           "secrets",
@@ -116,7 +116,7 @@
           "no-runtime-deps"
         ]
       },
-      "packUrl": "https://github.com/vorn-run/connectors/releases/download/github-v0.1.1/github-0.1.1.vorn.tgz",
+      "packUrl": "https://github.com/vorn-run/connectors/releases/download/github-v0.1.2/github-0.1.2.vorn.tgz",
       "icon": {
         "viewBox": "0 0 24 24",
         "paths": [
@@ -175,7 +175,7 @@
       "name": "GitLab",
       "description": "Trigger workflows from GitLab issues, merge requests and pipeline results, and create or comment on issues and merge requests from a step.",
       "packageName": "@vornrun/connector-gitlab",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "capabilities": [
         "triggers",
         "actions"
@@ -194,8 +194,8 @@
       "authRung": "cli",
       "verified": {
         "schema": 1,
-        "version": "0.1.0",
-        "checkedAt": "2026-09-04T03:42:52.496Z",
+        "version": "0.1.1",
+        "checkedAt": "2026-09-04T22:55:22.895Z",
         "checks": [
           "manifest",
           "auth",
@@ -208,7 +208,7 @@
           "mock"
         ]
       },
-      "packUrl": "https://github.com/vorn-run/connectors/releases/download/gitlab-v0.1.0/gitlab-0.1.0.vorn.tgz",
+      "packUrl": "https://github.com/vorn-run/connectors/releases/download/gitlab-v0.1.1/gitlab-0.1.1.vorn.tgz",
       "icon": {
         "viewBox": "0 0 24 24",
         "paths": [
@@ -292,7 +292,7 @@
       "name": "Azure Data Explorer",
       "description": "Trigger workflows from the rows a KQL query returns.",
       "packageName": "@vornrun/connector-kusto",
-      "version": "0.6.1",
+      "version": "0.6.2",
       "capabilities": [
         "triggers",
         "actions"
@@ -311,8 +311,8 @@
       "authRung": "cli",
       "verified": {
         "schema": 1,
-        "version": "0.6.1",
-        "checkedAt": "2026-09-04T00:31:33.726Z",
+        "version": "0.6.2",
+        "checkedAt": "2026-09-04T22:55:24.351Z",
         "checks": [
           "auth",
           "secrets",
@@ -322,7 +322,7 @@
           "no-runtime-deps"
         ]
       },
-      "packUrl": "https://github.com/vorn-run/connectors/releases/download/kusto-v0.6.1/kusto-0.6.1.vorn.tgz",
+      "packUrl": "https://github.com/vorn-run/connectors/releases/download/kusto-v0.6.2/kusto-0.6.2.vorn.tgz",
       "icon": {
         "viewBox": "0 0 24 24",
         "paths": [
@@ -391,7 +391,7 @@
       "name": "Linear",
       "description": "Trigger workflows from Linear issues, and comment or close them from a step.",
       "packageName": "@vornrun/connector-linear",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "capabilities": [
         "triggers",
         "actions"
@@ -408,8 +408,8 @@
       "authRung": "key",
       "verified": {
         "schema": 1,
-        "version": "0.1.1",
-        "checkedAt": "2026-09-04T00:31:33.965Z",
+        "version": "0.1.2",
+        "checkedAt": "2026-09-04T22:55:25.448Z",
         "checks": [
           "auth",
           "secrets",
@@ -419,7 +419,7 @@
           "no-runtime-deps"
         ]
       },
-      "packUrl": "https://github.com/vorn-run/connectors/releases/download/linear-v0.1.1/linear-0.1.1.vorn.tgz",
+      "packUrl": "https://github.com/vorn-run/connectors/releases/download/linear-v0.1.2/linear-0.1.2.vorn.tgz",
       "icon": {
         "viewBox": "0 0 24 24",
         "paths": [
@@ -480,7 +480,7 @@
       "name": "Notion",
       "description": "Trigger workflows from Notion database pages, and create or update them.",
       "packageName": "@vornrun/connector-notion",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "capabilities": [
         "triggers",
         "actions"
@@ -498,8 +498,8 @@
       "authRung": "key",
       "verified": {
         "schema": 1,
-        "version": "0.1.1",
-        "checkedAt": "2026-09-04T00:31:34.213Z",
+        "version": "0.1.2",
+        "checkedAt": "2026-09-04T22:55:26.655Z",
         "checks": [
           "auth",
           "secrets",
@@ -509,7 +509,7 @@
           "no-runtime-deps"
         ]
       },
-      "packUrl": "https://github.com/vorn-run/connectors/releases/download/notion-v0.1.1/notion-0.1.1.vorn.tgz",
+      "packUrl": "https://github.com/vorn-run/connectors/releases/download/notion-v0.1.2/notion-0.1.2.vorn.tgz",
       "icon": {
         "viewBox": "0 0 24 24",
         "paths": [
@@ -578,7 +578,7 @@
       "name": "PostgreSQL",
       "description": "Trigger workflows from new rows in a PostgreSQL database, and query or write to it from a step.",
       "packageName": "@vornrun/connector-postgres",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "capabilities": [
         "triggers",
         "actions"
@@ -596,8 +596,8 @@
       "authRung": "key",
       "verified": {
         "schema": 1,
-        "version": "0.1.0",
-        "checkedAt": "2026-09-04T14:56:22.583Z",
+        "version": "0.1.1",
+        "checkedAt": "2026-09-04T22:55:27.856Z",
         "checks": [
           "manifest",
           "auth",
@@ -608,7 +608,7 @@
           "no-runtime-deps"
         ]
       },
-      "packUrl": "https://github.com/vorn-run/connectors/releases/download/postgres-v0.1.0/postgres-0.1.0.vorn.tgz",
+      "packUrl": "https://github.com/vorn-run/connectors/releases/download/postgres-v0.1.1/postgres-0.1.1.vorn.tgz",
       "icon": {
         "viewBox": "0 0 24 24",
         "paths": [
@@ -733,7 +733,7 @@
       "verified": {
         "schema": 1,
         "version": "0.1.0",
-        "checkedAt": "2026-09-04T13:06:19.548Z",
+        "checkedAt": "2026-09-04T22:55:28.955Z",
         "checks": [
           "manifest",
           "auth",

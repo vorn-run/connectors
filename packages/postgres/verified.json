@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "version": "0.1.0",
-  "checkedAt": "2026-09-04T14:56:22.583Z",
+  "version": "0.1.1",
+  "checkedAt": "2026-09-04T22:55:27.856Z",
   "checks": [
     "manifest",
     "auth",

@@ -1,6 +1,6 @@
 {
   "name": "@vornrun/connector-linear",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Trigger workflows from Linear issues.",
   "type": "module",
   "license": "MIT",

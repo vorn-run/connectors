@@ -1,7 +1,7 @@
 {
   "name": "@vornrun/connector-slack",
   "version": "0.1.0",
-  "description": "Slack connector for Vorn",
+  "description": "Trigger workflows from Slack messages, thread replies and channel members, and post, reply or react from a step.",
   "type": "module",
   "license": "MIT",
   "bin": {
@@ -27,7 +27,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@vornrun/connector-sdk": "^0.7.0-beta.9"
+    "@vornrun/connector-sdk": "^0.7.0-beta.10"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
@@ -37,10 +37,16 @@
     "vitest": "^4.1.10"
   },
   "vorn": {
-    "category": "Other",
+    "category": "Communication",
     "keywords": [
-      "slack"
+      "slack",
+      "chat",
+      "messages",
+      "channels",
+      "threads",
+      "reactions",
+      "workspace"
     ],
-    "auth": "Say in one line what signing in takes."
+    "auth": "Uses a bot token from a Slack app installed to the workspace: api.slack.com/apps, OAuth & Permissions, Bot User OAuth Token."
   }
 }

@@ -1,0 +1,46 @@
+{
+  "name": "@vornrun/connector-slack",
+  "version": "0.1.0",
+  "description": "Slack connector for Vorn",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "vorn-connector-slack": "dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vorn-run/connectors.git",
+    "directory": "packages/slack"
+  },
+  "scripts": {
+    "build": "tsup",
+    "check": "vorn-connector check src/index.ts",
+    "pack": "vorn-connector pack src/index.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@vornrun/connector-sdk": "^0.7.0-beta.9"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@vitest/coverage-v8": "^4.1.10",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.10"
+  },
+  "vorn": {
+    "category": "Other",
+    "keywords": [
+      "slack"
+    ],
+    "auth": "Say in one line what signing in takes."
+  }
+}

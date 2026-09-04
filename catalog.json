@@ -169,6 +169,122 @@
       ]
     },
     {
+      "id": "gitlab",
+      "name": "GitLab",
+      "description": "Trigger workflows from GitLab issues, merge requests and pipeline results, and create or comment on issues and merge requests from a step.",
+      "packageName": "@vornrun/connector-gitlab",
+      "version": "0.1.0",
+      "capabilities": [
+        "triggers",
+        "actions"
+      ],
+      "category": "Development",
+      "keywords": [
+        "gitlab",
+        "issues",
+        "merge requests",
+        "pipelines",
+        "ci",
+        "code review",
+        "repositories"
+      ],
+      "auth": "Borrows the GitLab CLI's login — `glab auth login` is all it needs — or takes a personal access token if you would rather paste one.",
+      "authRung": "cli",
+      "verified": {
+        "schema": 1,
+        "version": "0.1.0",
+        "checkedAt": "2026-09-04T03:42:52.496Z",
+        "checks": [
+          "manifest",
+          "auth",
+          "secrets",
+          "actions",
+          "dedupe",
+          "no-lifecycle-scripts",
+          "keywords",
+          "no-runtime-deps",
+          "mock"
+        ]
+      },
+      "icon": {
+        "viewBox": "0 0 24 24",
+        "paths": [
+          "m23.6004 9.5927-.0337-.0862L20.3.9814a.851.851 0 0 0-.3362-.405.8748.8748 0 0 0-.9997.0539.8748.8748 0 0 0-.29.4399l-2.2055 6.748H7.5375l-2.2057-6.748a.8573.8573 0 0 0-.29-.4412.8748.8748 0 0 0-.9997-.0537.8585.8585 0 0 0-.3362.4049L.4332 9.5015l-.0325.0862a6.0657 6.0657 0 0 0 2.0119 7.0105l.0113.0087.03.0213 4.976 3.7264 2.462 1.8627 1.4995 1.1321a1.0085 1.0085 0 0 0 1.2197 0l1.4995-1.1321 2.4619-1.8627 5.006-3.7489.0125-.01a6.0682 6.0682 0 0 0 2.0094-7.003z"
+        ]
+      },
+      "triggers": [
+        {
+          "type": "issueCreated",
+          "label": "An issue is created",
+          "description": "Fires once for each issue created in the project since the last poll."
+        },
+        {
+          "type": "mergeRequestOpened",
+          "label": "A merge request is opened",
+          "description": "Fires once for each merge request opened in the project since the last poll."
+        },
+        {
+          "type": "pipelineFinished",
+          "label": "A pipeline finishes",
+          "description": "Fires once for each pipeline that reaches success, failed, canceled or skipped, with the status on the item."
+        }
+      ],
+      "actions": [
+        {
+          "type": "createIssue",
+          "label": "Create an issue",
+          "description": "Open a new issue in a project."
+        },
+        {
+          "type": "commentOnIssue",
+          "label": "Comment on an issue",
+          "description": "Post a note on an issue."
+        },
+        {
+          "type": "commentOnMergeRequest",
+          "label": "Comment on a merge request",
+          "description": "Post a note on a merge request."
+        },
+        {
+          "type": "getProject",
+          "label": "Get a project",
+          "description": "Read a project by path or id."
+        },
+        {
+          "type": "listOpenMergeRequests",
+          "label": "List open merge requests",
+          "description": "The open merge requests of a project, most recently updated first."
+        },
+        {
+          "type": "getIssue",
+          "label": "Get an issue",
+          "description": "Read one issue by its number."
+        }
+      ],
+      "env": [
+        {
+          "name": "GITLAB_BASE_URL",
+          "required": false,
+          "description": "Instance URL without a trailing slash. Leave the default for gitlab.com."
+        },
+        {
+          "name": "GITLAB_PROJECT",
+          "required": true,
+          "description": "Path such as group/project, or the numeric id. The triggers poll this project."
+        },
+        {
+          "name": "GITLAB_TOKEN",
+          "required": false,
+          "description": "Leave empty to borrow the glab CLI login. Needs scope api, or read_api for the triggers and read-only actions."
+        },
+        {
+          "name": "GITLAB_REF",
+          "required": false,
+          "description": "Branch or tag whose pipelines to watch. Blank for every ref."
+        }
+      ]
+    },
+    {
       "id": "kusto",
       "name": "Azure Data Explorer",
       "description": "Trigger workflows from the rows a KQL query returns.",

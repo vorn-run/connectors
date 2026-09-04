@@ -15,9 +15,13 @@ query returns, and let a workflow step read or write the database.
 - **Signing in:** a libpq connection string in `DATABASE_URL`. A read-only role
   is enough for the triggers.
 
-Speaks the wire protocol itself, with `node:net`, `node:tls` and
-`node:crypto`: SSL negotiation for every `sslmode`, cleartext, MD5 and
-SCRAM-SHA-256 passwords, the simple and extended query flows. No runtime
-dependency, so `vorn-connector pack` carries nothing but the connector.
+Speaks the frontend/backend protocol through the `postgres` driver, which is a
+devDependency inlined into the build, so the package declares no runtime
+dependency and `vorn-connector pack` carries the driver inside the connector.
+Every `sslmode` is honoured, including `verify-ca` and `verify-full` against
+`sslrootcert`. One connection per poll or action, ended after it.
+
+`int8` and `numeric` columns arrive as text, so a value beyond a JavaScript
+number keeps its digits; timestamps arrive as dates.
 
 Identifiers are always quoted and values only ever travel as parameters.

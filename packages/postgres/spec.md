@@ -40,7 +40,7 @@ than half-supported. Any other parameter is ignored.
 | Value | Connector behaviour |
 | --- | --- |
 | `disable` | Plain TCP, no SSLRequest |
-| `allow`, `prefer` | Send SSLRequest; on `S` upgrade with `node:tls`, on `N` continue in clear. `allow` is treated as `prefer`, a documented simplification |
+| `allow`, `prefer` | Encrypt when the server offers it, continue in clear when it does not. `allow` is passed to the driver as `prefer`, the only mode it falls back from |
 | `require` | SSLRequest; `N` is an error. Certificate not verified (`rejectUnauthorized: false`), which is what the manual says `require` promises: encryption, trusting the network to reach the right server |
 | `verify-ca` | As `require`, plus chain verification against `sslrootcert` (or Node's roots). Host name not checked |
 | `verify-full` | As `verify-ca`, plus host name matched against the certificate (`servername` = URI host) |
@@ -49,92 +49,73 @@ A read-only role is enough for both triggers and for `selectRows`,
 `listTables`, `describeTable` and read-only `runQuery`. Only `insertRow`,
 `updateRows` and a writing `runQuery` need more.
 
-## Driver: none bundled, wire protocol in the package
+## Driver: `postgres`, inlined at build time
 
 **What the SDK allows.** `vorn-connector pack` bundles the entry with esbuild
 (`bundle: true`, no `external`) and only refuses specifiers *left outside* the
 bundle (`runtime-dependencies`, from `bundleDependencyFindings`); `check --mock`
 asks the same question of the same bundle. So a driver inlined at build time
-(tsup `noExternal: ['postgres']`, listed as a devDependency) would pass
-`no-runtime-deps` and travel inside the pack. The `postgres` package (3.4.9,
-Unlicense) is pure JavaScript with no `dependencies`, ESM entry `src/index.js`,
-`engines.node >= 12`, so it is bundleable in principle.
+passes `no-runtime-deps` and travels inside the pack.
 
-**Why not here.** The npm registry is unreachable from this machine
-(`curl https://registry.npmjs.org/postgres` fails at the socket), there is no
-cached copy in any yarn cache or `node_modules` on the machine, and
-`yarn install` cannot add it. Per the brief, the path that needs no new package
-wins: the connector implements the minimal protocol itself with `node:net`,
-`node:tls` and `node:crypto`. No dependency is added; the workspace's entry in
-`yarn.lock` is left for CI to resolve.
+**What is used.** [`postgres`](https://github.com/porsager/postgres) 3.4.9
+(Unlicense) is pure JavaScript with no `dependencies` of its own, an ESM entry
+and `engines.node >= 12`. It is a devDependency, listed in `tsup.config.ts`
+under `noExternal`, so `dist/index.js` carries it and the package declares no
+runtime dependency. The packed connector is 222 KB.
 
-**Protocol scope** (from protocol-overview, protocol-flow and
-protocol-message-formats):
+**How it is held.** `src/driver.ts` is the only module that knows the driver.
+It exports the `SqlClient` surface actually used — `unsafe(text, params)` and
+`end()` — so a test hands in its own and no socket is opened, and
+`clientFrom` adapts that to the `PgClient` the connector calls. `openConnection`
+builds the driver from the parsed connection string; the URI is still parsed by
+`src/connection-string.ts`, which names what is wrong in a sentence where the
+driver would accept it silently or fail on `new URL`.
 
-- Framing: one type byte, then Int32 length including itself, then the body.
-  The startup packet and SSLRequest have no type byte. Strings are
-  NUL-terminated UTF-8.
-- Version: `196608` (3.0). The manual describes 3.2 but says libpq still sends
-  3.0 by default for middleware that cannot negotiate; a
-  `NegotiateProtocolVersion` (`v`) reply is accepted and ignored.
-- SSL: `SSLRequest` = Int32(8), Int32(80877103). Read exactly one byte before
-  handing the socket to `tls.connect` (CVE-2021-23222). An ErrorResponse to the
-  SSLRequest closes the connection without showing the message (CVE-2024-10977).
-- Startup: `user`, `database`, `application_name`, `client_encoding=UTF8`,
-  `DateStyle=ISO`, `TimeZone=UTC`. The last two are run-time parameters the
-  manual lets the startup message set; they pin the text form of timestamps.
-- Authentication (`R` with Int32 code): `0` Ok; `3` cleartext, answered with
-  `PasswordMessage` (`p`); `5` MD5, answered with
-  `'md5' + md5(md5(password + user) + salt4)` in hex, the manual's formula;
-  `10` SASL, choose `SCRAM-SHA-256` (not `-PLUS`: no channel binding), send
-  `SASLInitialResponse` (`p`, mechanism name, Int32 length, client-first
-  message `n,,n=,r=<nonce>`; the manual says the server ignores the user name
-  here and uses the startup one); `11` continue carries server-first
-  `r=,s=,i=`; reply `SASLResponse` (`p`) with `c=biws,r=<nonce>,p=<proof>`;
-  `12` final carries `v=<signature>`, verified before `0`. Keys per RFC 5802
-  with PBKDF2-HMAC-SHA-256 from `node:crypto`. The password is sent as UTF-8
-  without SASLprep; the manual says the server falls back to the raw password
-  when normalization is impossible, and an ASCII password is unaffected. Any
-  other code fails with "authentication method N is not supported".
-- After Ok: `S` ParameterStatus, `K` BackendKeyData, `N` NoticeResponse are
-  read and dropped; `E` throws; `Z` ReadyForQuery ends start-up.
-- Simple query (`Q`): used when a call has no parameters, because it accepts
-  several statements. Responses `T`, `D`, `C`, `I`, `E`, `N`, `Z`.
-- Extended query: `P` Parse (unnamed statement, zero declared parameter types
-  so the server infers them from context), `B` Bind (unnamed portal, zero
-  parameter format codes = all text, values as UTF-8 or `-1` for NULL, one
-  result format code `0` = all text), `D` Describe portal, `E` Execute with
-  row limit `0`, `S` Sync. Responses `1`, `2`, `T` or `n`, `D`*, `C` or `I`,
-  `Z`. On `E` keep reading until `Z`, then throw.
-- Error: fields `S`, `V`, `C`, `M`, `D`, `H`, `P` from ErrorResponse; the
-  thrown message is `<M> (SQLSTATE <C>)` with `detail`, `hint`, `position`
-  as properties. Class 28 (invalid authorization) is prefixed `unauthorized:`
-  so the SDK's live check grades a refused login as a failure, not as noise.
-- Termination: `X` Terminate, then end the socket. One connection per poll or
-  action; no pool.
+Options given to the driver, from the parsed string: `host`, `port`, `user`,
+`pass`, `database`, `ssl`, `connect_timeout` in whole seconds, and
+`connection.application_name`. Three more are set here:
 
-Values: parameters go as text with type unspecified, so the server casts to
-the column's type. `null`/`undefined` → NULL, string as is, number → decimal
-text, boolean → `true`/`false`, `Date` → ISO 8601, object or array →
-`JSON.stringify` (a PostgreSQL array must be given in its text form, `{1,2}`).
+- `max: 1` and `prepare: false` — one connection per poll or action, opened and
+  ended around the work, so a prepared statement would only cost a round trip
+  and would break a transaction-pooling proxy.
+- `fetch_types: false` — the driver would otherwise query the catalogue on
+  connect for array element types. An array column arrives as its text form
+  instead, which is what the insert hint already documents.
+- `onnotice` — a notice would otherwise be printed to stdout, which is where the
+  connector speaks its own protocol to Vorn.
 
-Results are decoded from text by the RowDescription type OID: `16` bool →
-boolean; `21`, `23`, `26` → number; `20` int8 → number when a safe integer,
-else the digits as a string; `700`, `701` → number; `1700` numeric → string;
-`114`, `3802` json/jsonb → parsed; `1114`, `1184` timestamp/timestamptz →
-ISO 8601 (`2026-09-04 12:00:00.5+00` → `2026-09-04T12:00:00.5Z`, which the
-SDK's `updatedAt` parser accepts); everything else the text the server sent;
-NULL → `null`.
+`ssl` per sslmode: `disable` → `false`; `require` and `prefer` → the mode name,
+which encrypts without checking the certificate; `allow` → `prefer`, the only
+mode the driver falls back from; `verify-ca` and `verify-full` → a
+`tls.connect` object with `rejectUnauthorized: true`, `ca` read from
+`sslrootcert` unless it is `system`, and for `verify-ca` a
+`checkServerIdentity` that returns, which is the manual's definition of
+checking the chain but not the name.
+
+Values: parameters go with their type unspecified, so the server casts to the
+column's type — `inferType` returns `0` for a string or a number. `undefined`
+is sent as NULL and an object or array as JSON text, both in `toParam`, because
+the driver would otherwise send `undefined` and `[object Object]`. A `Date`,
+a `Buffer` and a `bigint` the driver types itself.
+
+Results are decoded by the driver: `16` bool → boolean; `21`, `23`, `26`,
+`700`, `701` → number; `114`, `3802` json/jsonb → parsed; `1082`, `1114`,
+`1184` date/timestamp/timestamptz → `Date`; `17` bytea → `Buffer`; `20` int8
+and `1700` numeric → the digits as text, so no precision is lost; everything
+else the text the server sent; NULL → `null`. A cursor built from a `Date`
+column is its ISO 8601 form, which the server casts back on the next poll.
+
+A query resolves to the rows with the command tag alongside; several statements
+resolve to an array of those, and `lastResult` takes the last, as libpq
+reports a multi-statement query.
 
 Identifiers are always double-quoted with embedded quotes doubled, per the
 manual's lexical rules; a `schema.table` is split at the first dot and each
 part quoted. Values never enter SQL text.
 
-Layout: `src/connection-string.ts` (URI parsing), `src/wire.ts` (frames,
-start-up, auth, queries), `src/transport.ts` (the one place `node:net` and
-`node:tls` are called, built from injected functions so tests need no socket),
-`src/sql.ts` (quoting, builders, decoding), `src/connector.ts`,
-`src/entry.ts`, `src/index.ts`, mirroring `linear`.
+Layout: `src/connection-string.ts` (URI parsing), `src/driver.ts` (the driver
+and everything it is told), `src/sql.ts` (quoting and the statement builders),
+`src/connector.ts`, `src/entry.ts`, `src/index.ts`, mirroring `linear`.
 
 ## Triggers
 
@@ -321,12 +302,12 @@ node scripts/check-packages.mjs
 node node_modules/@vornrun/connector-sdk/dist/cli.js check packages/postgres/dist/index.js --mock --receipt packages/postgres/verified.json
 ```
 
-`scripts/check.sh` runs exactly this. Tests make no network calls: the wire
-layer takes a `connect` function returning a Duplex, and tests hand it a
-scripted in-process stream that plays the server's bytes back; SCRAM is tested
-against the RFC 7677 vector (user `user`, password `pencil`, nonce
-`rOprNGfwEbeRWgbNEkqO`), MD5 against the manual's formula, the query builders
-and decoders against literal frames.
+`scripts/check.sh` runs exactly this. Tests make no network calls: the
+connector takes an `open` function returning a client, and `src/driver.ts`
+exports the `SqlClient` surface the driver satisfies, so tests hand in a fake
+that records the query text and its parameters and answers from a script. What
+the driver is told is checked from the parsed connection string, and the query
+builders against their literal SQL.
 
 What the receipt says: `manifest`, `auth`, `secrets`, `actions`,
 `no-lifecycle-scripts`, `keywords`, `no-runtime-deps`. The six every connector
@@ -356,15 +337,10 @@ live.
 
 ## Docs
 
-The only source, all from the PostgreSQL manual (current), plus the two RFCs
-the manual defers to for SCRAM.
+The only source, all from the PostgreSQL manual (current), plus the driver's
+own README for what it is told and what it gives back.
 
-- Protocol chapter: https://www.postgresql.org/docs/current/protocol.html
-- Overview, framing and versions: https://www.postgresql.org/docs/current/protocol-overview.html
-- Message flow (start-up, simple and extended query, termination, SSL): https://www.postgresql.org/docs/current/protocol-flow.html
-- Message formats: https://www.postgresql.org/docs/current/protocol-message-formats.html
-- SASL and SCRAM-SHA-256: https://www.postgresql.org/docs/current/sasl-authentication.html
-- Error and notice fields: https://www.postgresql.org/docs/current/protocol-error-fields.html
+- Protocol chapter, for what the driver speaks on the connector's behalf: https://www.postgresql.org/docs/current/protocol.html
 - SQLSTATE codes: https://www.postgresql.org/docs/current/errcodes-appendix.html
 - Connection strings and URIs: https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING
 - Parameter keywords (`sslmode`, `sslrootcert`, `connect_timeout`, `application_name`): https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-PARAMKEYWORDS
@@ -376,6 +352,4 @@ the manual defers to for SCRAM.
 - Quoted identifiers: https://www.postgresql.org/docs/current/sql-syntax-lexical.html#SQL-SYNTAX-IDENTIFIERS
 - Date/time output (`DateStyle`, `TimeZone`): https://www.postgresql.org/docs/current/datatype-datetime.html#DATATYPE-DATETIME-OUTPUT
 - Password authentication (MD5, SCRAM): https://www.postgresql.org/docs/current/auth-password.html
-- SCRAM-SHA-256, with the test vector: https://www.rfc-editor.org/rfc/rfc7677
-- SCRAM key derivation: https://www.rfc-editor.org/rfc/rfc5802
-- The `postgres` package, considered and not bundled: https://github.com/porsager/postgres
+- The `postgres` driver, inlined at build time: https://github.com/porsager/postgres

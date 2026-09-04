@@ -108,25 +108,22 @@ packages/postgres/scripts/check.sh        # typecheck, tests, build, package gat
 packages/postgres/scripts/check-live.sh   # needs DATABASE_URL; exits 0 with a note without it
 ```
 
-Tests open no sockets: the wire layer is driven by scripted in-process streams,
-SCRAM-SHA-256 is checked against the RFC 7677 vector, and the socket layer is
-tested with fakes that emit what `net` and `tls` would.
+Tests open no sockets: the driver sits behind a small surface the tests
+satisfy with a fake that records the query text and its parameters and answers
+from a script.
 
 ## Built from
 
-There is no HTTP API: the connector speaks the frontend/backend protocol itself
-over `node:net` and `node:tls`, so the package carries no runtime dependency.
-The [`postgres`](https://github.com/porsager/postgres) driver was considered
-and could have been inlined at build time, but the registry was unreachable
-when this was written and the protocol subset needed is small.
+There is no HTTP API. The connector speaks the frontend/backend protocol
+through the [`postgres`](https://github.com/porsager/postgres) driver, which is
+a devDependency inlined into `dist/index.js` at build time, so the package
+declares no runtime dependency and the packed connector carries the driver with
+it. One connection is opened per poll or action and ended after it.
 
-Everything comes from the PostgreSQL manual:
+The rest comes from the PostgreSQL manual:
 
 - [Frontend/Backend Protocol](https://www.postgresql.org/docs/current/protocol.html),
-  its [message flow](https://www.postgresql.org/docs/current/protocol-flow.html)
-  and [message formats](https://www.postgresql.org/docs/current/protocol-message-formats.html)
-- [SASL authentication](https://www.postgresql.org/docs/current/sasl-authentication.html),
-  with [RFC 7677](https://www.rfc-editor.org/rfc/rfc7677) for SCRAM-SHA-256
+  for what the driver speaks on the connector's behalf
 - [Connection URIs](https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING)
   and [parameter keywords](https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-PARAMKEYWORDS)
 - [SSL support](https://www.postgresql.org/docs/current/libpq-ssl.html)

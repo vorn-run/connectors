@@ -233,6 +233,11 @@ export function createGitLabClient(options: GitLabClientOptions) {
 
   return {
     baseUrl,
+    /** One GET, parsed as JSON. Whatever shape comes back is the caller's to judge. */
+    async getJson<T>(path: string, query?: Record<string, string | number | undefined>): Promise<T> {
+      const response = await get(apiUrl(baseUrl, path, query))
+      return (await response.json()) as T
+    },
     /**
      * Every page of a list endpoint, following `x-next-page` (empty when there
      * is no next page). Never `x-total`: lists over 10,000 records omit it.

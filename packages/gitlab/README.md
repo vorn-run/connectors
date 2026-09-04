@@ -26,8 +26,10 @@ and the read-only actions.
 
 The token is sent as `Authorization: Bearer`, which GitLab accepts for both
 personal access tokens and the OAuth tokens `glab auth login --web` stores. A
-borrowed OAuth token lives two hours, so a `401` re-reads it from `glab` once
-before reporting that you are signed out.
+borrowed OAuth token lives two hours, so the triggers and the merge request
+list re-read it from `glab` once on a `401` before reporting that you are
+signed out. The other actions are declared requests and send the token the host
+borrowed when it started the connector, which it does afresh on every start.
 
 ## Settings
 
@@ -55,6 +57,8 @@ Things worth knowing if you are reading `src/connector.ts`:
   as `updatedAt`; the real `updated_at` rides along as `changedAt`. A poll cut
   short by a limit could otherwise move the watermark past an item created
   earlier but touched later, and never ask for it again.
+- The very first poll, before any watermark exists, asks for the minute
+  before it rather than the project's whole history.
 - GitLab's time filters are inclusive at second precision while timestamps
   carry milliseconds, so the item sitting on the watermark comes back on the
   next poll. The SDK recognises it by its `iid`; adding a second to the cursor
@@ -78,12 +82,14 @@ Status suggestions: issues `opened → todo`, `closed → done`; merge requests
 | Comment on an issue | no | Posts a note; `internal` hides it from non-members |
 | Comment on a merge request | no | As above, on a merge request |
 | Get a project | yes | `namespace` comes back as `{id, name, path, fullPath, kind}` |
-| List open merge requests | yes | Newest-updated first; `limit` up to 100, optional `targetBranch` |
+| List open merge requests | yes | Newest-updated first; `limit` up to 100, optional `targetBranch`. Returns `count` and `items` in the shape the merge request trigger delivers |
 | Get an issue | yes | `author` and `assignees` come back as `{id, username, name}` |
 
-Every action is a declared request: the SDK fills in the arguments, URL-encodes
-the project path (`gitlab-org%2Fgitlab`), sends the call and keeps the fields
-named above under camelCase names. Issue and merge request numbers are their
+Every action but the merge request list is a declared request: the SDK fills
+in the arguments, URL-encodes the project path (`gitlab-org%2Fgitlab`), sends
+the call and keeps the fields named above under camelCase names. The merge
+request list is hand-written, because a declared request cannot count what it
+returns. Issue and merge request numbers are their
 project-scoped `iid`, the number shown in the UI, and are checked to be numbers
 before anything is sent, so a `{{...}}` that resolved to nothing names itself
 rather than returning a 404.

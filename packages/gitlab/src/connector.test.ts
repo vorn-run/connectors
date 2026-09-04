@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createConnectorHarness, type ConnectorConfig } from '@vornrun/connector-sdk'
+import { createConnectorHarness, type ConnectorConfig, type ConnectorItem } from '@vornrun/connector-sdk'
 import { createGitLabConnector } from './connector'
 import { SAMPLE_ISSUE, SAMPLE_MERGE_REQUEST, SAMPLE_PIPELINE } from './items'
 
@@ -149,8 +149,14 @@ describe('the definition', () => {
     ])
   })
 
-  it('declares every action as a request the SDK sends', () => {
+  it('declares every action but the merge request list as a request the SDK sends', () => {
     for (const action of connector.actions) {
+      if (action.type === 'listOpenMergeRequests') {
+        // Hand-written: a declared request cannot count what it returns.
+        expect(action.request).toBeUndefined()
+        expect(typeof action.run).toBe('function')
+        continue
+      }
       expect(action.request?.url).toMatch(/^\{\{config\.baseUrl\}\}\/api\/v4\//)
       expect(action.request?.headers).toEqual({ Authorization: 'Bearer {{config.token}}' })
       expect(action.postReceive?.length).toBeGreaterThan(0)
@@ -174,6 +180,7 @@ describe('polling issues', () => {
       state: 'all',
       order_by: 'created_at',
       sort: 'asc',
+      created_after: '2026-09-04T03:59:00.000Z',
       per_page: '100',
       page: '1'
     })
@@ -189,6 +196,15 @@ describe('polling issues', () => {
     expect(await harness.pollTwice('issueCreated')).toEqual([])
     // The second poll carried the watermark as the inclusive lower bound.
     expect(query(sent[1].url).created_after).toBe('2026-09-04T02:23:26.054Z')
+  })
+
+  it('bounds the very first poll to the minute before it rather than replaying the project', async () => {
+    const { harness, sent } = harnessOver(issues([]))
+
+    const page = await harness.poll('issueCreated')
+
+    expect(query(sent[0].url).created_after).toBe('2026-09-04T03:59:00.000Z')
+    expect(page.items).toEqual([])
   })
 
   it('passes the host-supplied lower bound as created_after', async () => {
@@ -275,7 +291,13 @@ describe('polling pipelines', () => {
 
     const page = await harness.poll('pipelineFinished')
 
-    expect(query(sent[0].url)).toEqual({ order_by: 'updated_at', sort: 'asc', per_page: '100', page: '1' })
+    expect(query(sent[0].url)).toEqual({
+      order_by: 'updated_at',
+      sort: 'asc',
+      updated_after: '2026-09-04T03:59:00.000Z',
+      per_page: '100',
+      page: '1'
+    })
     expect(page.items.map((item) => [item.externalId, item.status])).toEqual([
       ['2818962738', 'success'],
       ['2', 'failed']
@@ -458,16 +480,24 @@ describe('actions', () => {
       per_page: '5',
       target_branch: 'master'
     })
-    const items = result.items as Array<Record<string, unknown>>
+    expect(sent[0].headers.Authorization).toBe('Bearer glpat-pasted')
+    expect(result.count).toBe(1)
+    const items = result.items as ConnectorItem[]
     expect(items).toHaveLength(1)
+    // The same shape the merge request trigger delivers.
     expect(items[0]).toMatchObject({
-      iid: 253583,
-      projectId: 278964,
+      externalId: '253583',
+      status: 'opened',
       url: 'https://gitlab.com/gitlab-org/gitlab/-/merge_requests/253583',
-      sourceBranch: 'wt/telemetry-zero-result',
-      targetBranch: 'master',
-      author: { id: 9717668, username: 'johnmason', name: 'John Mason' },
-      detailedMergeStatus: 'not_approved'
+      updatedAt: '2026-09-04T03:07:05.722Z',
+      data: {
+        iid: 253583,
+        projectId: 278964,
+        sourceBranch: 'wt/telemetry-zero-result',
+        targetBranch: 'master',
+        author: 'johnmason',
+        detailedMergeStatus: 'not_approved'
+      }
     })
     expect(items[0]).not.toHaveProperty('web_url')
   })
@@ -475,9 +505,21 @@ describe('actions', () => {
   it('leaves the optional list filters out when they are blank', async () => {
     const { harness, sent } = harnessOver([{ when: /\/merge_requests\?/, body: [] }])
 
-    await harness.execute('listOpenMergeRequests', { project: 'gitlab-org/gitlab' })
+    const result = await harness.execute('listOpenMergeRequests', { project: 'gitlab-org/gitlab' })
 
     expect(query(sent[0].url)).toEqual({ state: 'opened', order_by: 'updated_at', sort: 'desc' })
+    expect(result).toEqual({ count: 0, items: [] })
+  })
+
+  it('keeps per_page within the documented 1 to 100, and counts nothing when the answer is not a list', async () => {
+    const { harness, sent } = harnessOver([{ when: /\/merge_requests\?/, body: { message: 'not a list' } }])
+
+    const result = await harness.execute('listOpenMergeRequests', { project: 'gitlab-org/gitlab', limit: '500' })
+    await harness.execute('listOpenMergeRequests', { project: 'gitlab-org/gitlab', limit: '0' })
+
+    expect(query(sent[0].url).per_page).toBe('100')
+    expect(query(sent[1].url).per_page).toBe('1')
+    expect(result).toEqual({ count: 0, items: [] })
   })
 
   it('reads an issue by its iid', async () => {

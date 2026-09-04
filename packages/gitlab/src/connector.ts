@@ -7,6 +7,7 @@ import {
 } from '@vornrun/connector-sdk'
 import {
   DEFAULT_BASE_URL,
+  MAX_PAGE_SIZE,
   createGitLabClient,
   createTokenSource,
   gitlabPreflight,
@@ -53,6 +54,18 @@ const AUTH_HEADERS = { Authorization: 'Bearer {{config.token}}' }
 /** The API root every declared request is built on. */
 const API = '{{config.baseUrl}}/api/v4'
 
+/** How far back the very first poll looks, before any watermark exists. */
+const FIRST_POLL_LOOKBACK_MS = 60_000
+
+/**
+ * `per_page` for a list action: what was asked for, held within GitLab's 1 to
+ * 100. Unset stays unset, so GitLab applies its own default of 20.
+ */
+function pageSize(limit: unknown): number | undefined {
+  if (typeof limit !== 'number') return undefined
+  return Math.min(MAX_PAGE_SIZE, Math.max(1, Math.floor(limit)))
+}
+
 /** GitLab's snake_case keys under the names a workflow step would reach for. */
 function renames(mapping: Record<string, string>, path?: string): PostReceiveOp[] {
   return Object.entries(mapping).map(([from, to]) => ({
@@ -92,49 +105,6 @@ const ISSUE_SHAPE: PostReceiveOp[] = [
     updated_at: 'updatedAt',
     closed_at: 'closedAt',
     issue_type: 'issueType'
-  }),
-  { op: 'pick', keys: ['id', 'username', 'name'], path: 'author' },
-  { op: 'pick', keys: ['id', 'username', 'name'], path: 'assignees' }
-]
-
-/** Reshape one merge request as an action returns it. */
-const MERGE_REQUEST_SHAPE: PostReceiveOp[] = [
-  {
-    op: 'pick',
-    keys: [
-      'id',
-      'iid',
-      'project_id',
-      'title',
-      'description',
-      'state',
-      'draft',
-      'web_url',
-      'labels',
-      'author',
-      'assignees',
-      'source_branch',
-      'target_branch',
-      'sha',
-      'created_at',
-      'updated_at',
-      'merged_at',
-      'closed_at',
-      'has_conflicts',
-      'detailed_merge_status'
-    ]
-  },
-  ...renames({
-    project_id: 'projectId',
-    web_url: 'url',
-    source_branch: 'sourceBranch',
-    target_branch: 'targetBranch',
-    created_at: 'createdAt',
-    updated_at: 'updatedAt',
-    merged_at: 'mergedAt',
-    closed_at: 'closedAt',
-    has_conflicts: 'hasConflicts',
-    detailed_merge_status: 'detailedMergeStatus'
   }),
   { op: 'pick', keys: ['id', 'username', 'name'], path: 'author' },
   { op: 'pick', keys: ['id', 'username', 'name'], path: 'assignees' }
@@ -206,7 +176,8 @@ export function createGitLabConnector(options: GitLabConnectorOptions = {}) {
     return source
   }
 
-  function client(context: FetchContext) {
+  /** A client on the SDK's fetch, for a trigger's fetch and a hand-written action alike. */
+  function client(context: { config: ConnectorConfig; fetch: typeof fetch }) {
     return createGitLabClient({
       config: context.config,
       fetch: context.fetch,
@@ -217,13 +188,20 @@ export function createGitLabConnector(options: GitLabConnectorOptions = {}) {
   /**
    * The lower bound for a list: everything at or after the SDK's watermark.
    *
-   * Passed through untouched. GitLab compares "on or after" at second
-   * precision while the watermark carries milliseconds, so the item sitting
-   * exactly on it comes back again; the SDK recognises it by id. Adding a
-   * second here would skip whatever else was created in that same second.
+   * Passed through untouched when there is one. GitLab compares "on or after"
+   * at second precision while the watermark carries milliseconds, so the item
+   * sitting exactly on it comes back again; the SDK recognises it by id.
+   * Adding a second here would skip whatever else was created in that second.
+   *
+   * Without one, on the very first poll, the bound is the minute before now.
+   * Left open, connecting a trigger to a busy project would replay a thousand
+   * historical items as though they had just happened.
    */
-  function sinceOf(context: FetchContext): string | undefined {
-    return context.since
+  function sinceOf(context: FetchContext): string {
+    return (
+      context.since ??
+      new Date(Date.parse(context.now()) - FIRST_POLL_LOOKBACK_MS).toISOString()
+    )
   }
 
   function fetchIssues(context: FetchContext): Promise<ConnectorItem[]> {
@@ -588,26 +566,32 @@ export function createGitLabConnector(options: GitLabConnectorOptions = {}) {
           }
         ],
         outputs: [
+          { key: 'count', type: 'number', description: 'How many merge requests came back' },
           {
             key: 'items',
             description:
-              'One entry per merge request: id, iid, projectId, title, description, state, draft, url, labels, author, assignees, sourceBranch, targetBranch, sha, createdAt, updatedAt, mergedAt, closedAt, hasConflicts, detailedMergeStatus'
+              'One entry per merge request, shaped as the merge request trigger delivers it: externalId (the iid), title, url, description, status, labels, updatedAt, and data with id, iid, projectId, sourceBranch, targetBranch, draft, sha, author, createdAt, changedAt, mergedAt, closedAt, hasConflicts, detailedMergeStatus'
           }
         ],
         sample: { project: 'gitlab-org/gitlab' },
-        request: {
-          url: `${API}/projects/{{args.project}}/merge_requests`,
-          headers: AUTH_HEADERS,
-          query: {
-            state: 'opened',
-            order_by: 'updated_at',
-            sort: 'desc',
-            per_page: '{{args.limit}}',
-            target_branch: '{{args.targetBranch}}'
-          }
-        },
-        // The response is a list, which the SDK hands back as `items`.
-        postReceive: [{ op: 'map', ops: MERGE_REQUEST_SHAPE }]
+        // Hand-written rather than declared: a declared request cannot count
+        // what it returns, and the spec asks for the trigger's own mapping.
+        async run(args, context) {
+          const answer = await client(context).getJson<unknown>(
+            `/projects/${projectSegment(args.project)}/merge_requests`,
+            {
+              state: 'opened',
+              order_by: 'updated_at',
+              sort: 'desc',
+              per_page: pageSize(args.limit),
+              target_branch: text(args.targetBranch)
+            }
+          )
+          // GitLab answers this endpoint with a list; anything else holds no merge requests.
+          const mrs = Array.isArray(answer) ? (answer as GitLabMergeRequest[]) : []
+          const items = mrs.map(mergeRequestToItem)
+          return { count: items.length, items }
+        }
       },
       {
         type: 'getIssue',

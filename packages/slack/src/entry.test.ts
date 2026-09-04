@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { realpathSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { isEntryPoint, serveIfEntryPoint } from './entry'
 import connector, { connector as named } from './index'
 
@@ -30,6 +30,13 @@ describe('serveIfEntryPoint', () => {
     const serve = vi.fn(async () => {})
     expect(await serveIfEntryPoint(HERE, serve)).toBe(false)
     expect(serve).not.toHaveBeenCalled()
+  })
+
+  it('serves the connector when the module is the entry point', async () => {
+    const serve = vi.fn(async () => {})
+    const self = pathToFileURL(process.argv[1]!).href
+    expect(await serveIfEntryPoint(self, serve)).toBe(true)
+    expect(serve).toHaveBeenCalledWith(connector)
   })
 })
 

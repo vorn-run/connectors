@@ -337,7 +337,9 @@ describe('actions', () => {
   })
 
   it('describeTable reads information_schema.columns and refuses an empty answer', async () => {
-    const COLUMNS: Array<[string, number]> = [['column_name', 25], ['data_type', 25], ['udt_name', 25], ['is_nullable', 25], ['column_default', 25], ['ordinal_position', OID.int4]]
+    // information_schema types ordinal_position as the cardinal_number domain, which has its own OID, not int4's.
+    const CARDINAL_NUMBER_OID = 12345
+    const COLUMNS: Array<[string, number]> = [['column_name', 25], ['data_type', 25], ['udt_name', 25], ['is_nullable', 25], ['column_default', 25], ['ordinal_position', CARDINAL_NUMBER_OID]]
     const f = fake([
       result(COLUMNS, [
         ['id', 'integer', 'int4', 'NO', "nextval('orders_id_seq')", '1'],

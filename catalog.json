@@ -475,7 +475,7 @@
       "verified": {
         "schema": 1,
         "version": "0.1.0",
-        "checkedAt": "2026-09-04T14:11:02.134Z",
+        "checkedAt": "2026-09-04T14:19:26.342Z",
         "checks": [
           "manifest",
           "auth",

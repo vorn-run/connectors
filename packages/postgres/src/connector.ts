@@ -476,7 +476,8 @@ export function createPostgresConnector(options: PostgresConnectorOptions = {}) 
             udtName: row.udt_name,
             nullable: row.is_nullable === 'YES',
             default: row.column_default,
-            position: row.ordinal_position
+            // ordinal_position is the cardinal_number domain, whose OID the decoder does not know, so it arrives as text.
+            position: Number(row.ordinal_position)
           }))
           // The view hides a missing table and a table without privilege the same way: no rows.
           if (columns.length === 0) throw new Error(`no such table as ${schema}.${table}, or no privilege on it`)

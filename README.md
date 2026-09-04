@@ -152,6 +152,34 @@ goes in that package's `package.json` under `"vorn"`.
 Tests run with coverage thresholds, and `node scripts/check-packages.mjs` checks
 the package is wired into the build the same way the others are. CI runs both.
 
+Every connector declares how it signs in, and the check refuses one that does not:
+
+```ts
+auth: { rung: 'cli', probe: { command: 'gh', args: ['auth', 'status'] } }
+```
+
+`none` needs nothing, `cli` borrows a login the machine already has, `key` names
+the config fields holding it. The app shows the rung on the row, so someone
+browsing knows what a connector will ask of them before installing it.
+
+## Conformance
+
+```bash
+yarn build
+yarn conformance     # runs each connector against the mock, writes verified.json
+```
+
+The receipt is committed beside the connector and quoted in the catalog as the
+verified badge, so it names checks a reader can see. CI re-runs the same checks
+and compares them with the committed receipt rather than writing a new one — a
+file rewritten on every run would carry a new timestamp and leave the catalog
+disagreeing with the commit it came from.
+
+A connector whose releases carry a packed `.tgz` asset sets `"packs": true` in
+its `"vorn"` block; the catalog then addresses the pack directly instead of the
+package name. Leave it off until the release actually uploads one, because the
+app prefers that address over npm.
+
 Write the implementation from the service's own published API documentation, and
 link to it in the package README so the next person can check it. Existing
 implementations elsewhere are not a source: licences vary, and the vendor's

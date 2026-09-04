@@ -9,9 +9,22 @@
  * itself rather than the result.
  */
 import { readFileSync, existsSync, readdirSync } from 'node:fs'
+import { pathToFileURL } from 'node:url'
+import { resolve } from 'node:path'
 
 const REQUIRED_SCRIPTS = ['build', 'test', 'typecheck']
+const AUTH_RUNGS = ['none', 'cli', 'key', 'oauth']
 const problems = []
+
+/** The connector a built package exports, or undefined if it exports none. */
+async function builtConnector(dir) {
+  const built = resolve(`packages/${dir}/dist/index.js`)
+  if (!existsSync(built)) return undefined
+  const module = await import(pathToFileURL(built).href)
+  return Object.values(module).find(
+    (value) => value && typeof value === 'object' && 'id' in value && 'triggers' in value
+  )
+}
 
 const packages = readdirSync('packages', { withFileTypes: true })
   .filter((entry) => entry.isDirectory())
@@ -75,6 +88,19 @@ for (const name of packages) {
   for (const required of ['README.md', 'CHANGELOG.md']) {
     if (!files.includes(required)) problems.push(`${name}: "${required}" is not in package.json "files"`)
   }
+
+  // How a connector signs in decides what the app asks of someone installing
+  // it — a borrowed CLI login asks nothing, a key asks for one. Left undeclared
+  // the app has to guess, so it is declared here or the connector does not ship.
+  const connector = await builtConnector(name)
+  if (!connector) {
+    problems.push(`${name}: not built — run \`yarn build\` before this check`)
+  } else if (!AUTH_RUNGS.includes(connector.auth?.rung)) {
+    problems.push(
+      `${name}: declares no auth rung — add \`auth: { rung: '${AUTH_RUNGS.join("' | '")}' }\` ` +
+        'to defineConnector (a cli rung also needs its probe command)'
+    )
+  }
 }
 
 if (problems.length > 0) {
@@ -82,4 +108,4 @@ if (problems.length > 0) {
   for (const problem of problems) console.error(`  - ${problem}`)
   process.exit(1)
 }
-console.log(`packages ok — ${packages.length} wired into build, test and typecheck`)
+console.log(`packages ok — ${packages.length} wired into the gate, each saying how it signs in`)

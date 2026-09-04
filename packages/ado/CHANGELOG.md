@@ -2,6 +2,11 @@
 
 All notable changes to `@vornrun/connector-ado`.
 
+## 0.2.1
+
+Declares how it signs in: it borrows the Azure CLI's login, so the app can say
+so before anyone installs it. Ships a conformance receipt.
+
 ## 0.2.0
 
 Azure DevOps can now write, not just watch.

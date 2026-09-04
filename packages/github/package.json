@@ -1,6 +1,6 @@
 {
   "name": "@vornrun/connector-github",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Trigger workflows from GitHub issues and pull requests.",
   "type": "module",
   "license": "MIT",
@@ -27,7 +27,7 @@
     "@octokit/plugin-retry": "^8.1.1",
     "@octokit/plugin-throttling": "^11.0.5",
     "@octokit/rest": "^22.0.1",
-    "@vornrun/connector-sdk": "^0.5.7"
+    "@vornrun/connector-sdk": "^0.7.0-beta.10"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

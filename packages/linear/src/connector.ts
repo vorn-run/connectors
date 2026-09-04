@@ -109,6 +109,7 @@ export function createLinearConnector(options: LinearConnectorOptions = {}) {
         'M5.663 5.595c3.518-3.474 9.186-3.46 12.687.04 3.501 3.501 3.515 9.169.041 12.687z'
       ]
     },
+    auth: { rung: 'key', keys: ['apiKey'] },
     config: [
       {
         key: 'apiKey',

@@ -1,18 +1,9 @@
 /**
- * SQL text builders, identifier quoting and text-to-value decoding.
+ * SQL text builders and identifier quoting.
  *
  * Every builder returns the statement and its parameters separately: a value
  * never enters the text, so nothing a workflow passes can become SQL.
  */
-
-export interface Field {
-  name: string
-  /** Type OID from RowDescription, which decides how the text is read. */
-  typeOid: number
-}
-
-/** One row as the server sent it: text per column, or null. */
-export type RawRow = (string | null)[]
 
 export interface Statement {
   text: string
@@ -20,25 +11,6 @@ export interface Statement {
 }
 
 export type Row = Record<string, unknown>
-
-/** Type OIDs from pg_type that the decoder gives a JavaScript shape. */
-export const OID = {
-  bool: 16,
-  int8: 20,
-  int2: 21,
-  int4: 23,
-  oid: 26,
-  json: 114,
-  float4: 700,
-  float8: 701,
-  date: 1082,
-  timestamp: 1114,
-  timestamptz: 1184,
-  numeric: 1700,
-  jsonb: 3802
-} as const
-
-const DATE_TIME_OIDS: ReadonlySet<number> = new Set([OID.date, OID.timestamp, OID.timestamptz])
 
 /** Double-quote an identifier, doubling embedded quotes, per the manual's lexical rules. */
 export function quoteIdent(name: string): string {
@@ -66,78 +38,6 @@ export function splitTable(ref: string): { schema: string; table: string } {
   const table = trimmed.slice(dot + 1).trim()
   if (schema === '' || table === '') throw new Error(`table "${trimmed}" is not table or schema.table`)
   return { schema, table }
-}
-
-/** Turn a JavaScript value into the text the server casts to the column's type. */
-export function encodeParam(value: unknown): string | null {
-  if (value === null || value === undefined) return null
-  if (typeof value === 'string') return value
-  if (typeof value === 'number') {
-    if (!Number.isFinite(value)) throw new Error(`cannot bind ${value} as a parameter`)
-    return String(value)
-  }
-  if (typeof value === 'bigint') return value.toString()
-  if (typeof value === 'boolean') return value ? 'true' : 'false'
-  if (value instanceof Date) {
-    if (Number.isNaN(value.getTime())) throw new Error('cannot bind an invalid Date as a parameter')
-    return value.toISOString()
-  }
-  if (Buffer.isBuffer(value)) return `\\x${value.toString('hex')}`
-  return JSON.stringify(value)
-}
-
-/** `2026-09-04 12:00:00.5+00` → `2026-09-04T12:00:00.5Z`; anything else stays as sent. */
-export function timestampToIso(text: string): string {
-  const match = /^(\d{4}-\d{2}-\d{2})(?: (\d{2}:\d{2}:\d{2}(?:\.\d+)?))?([+-]\d{2}(?::?\d{2})?)?$/.exec(text)
-  if (!match) return text
-  const [, date, time, zone] = match
-  if (!time) return date as string
-  let offset = 'Z'
-  if (zone && zone !== '+00' && zone !== '+00:00' && zone !== '+0000') {
-    const sign = zone[0]
-    const digits = zone.slice(1).replace(':', '')
-    offset = `${sign}${digits.slice(0, 2)}:${digits.length > 2 ? digits.slice(2) : '00'}`
-  }
-  return `${date}T${time}${offset}`
-}
-
-/** Read one column's text by its type OID. */
-export function decodeValue(typeOid: number, text: string | null): unknown {
-  if (text === null) return null
-  switch (typeOid) {
-    case OID.bool:
-      return text === 't'
-    case OID.int2:
-    case OID.int4:
-    case OID.oid:
-    case OID.float4:
-    case OID.float8:
-      return Number(text)
-    case OID.int8: {
-      const n = Number(text)
-      return Number.isSafeInteger(n) ? n : text
-    }
-    case OID.json:
-    case OID.jsonb:
-      return JSON.parse(text)
-    case OID.timestamp:
-    case OID.timestamptz:
-      return timestampToIso(text)
-    default:
-      return text
-  }
-}
-
-export function isDateTime(typeOid: number): boolean {
-  return DATE_TIME_OIDS.has(typeOid)
-}
-
-export function rowToObject(fields: Field[], raw: RawRow): Row {
-  const row: Row = {}
-  fields.forEach((field, index) => {
-    row[field.name] = decodeValue(field.typeOid, raw[index] ?? null)
-  })
-  return row
 }
 
 /** Parse an argument that arrives as JSON text, or pass it through when already parsed. */

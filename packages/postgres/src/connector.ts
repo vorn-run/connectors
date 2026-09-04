@@ -1,23 +1,18 @@
 import { defineConnector, type ConnectorItem, type PollContext, type PollOutcome } from '@vornrun/connector-sdk'
 import { parseConnectionString } from './connection-string'
+import { openConnection, type PgClient } from './driver'
 import {
   buildInsert,
   buildNewRows,
   buildSelect,
   buildUpdate,
   DESCRIBE_TABLE_SQL,
-  isDateTime,
   jsonArray,
   jsonObject,
   LIST_TABLES_SQL,
-  rowToObject,
   splitTable,
-  timestampToIso,
-  type Field,
-  type RawRow,
   type Row
 } from './sql'
-import { openConnection, type PgClient, type QueryResult } from './wire'
 
 const DEFAULT_LIMIT = 100
 const MAX_SELECT_LIMIT = 1000
@@ -26,7 +21,7 @@ const CURSOR_VERSION = 1
 export interface PostgresConnectorOptions {
   version?: string
   /** Replaced in tests, so no socket is ever opened. */
-  open?: (connectionString: string) => Promise<PgClient>
+  open?: (connectionString: string) => PgClient | Promise<PgClient>
 }
 
 type Config = Record<string, unknown>
@@ -49,38 +44,33 @@ function pageLimit(config: Config, context: { limit?: number }, max = Number.MAX
   return Math.min(Math.max(1, Math.floor(asked)), max)
 }
 
-function columnIndex(fields: Field[], column: string, what: string): number {
-  const index = fields.findIndex((field) => field.name === column)
-  if (index === -1) {
-    throw new Error(`the ${what} "${column}" is not among the columns returned: ${fields.map((f) => f.name).join(', ')}`)
+/** Refuse a column the query never returned, whether or not any row came back. */
+function requireColumn(columns: string[], column: string, what: string): void {
+  if (!columns.includes(column)) {
+    throw new Error(`the ${what} "${column}" is not among the columns returned: ${columns.join(', ')}`)
   }
-  return index
 }
 
-/** A column's text for a row, refusing NULL because a cursor or an id cannot be built from one. */
-function cellText(raw: RawRow, index: number, column: string, what: string): string {
-  const value = raw[index]
+/** A column's value as the text a cursor or an id is built from, refusing NULL. */
+function cellText(row: Row, column: string, what: string): string {
+  const value = row[column]
   if (value === null || value === undefined) throw new Error(`the ${what} "${column}" is NULL in a row, so it cannot identify it`)
-  return value
+  if (value instanceof Date) return value.toISOString()
+  return typeof value === 'object' ? JSON.stringify(value) : String(value)
 }
 
 function toItem(input: {
-  fields: Field[]
-  raw: RawRow
+  row: Row
   key: string
   titleColumn?: string
   fallbackTitle: string
-  timeIndex: number
+  timeColumn: string
 }): ConnectorItem {
-  const row = rowToObject(input.fields, input.raw)
-  const titleValue = input.titleColumn !== undefined ? row[input.titleColumn] : undefined
+  const titleValue = input.titleColumn !== undefined ? input.row[input.titleColumn] : undefined
   const title = titleValue === null || titleValue === undefined ? input.fallbackTitle : String(titleValue)
-  const timeField = input.fields[input.timeIndex]
-  const timeText = input.raw[input.timeIndex]
-  const item: ConnectorItem = { externalId: input.key, title, data: row }
-  if (timeField && isDateTime(timeField.typeOid) && typeof timeText === 'string') {
-    item.updatedAt = timestampToIso(timeText)
-  }
+  const item: ConnectorItem = { externalId: input.key, title, data: input.row }
+  const time = input.row[input.timeColumn]
+  if (time instanceof Date) item.updatedAt = time.toISOString()
   return item
 }
 
@@ -141,15 +131,19 @@ export function createPostgresConnector(options: PostgresConnectorOptions = {}) 
 
     const forward = cursor !== undefined || startFrom !== undefined
     const rows = forward ? result.rows : [...result.rows].reverse()
-    const ordIndex = columnIndex(result.fields, orderingColumn, 'ordering column')
-    const keyIndex = columnIndex(result.fields, keyColumn, 'key column')
-    const items = rows.map((raw) => {
-      const key = cellText(raw, keyIndex, keyColumn, 'key column')
-      cellText(raw, ordIndex, orderingColumn, 'ordering column')
-      return toItem({ fields: result.fields, raw, key, titleColumn, fallbackTitle: `${table} ${key}`, timeIndex: ordIndex })
+    requireColumn(result.columns, orderingColumn, 'ordering column')
+    requireColumn(result.columns, keyColumn, 'key column')
+    const items = rows.map((row) => {
+      const key = cellText(row, keyColumn, 'key column')
+      cellText(row, orderingColumn, 'ordering column')
+      return toItem({ row, key, titleColumn, fallbackTitle: `${table} ${key}`, timeColumn: orderingColumn })
     })
-    const last = rows[rows.length - 1] as RawRow
-    const nextCursor = JSON.stringify({ v: CURSOR_VERSION, o: last[ordIndex], k: last[keyIndex] })
+    const last = rows[rows.length - 1] as Row
+    const nextCursor = JSON.stringify({
+      v: CURSOR_VERSION,
+      o: cellText(last, orderingColumn, 'ordering column'),
+      k: cellText(last, keyColumn, 'key column')
+    })
     return { items, nextCursor, hasMore: forward && rows.length >= limit }
   }
 
@@ -174,16 +168,16 @@ export function createPostgresConnector(options: PostgresConnectorOptions = {}) 
     const params: unknown[] = paged ? [since, limit] : [since]
 
     const result = await withClient(config, (client) => client.query(query, params))
-    const cursorIndex = columnIndex(result.fields, cursorColumn, 'cursor column')
-    const keyIndex = columnIndex(result.fields, keyColumn, 'key column')
+    requireColumn(result.columns, cursorColumn, 'cursor column')
+    requireColumn(result.columns, keyColumn, 'key column')
 
     const items: ConnectorItem[] = []
     let newest = cursor ?? { value: since, keys: [] as string[] }
-    for (const raw of result.rows) {
-      const key = cellText(raw, keyIndex, keyColumn, 'key column')
-      const value = cellText(raw, cursorIndex, cursorColumn, 'cursor column')
+    for (const row of result.rows) {
+      const key = cellText(row, keyColumn, 'key column')
+      const value = cellText(row, cursorColumn, 'cursor column')
       if (cursor && value === cursor.value && cursor.keys.includes(key)) continue
-      items.push(toItem({ fields: result.fields, raw, key, titleColumn, fallbackTitle: `${keyColumn} ${key}`, timeIndex: cursorIndex }))
+      items.push(toItem({ row, key, titleColumn, fallbackTitle: `${keyColumn} ${key}`, timeColumn: cursorColumn }))
       newest = value === newest.value ? { value, keys: [...newest.keys, key] } : { value, keys: [key] }
     }
     return {
@@ -191,10 +185,6 @@ export function createPostgresConnector(options: PostgresConnectorOptions = {}) 
       nextCursor: JSON.stringify({ v: CURSOR_VERSION, c: newest.value, keys: newest.keys }),
       hasMore: paged && result.rows.length >= limit
     }
-  }
-
-  function rowsOf(result: QueryResult): Row[] {
-    return result.rows.map((raw) => rowToObject(result.fields, raw))
   }
 
   return defineConnector({
@@ -329,7 +319,7 @@ export function createPostgresConnector(options: PostgresConnectorOptions = {}) 
           if (!sql) throw new Error('sql is required')
           const params = jsonArray(args.params, 'params')
           const result = await withClient(config as Config, (client) => client.query(sql, params))
-          return { rows: rowsOf(result), rowCount: result.rowCount, command: result.command }
+          return { rows: result.rows, rowCount: result.rowCount, command: result.command }
         }
       },
       {
@@ -370,7 +360,7 @@ export function createPostgresConnector(options: PostgresConnectorOptions = {}) 
             limit: Math.min(Math.max(1, Math.floor(limitArg)), MAX_SELECT_LIMIT)
           })
           const result = await withClient(config as Config, (client) => client.query(statement.text, statement.params))
-          return { rows: rowsOf(result), rowCount: result.rows.length }
+          return { rows: result.rows, rowCount: result.rows.length }
         }
       },
       {
@@ -398,7 +388,7 @@ export function createPostgresConnector(options: PostgresConnectorOptions = {}) 
           if (!table) throw new Error('table is required')
           const statement = buildInsert(table, jsonObject(args.values, 'values'))
           const result = await withClient(config as Config, (client) => client.query(statement.text, statement.params))
-          return { row: rowsOf(result)[0] ?? null, rowCount: result.rowCount }
+          return { row: result.rows[0] ?? null, rowCount: result.rowCount }
         }
       },
       {
@@ -446,7 +436,7 @@ export function createPostgresConnector(options: PostgresConnectorOptions = {}) 
         async run(args, { config }) {
           const schema = text(args.schema) ?? 'public'
           const result = await withClient(config as Config, (client) => client.query(LIST_TABLES_SQL, [schema]))
-          const tables = rowsOf(result).map((row) => ({
+          const tables = result.rows.map((row) => ({
             schema: row.table_schema,
             name: row.table_name,
             type: row.table_type
@@ -470,13 +460,13 @@ export function createPostgresConnector(options: PostgresConnectorOptions = {}) 
           if (!ref) throw new Error('table is required')
           const { schema, table } = splitTable(ref)
           const result = await withClient(config as Config, (client) => client.query(DESCRIBE_TABLE_SQL, [schema, table]))
-          const columns = rowsOf(result).map((row) => ({
+          const columns = result.rows.map((row) => ({
             name: row.column_name,
             type: row.data_type,
             udtName: row.udt_name,
             nullable: row.is_nullable === 'YES',
             default: row.column_default,
-            // ordinal_position is the cardinal_number domain, whose OID the decoder does not know, so it arrives as text.
+            // ordinal_position is the cardinal_number domain, which has no parser of its own, so it arrives as text.
             position: Number(row.ordinal_position)
           }))
           // The view hides a missing table and a table without privilege the same way: no rows.

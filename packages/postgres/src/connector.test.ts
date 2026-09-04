@@ -1,37 +1,40 @@
 import { createConnectorHarness } from '@vornrun/connector-sdk'
 import { describe, expect, it, vi } from 'vitest'
 import { createPostgresConnector } from './connector'
-import { OID, type Field, type RawRow } from './sql'
-import type { PgClient, QueryResult } from './wire'
+import { clientFrom, type SqlClient, type SqlResult } from './driver'
+import type { Row } from './sql'
 
 const DSN = 'postgres://alice:pencil@db.example.com:5432/app?sslmode=disable'
 
-function result(fields: Array<[string, number]>, rows: RawRow[], command = 'SELECT', rowCount = rows.length): QueryResult {
-  return { fields: fields.map(([name, typeOid]): Field => ({ name, typeOid })), rows, command, rowCount }
+/** A result as the driver resolves one: the rows, with the command tag's parts attached. */
+function result(columns: string[], rows: Row[], command = 'SELECT', count = rows.length): SqlResult {
+  return Object.assign([...rows], { count, command, columns: columns.map((name) => ({ name })) }) as SqlResult
 }
 
-type Answer = QueryResult | Error | ((sql: string, params: unknown[]) => QueryResult)
+type Answer = SqlResult | SqlResult[] | Error | ((text: string, params: unknown[]) => SqlResult)
 
-/** A client that answers each query from a script and records what it was asked. */
+/** A driver that answers each query from a script and records what it was asked. */
 function fake(answers: Answer[] = []) {
   const calls: Array<{ sql: string; params: unknown[] }> = []
   const queue = [...answers]
-  const client: PgClient = {
-    async query(sql, params = []) {
-      calls.push({ sql, params })
+  const end = vi.fn(async () => {})
+  const sql: SqlClient = {
+    async unsafe(text, params = []) {
+      calls.push({ sql: text, params })
       const next = queue.shift()
-      if (next === undefined) throw new Error(`no scripted answer for: ${sql}`)
+      if (next === undefined) throw new Error(`no scripted answer for: ${text}`)
       if (next instanceof Error) throw next
-      return typeof next === 'function' ? next(sql, params) : next
+      return typeof next === 'function' ? next(text, params) : next
     },
-    close: vi.fn(async () => {})
+    end
   }
-  const open = vi.fn(async (_connectionString: string) => client)
+  const open = vi.fn((_connectionString: string) => clientFrom(sql))
   const connector = createPostgresConnector({ version: '0.1.0', open })
-  return { connector, client, open, calls, harness: (config: Record<string, string>) => createConnectorHarness(connector, { config }) }
+  return { connector, end, open, calls, harness: (config: Record<string, string>) => createConnectorHarness(connector, { config }) }
 }
 
-const ORDERS: Array<[string, number]> = [['id', OID.int4], ['reference', 25], ['created_at', OID.timestamptz]]
+const ORDERS = ['id', 'reference', 'created_at']
+const at = (text: string): Date => new Date(text)
 
 describe('definition', () => {
   const { connector } = fake()
@@ -69,12 +72,12 @@ describe('definition', () => {
   })
 
   it('closes the connection whether the query succeeds or fails, ignoring a failed close', async () => {
-    const f = fake([new Error('boom'), result([['one', OID.int4]], [['1']])])
-    ;(f.client.close as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('already gone'))
+    const f = fake([new Error('boom'), result(['one'], [{ one: 1 }])])
+    f.end.mockRejectedValueOnce(new Error('already gone'))
     const harness = f.harness({ connectionString: DSN })
     await expect(harness.execute('runQuery', { sql: 'SELECT 1' })).rejects.toThrow('boom')
     await expect(harness.execute('runQuery', { sql: 'SELECT 1' })).resolves.toMatchObject({ rowCount: 1 })
-    expect(f.client.close).toHaveBeenCalledTimes(2)
+    expect(f.end).toHaveBeenCalledTimes(2)
     expect(f.open).toHaveBeenCalledWith(DSN)
   })
 })
@@ -85,9 +88,9 @@ describe('newRows', () => {
   it('reads the newest page first and starts tracking there', async () => {
     const f = fake([
       result(ORDERS, [
-        ['3', 'C', '2026-09-04 12:00:02+00'],
-        ['2', 'B', '2026-09-04 12:00:01+00'],
-        ['1', 'A', '2026-09-04 12:00:00+00']
+        { id: 3, reference: 'C', created_at: at('2026-09-04T12:00:02Z') },
+        { id: 2, reference: 'B', created_at: at('2026-09-04T12:00:01Z') },
+        { id: 1, reference: 'A', created_at: at('2026-09-04T12:00:00Z') }
       ])
     ])
     const page = await f.harness({ ...config, titleColumn: 'reference' }).poll('newRows', { limit: 3 })
@@ -101,48 +104,52 @@ describe('newRows', () => {
       updatedAt: '2026-09-04T12:00:00.000Z',
       id: 1,
       reference: 'A',
-      created_at: '2026-09-04T12:00:00Z'
+      created_at: at('2026-09-04T12:00:00Z')
     })
-    expect(page.nextCursor).toBe('{"v":1,"o":"2026-09-04 12:00:02+00","k":"3"}')
+    expect(page.nextCursor).toBe('{"v":1,"o":"2026-09-04T12:00:02.000Z","k":"3"}')
     expect(page.hasMore).toBe(false)
   })
 
   it('continues after the cursor with a row-wise comparison and says when the page was full', async () => {
-    const f = fake([result(ORDERS, [['4', 'D', '2026-09-04 12:00:02+00'], ['5', null, '2026-09-04 12:00:03+00']])])
+    const f = fake([
+      result(ORDERS, [
+        { id: 4, reference: 'D', created_at: at('2026-09-04T12:00:02Z') },
+        { id: 5, reference: null, created_at: at('2026-09-04T12:00:03Z') }
+      ])
+    ])
     const page = await f.harness({ ...config, limit: '2' }).poll('newRows', {
-      cursor: '{"v":1,"o":"2026-09-04 12:00:02+00","k":"3"}'
+      cursor: '{"v":1,"o":"2026-09-04T12:00:02.000Z","k":"3"}'
     })
     expect(f.calls[0]).toEqual({
       sql: 'SELECT * FROM "orders" WHERE ("created_at", "id") > ($1, $2) ORDER BY "created_at", "id" LIMIT $3',
-      params: ['2026-09-04 12:00:02+00', '3', 2]
+      params: ['2026-09-04T12:00:02.000Z', '3', 2]
     })
     expect(page.items.map((item) => item.title)).toEqual(['orders 4', 'orders 5'])
-    expect(page.nextCursor).toBe('{"v":1,"o":"2026-09-04 12:00:03+00","k":"5"}')
+    expect(page.nextCursor).toBe('{"v":1,"o":"2026-09-04T12:00:03.000Z","k":"5"}')
     expect(page.hasMore).toBe(true)
   })
 
   it('keeps the cursor when nothing is new', async () => {
     const f = fake([result(ORDERS, [])])
-    const cursor = '{"v":1,"o":"2026-09-04 12:00:03+00","k":"5"}'
+    const cursor = '{"v":1,"o":"2026-09-04T12:00:03.000Z","k":"5"}'
     expect(await f.harness(config).poll('newRows', { cursor })).toEqual({ items: [], nextCursor: cursor, hasMore: false })
     const fresh = fake([result(ORDERS, [])])
     expect(await fresh.harness(config).poll('newRows')).toEqual({ items: [], hasMore: false })
   })
 
   it('starts after startFrom on the first poll, with the ordering column as the key by default', async () => {
-    const f = fake([result([['id', OID.int4]], [['11']])])
+    const f = fake([result(['id'], [{ id: 11 }])])
     const page = await f.harness({ connectionString: DSN, table: 'sales.orders', orderingColumn: 'id', startFrom: '10' }).poll('newRows')
     expect(f.calls[0]).toEqual({ sql: 'SELECT * FROM "sales"."orders" WHERE "id" > $1 ORDER BY "id" LIMIT $2', params: ['10', 100] })
-    expect(page.items[0]).toMatchObject({ externalId: '11', title: 'sales.orders 11' })
-    expect(page.items[0]?.updatedAt).toMatch(/T/)
+    expect(page.items[0]).toMatchObject({ externalId: '11', title: 'sales.orders 11', id: 11 })
     expect(page.nextCursor).toBe('{"v":1,"o":"11","k":"11"}')
   })
 
   it('delivers nothing twice across a drain', async () => {
     const f = fake([
-      result([['id', OID.int4]], [['2'], ['1']]),
-      result([['id', OID.int4]], [['3'], ['4']]),
-      result([['id', OID.int4]], [])
+      result(['id'], [{ id: 2 }, { id: 1 }]),
+      result(['id'], [{ id: 3 }, { id: 4 }]),
+      result(['id'], [])
     ])
     const harness = f.harness({ connectionString: DSN, table: 't', orderingColumn: 'id', limit: '2' })
     const first = await harness.poll('newRows')
@@ -153,11 +160,11 @@ describe('newRows', () => {
   })
 
   it('names a column that is missing or NULL', async () => {
-    const missing = fake([result([['id', OID.int4]], [['1']])])
+    const missing = fake([result(['id'], [{ id: 1 }])])
     await expect(missing.harness(config).poll('newRows')).rejects.toThrow(/ordering column "created_at" is not among the columns returned: id/)
-    const nullKey = fake([result(ORDERS, [[null, 'A', '2026-09-04 12:00:00+00']])])
+    const nullKey = fake([result(ORDERS, [{ id: null, reference: 'A', created_at: at('2026-09-04T12:00:00Z') }])])
     await expect(nullKey.harness(config).poll('newRows')).rejects.toThrow(/key column "id" is NULL/)
-    const nullOrd = fake([result(ORDERS, [['1', 'A', null]])])
+    const nullOrd = fake([result(ORDERS, [{ id: 1, reference: 'A', created_at: null }])])
     await expect(nullOrd.harness(config).poll('newRows')).rejects.toThrow(/ordering column "created_at" is NULL/)
   })
 
@@ -176,7 +183,7 @@ describe('newRows', () => {
 })
 
 describe('queryRows', () => {
-  const TICKETS: Array<[string, number]> = [['id', OID.int4], ['title', 25], ['updated_at', OID.timestamptz]]
+  const TICKETS = ['id', 'title', 'updated_at']
   const config = {
     connectionString: DSN,
     query: 'SELECT id, title, updated_at FROM tickets WHERE updated_at >= $1 ORDER BY updated_at LIMIT $2',
@@ -189,54 +196,53 @@ describe('queryRows', () => {
   it('binds startFrom and the limit on the first poll and remembers the ties at the cursor', async () => {
     const f = fake([
       result(TICKETS, [
-        ['1', 'One', '2026-09-04 09:00:00+00'],
-        ['2', 'Two', '2026-09-04 09:30:00+00'],
-        ['3', 'Three', '2026-09-04 09:30:00+00']
+        { id: 1, title: 'One', updated_at: at('2026-09-04T09:00:00Z') },
+        { id: 2, title: 'Two', updated_at: at('2026-09-04T09:30:00Z') },
+        { id: 3, title: 'Three', updated_at: at('2026-09-04T09:30:00Z') }
       ])
     ])
     const page = await f.harness(config).poll('queryRows', { limit: 3 })
     expect(f.calls[0]?.params).toEqual(['2026-01-01', 3])
     expect(page.items.map((item) => item.title)).toEqual(['One', 'Two', 'Three'])
     expect(page.items[1]).toMatchObject({ externalId: '2', updatedAt: '2026-09-04T09:30:00.000Z' })
-    expect(page.nextCursor).toBe('{"v":1,"c":"2026-09-04 09:30:00+00","keys":["2","3"]}')
+    expect(page.nextCursor).toBe('{"v":1,"c":"2026-09-04T09:30:00.000Z","keys":["2","3"]}')
     expect(page.hasMore).toBe(true)
   })
 
   it('drops the rows already delivered at the cursor value and keeps the rest', async () => {
     const f = fake([
       result(TICKETS, [
-        ['2', 'Two', '2026-09-04 09:30:00+00'],
-        ['3', 'Three', '2026-09-04 09:30:00+00'],
-        ['4', 'Four', '2026-09-04 09:30:00+00'],
-        ['5', 'Five', '2026-09-04 10:00:00+00']
+        { id: 2, title: 'Two', updated_at: at('2026-09-04T09:30:00Z') },
+        { id: 3, title: 'Three', updated_at: at('2026-09-04T09:30:00Z') },
+        { id: 4, title: 'Four', updated_at: at('2026-09-04T09:30:00Z') },
+        { id: 5, title: 'Five', updated_at: at('2026-09-04T10:00:00Z') }
       ])
     ])
     const page = await f.harness(config).poll('queryRows', {
-      cursor: '{"v":1,"c":"2026-09-04 09:30:00+00","keys":["2","3"]}',
+      cursor: '{"v":1,"c":"2026-09-04T09:30:00.000Z","keys":["2","3"]}',
       limit: 10
     })
-    expect(f.calls[0]?.params).toEqual(['2026-09-04 09:30:00+00', 10])
+    expect(f.calls[0]?.params).toEqual(['2026-09-04T09:30:00.000Z', 10])
     expect(page.items.map((item) => item.externalId)).toEqual(['4', '5'])
-    expect(page.nextCursor).toBe('{"v":1,"c":"2026-09-04 10:00:00+00","keys":["5"]}')
+    expect(page.nextCursor).toBe('{"v":1,"c":"2026-09-04T10:00:00.000Z","keys":["5"]}')
     expect(page.hasMore).toBe(false)
   })
 
   it('keeps the cursor and its keys when only known rows come back', async () => {
-    const f = fake([result(TICKETS, [['2', 'Two', '2026-09-04 09:30:00+00']])])
-    const cursor = '{"v":1,"c":"2026-09-04 09:30:00+00","keys":["2"]}'
+    const f = fake([result(TICKETS, [{ id: 2, title: 'Two', updated_at: at('2026-09-04T09:30:00Z') }])])
+    const cursor = '{"v":1,"c":"2026-09-04T09:30:00.000Z","keys":["2"]}'
     const page = await f.harness(config).poll('queryRows', { cursor })
     expect(page.items).toEqual([])
     expect(page.nextCursor).toBe(cursor)
   })
 
   it('binds only $1 when the query has no $2, and never reports more pages', async () => {
-    const f = fake([result([['id', OID.int4], ['n', OID.int4]], [['1', '5'], ['2', '5']])])
+    const f = fake([result(['id', 'n'], [{ id: 1, n: 5 }, { id: 2, n: 5 }])])
     const page = await f
       .harness({ ...config, titleColumn: '', query: 'SELECT id, n FROM t WHERE n >= $1 ORDER BY n', cursorColumn: 'n', startFrom: '0', limit: '2' })
       .poll('queryRows')
     expect(f.calls[0]?.params).toEqual(['0'])
     expect(page.items.map((item) => item.title)).toEqual(['id 1', 'id 2'])
-    expect(page.items[0]?.updatedAt).toMatch(/T/)
     expect(page.nextCursor).toBe('{"v":1,"c":"5","keys":["1","2"]}')
     expect(page.hasMore).toBe(false)
   })
@@ -251,22 +257,30 @@ describe('queryRows', () => {
   })
 
   it('names a missing or NULL cursor or key column', async () => {
-    const missing = fake([result([['id', OID.int4]], [['1']])])
+    const missing = fake([result(['id'], [{ id: 1 }])])
     await expect(missing.harness(config).poll('queryRows')).rejects.toThrow(/cursor column "updated_at" is not among/)
-    const nullCursor = fake([result(TICKETS, [['1', 'One', null]])])
+    const nullCursor = fake([result(TICKETS, [{ id: 1, title: 'One', updated_at: null }])])
     await expect(nullCursor.harness(config).poll('queryRows')).rejects.toThrow(/cursor column "updated_at" is NULL/)
-    const nullKey = fake([result(TICKETS, [[null, 'One', '2026-09-04 09:00:00+00']])])
+    const nullKey = fake([result(TICKETS, [{ id: null, title: 'One', updated_at: at('2026-09-04T09:00:00Z') }])])
     await expect(nullKey.harness(config).poll('queryRows')).rejects.toThrow(/key column "id" is NULL/)
     await expect(fake().harness(config).poll('queryRows', { cursor: '{"v":1,"c":"x"}' })).rejects.toThrow(/incomplete/)
+  })
+
+  it('builds a cursor from a json column without stringifying it as an object', async () => {
+    const f = fake([result(['id', 'at'], [{ id: 1, at: { seq: 7 } }])])
+    const page = await f
+      .harness({ ...config, query: 'SELECT id, at FROM t WHERE at >= $1', cursorColumn: 'at', startFrom: '{}' })
+      .poll('queryRows')
+    expect(page.nextCursor).toBe('{"v":1,"c":"{\\"seq\\":7}","keys":["1"]}')
   })
 })
 
 describe('actions', () => {
   const config = { connectionString: DSN }
 
-  it('runQuery returns decoded rows, the count and the command', async () => {
+  it('runQuery returns the driver rows, the count and the command', async () => {
     const f = fake([
-      result([['one', OID.int4], ['ok', OID.bool], ['doc', OID.jsonb]], [['1', 't', '{"a":1}']]),
+      result(['one', 'ok', 'doc'], [{ one: 1, ok: true, doc: { a: 1 } }]),
       result([], [], 'UPDATE', 4)
     ])
     const harness = f.harness(config)
@@ -285,8 +299,17 @@ describe('actions', () => {
     await expect(harness.execute('runQuery', { sql: 'SELECT 1', params: '{' })).rejects.toThrow(/Expected JSON/)
   })
 
+  it('runQuery answers with the last result set when the text held several statements', async () => {
+    const f = fake([[result(['a'], [{ a: 1 }]), result(['b'], [{ b: 2 }], 'SELECT', 1)]])
+    expect(await f.harness(config).execute('runQuery', { sql: 'SELECT 1 AS a; SELECT 2 AS b' })).toEqual({
+      rows: [{ b: 2 }],
+      rowCount: 1,
+      command: 'SELECT'
+    })
+  })
+
   it('selectRows builds the statement and clamps the limit', async () => {
-    const f = fake([result([['id', OID.int4]], [['1']]), result([['id', OID.int4]], [])])
+    const f = fake([result(['id'], [{ id: 1 }]), result(['id'], [])])
     const harness = f.harness(config)
     expect(await harness.execute('selectRows', { table: 'orders', where: 'status = $1', params: '["new"]', orderBy: 'id', limit: '5000' })).toEqual({
       rows: [{ id: 1 }],
@@ -299,7 +322,7 @@ describe('actions', () => {
   })
 
   it('insertRow returns the row RETURNING * gave back', async () => {
-    const f = fake([result([['id', OID.int4], ['ref', 25]], [['9', 'A-9']], 'INSERT', 1), result([], [], 'INSERT', 0)])
+    const f = fake([result(['id', 'ref'], [{ id: 9, ref: 'A-9' }], 'INSERT', 1), result([], [], 'INSERT', 0)])
     const harness = f.harness(config)
     expect(await harness.execute('insertRow', { table: 'orders', values: '{"ref":"A-9"}' })).toEqual({
       row: { id: 9, ref: 'A-9' },
@@ -323,7 +346,15 @@ describe('actions', () => {
   })
 
   it('listTables reads information_schema.tables for the schema', async () => {
-    const f = fake([result([['table_schema', 25], ['table_name', 25], ['table_type', 25]], [['public', 'orders', 'BASE TABLE'], ['public', 'v', 'VIEW']])])
+    const f = fake([
+      result(
+        ['table_schema', 'table_name', 'table_type'],
+        [
+          { table_schema: 'public', table_name: 'orders', table_type: 'BASE TABLE' },
+          { table_schema: 'public', table_name: 'v', table_type: 'VIEW' }
+        ]
+      )
+    ])
     const harness = f.harness(config)
     expect(await harness.execute('listTables', {})).toEqual({
       tables: [
@@ -337,13 +368,12 @@ describe('actions', () => {
   })
 
   it('describeTable reads information_schema.columns and refuses an empty answer', async () => {
-    // information_schema types ordinal_position as the cardinal_number domain, which has its own OID, not int4's.
-    const CARDINAL_NUMBER_OID = 12345
-    const COLUMNS: Array<[string, number]> = [['column_name', 25], ['data_type', 25], ['udt_name', 25], ['is_nullable', 25], ['column_default', 25], ['ordinal_position', CARDINAL_NUMBER_OID]]
+    const COLUMNS = ['column_name', 'data_type', 'udt_name', 'is_nullable', 'column_default', 'ordinal_position']
     const f = fake([
       result(COLUMNS, [
-        ['id', 'integer', 'int4', 'NO', "nextval('orders_id_seq')", '1'],
-        ['tags', 'ARRAY', '_text', 'YES', null, '2']
+        // ordinal_position is the cardinal_number domain, which has no parser of its own, so it arrives as text.
+        { column_name: 'id', data_type: 'integer', udt_name: 'int4', is_nullable: 'NO', column_default: "nextval('orders_id_seq')", ordinal_position: '1' },
+        { column_name: 'tags', data_type: 'ARRAY', udt_name: '_text', is_nullable: 'YES', column_default: null, ordinal_position: '2' }
       ]),
       result(COLUMNS, [])
     ])

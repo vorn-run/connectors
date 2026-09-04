@@ -4,20 +4,14 @@ import {
   buildNewRows,
   buildSelect,
   buildUpdate,
-  decodeValue,
   DESCRIBE_TABLE_SQL,
-  encodeParam,
-  isDateTime,
   jsonArg,
   jsonArray,
   jsonObject,
   LIST_TABLES_SQL,
-  OID,
   quoteIdent,
   quoteTable,
-  rowToObject,
-  splitTable,
-  timestampToIso
+  splitTable
 } from './sql'
 
 describe('identifiers', () => {
@@ -43,79 +37,6 @@ describe('identifiers', () => {
     expect(splitTable(' sales . orders ')).toEqual({ schema: 'sales', table: 'orders' })
     expect(() => splitTable('')).toThrow(/required/)
     expect(() => splitTable('.orders')).toThrow(/not table or schema.table/)
-  })
-})
-
-describe('encodeParam', () => {
-  it('turns each JavaScript shape into the text the server casts', () => {
-    expect(encodeParam(null)).toBeNull()
-    expect(encodeParam(undefined)).toBeNull()
-    expect(encodeParam('x')).toBe('x')
-    expect(encodeParam(12.5)).toBe('12.5')
-    expect(encodeParam(10n)).toBe('10')
-    expect(encodeParam(true)).toBe('true')
-    expect(encodeParam(false)).toBe('false')
-    expect(encodeParam(new Date('2026-09-04T12:00:00Z'))).toBe('2026-09-04T12:00:00.000Z')
-    expect(encodeParam(Buffer.from([0xde, 0xad]))).toBe('\\xdead')
-    expect(encodeParam({ a: [1] })).toBe('{"a":[1]}')
-    expect(encodeParam([1, 2])).toBe('[1,2]')
-  })
-
-  it('refuses values that have no text', () => {
-    expect(() => encodeParam(Number.NaN)).toThrow(/cannot bind NaN/)
-    expect(() => encodeParam(new Date('nope'))).toThrow(/invalid Date/)
-  })
-})
-
-describe('timestampToIso', () => {
-  it('rewrites the ISO DateStyle output under TimeZone=UTC', () => {
-    expect(timestampToIso('2026-09-04 12:00:00.5+00')).toBe('2026-09-04T12:00:00.5Z')
-    expect(timestampToIso('2026-09-04 12:00:00+00:00')).toBe('2026-09-04T12:00:00Z')
-    expect(timestampToIso('2026-09-04 12:00:00')).toBe('2026-09-04T12:00:00Z')
-    expect(timestampToIso('2026-09-04 12:00:00+05:30')).toBe('2026-09-04T12:00:00+05:30')
-    expect(timestampToIso('2026-09-04 12:00:00-03')).toBe('2026-09-04T12:00:00-03:00')
-    expect(timestampToIso('2026-09-04')).toBe('2026-09-04')
-  })
-
-  it('leaves what it does not recognise alone', () => {
-    expect(timestampToIso('infinity')).toBe('infinity')
-    expect(timestampToIso('0001-01-01 00:00:00 BC')).toBe('0001-01-01 00:00:00 BC')
-  })
-})
-
-describe('decodeValue', () => {
-  it('decodes by type OID', () => {
-    expect(decodeValue(OID.bool, 't')).toBe(true)
-    expect(decodeValue(OID.bool, 'f')).toBe(false)
-    expect(decodeValue(OID.int2, '7')).toBe(7)
-    expect(decodeValue(OID.int4, '-7')).toBe(-7)
-    expect(decodeValue(OID.oid, '16384')).toBe(16384)
-    expect(decodeValue(OID.float4, '1.5')).toBe(1.5)
-    expect(decodeValue(OID.float8, '2.5')).toBe(2.5)
-    expect(decodeValue(OID.int8, '42')).toBe(42)
-    expect(decodeValue(OID.int8, '9007199254740993')).toBe('9007199254740993')
-    expect(decodeValue(OID.numeric, '1.10')).toBe('1.10')
-    expect(decodeValue(OID.json, '{"a":1}')).toEqual({ a: 1 })
-    expect(decodeValue(OID.jsonb, '[1]')).toEqual([1])
-    expect(decodeValue(OID.timestamp, '2026-09-04 12:00:00')).toBe('2026-09-04T12:00:00Z')
-    expect(decodeValue(OID.timestamptz, '2026-09-04 12:00:00+00')).toBe('2026-09-04T12:00:00Z')
-    expect(decodeValue(25, 'text')).toBe('text')
-    expect(decodeValue(OID.int4, null)).toBeNull()
-  })
-
-  it('knows which OIDs are dates and times', () => {
-    expect(isDateTime(OID.date)).toBe(true)
-    expect(isDateTime(OID.timestamptz)).toBe(true)
-    expect(isDateTime(OID.int4)).toBe(false)
-  })
-
-  it('builds an object from a row, with null for a short row', () => {
-    const fields = [
-      { name: 'id', typeOid: OID.int4 },
-      { name: 'ok', typeOid: OID.bool },
-      { name: 'missing', typeOid: 25 }
-    ]
-    expect(rowToObject(fields, ['1', 't'])).toEqual({ id: 1, ok: true, missing: null })
   })
 })
 

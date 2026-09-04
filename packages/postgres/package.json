@@ -55,6 +55,7 @@
       "rows",
       "tables"
     ],
-    "auth": "Paste the database's connection string (postgres://user:password@host:5432/db?sslmode=require) from your provider's dashboard or your DBA; a read-only role is enough for triggers."
+    "auth": "Paste the database's connection string (postgres://user:password@host:5432/db?sslmode=require) from your provider's dashboard or your DBA; a read-only role is enough for triggers.",
+    "packs": true
   }
 }

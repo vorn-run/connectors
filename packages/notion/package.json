@@ -58,6 +58,7 @@
       "notes",
       "wiki"
     ],
-    "auth": "Paste a Notion integration token, then share the pages you want it to see with the connection in Notion. There is no Notion CLI to sign in with."
+    "auth": "Paste a Notion integration token, then share the pages you want it to see with the connection in Notion. There is no Notion CLI to sign in with.",
+    "packs": true
   }
 }

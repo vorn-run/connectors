@@ -42,6 +42,7 @@
       "engineering",
       "backlog"
     ],
-    "auth": "Uses a Linear personal API key, created at linear.app/settings/api."
+    "auth": "Uses a Linear personal API key, created at linear.app/settings/api.",
+    "packs": true
   }
 }

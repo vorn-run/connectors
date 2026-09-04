@@ -35,33 +35,19 @@ export function splitTable(ref: string): { schema: string; table: string } {
   return { schema, table }
 }
 
-/** Parse an argument that arrives as JSON text, or pass it through when already parsed. */
-export function jsonArg(value: unknown, name: string): unknown {
-  if (value === undefined || value === null) return undefined
-  if (typeof value !== 'string') return value
-  const trimmed = value.trim()
-  if (trimmed === '') return undefined
-  try {
-    return JSON.parse(trimmed)
-  } catch {
-    throw new Error(`${name} must be JSON`)
-  }
-}
-
+/** The shape of an argument the SDK has already parsed for a `json` input. */
 export function jsonArray(value: unknown, name: string): unknown[] {
-  const parsed = jsonArg(value, name)
-  if (parsed === undefined) return []
-  if (!Array.isArray(parsed)) throw new Error(`${name} must be a JSON array, e.g. [1, "two"]`)
-  return parsed
+  if (value === undefined) return []
+  if (!Array.isArray(value)) throw new Error(`${name} must be a JSON array, e.g. [1, "two"]`)
+  return value
 }
 
 export function jsonObject(value: unknown, name: string): Record<string, unknown> {
-  const parsed = jsonArg(value, name)
-  if (parsed === undefined) throw new Error(`${name} is required`)
-  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+  if (value === undefined) throw new Error(`${name} is required`)
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
     throw new Error(`${name} must be a JSON object of column: value`)
   }
-  return parsed as Record<string, unknown>
+  return value as Record<string, unknown>
 }
 
 export function buildSelect(input: {
@@ -120,7 +106,7 @@ export const DESCRIBE_TABLE_SQL =
   'SELECT column_name, data_type, udt_name, is_nullable, column_default, ordinal_position ' +
   'FROM information_schema.columns WHERE table_schema = $1 AND table_name = $2 ORDER BY ordinal_position'
 
-/** The `newRows` trigger's page, in each of its three shapes. */
+/** The `newRows` trigger's page: the newest rows, or those past the values a cursor or start carries. */
 export function buildNewRows(input: {
   table: string
   orderingColumn: string
@@ -135,24 +121,20 @@ export function buildNewRows(input: {
   const sameColumn = input.orderingColumn.trim() === input.keyColumn.trim()
   const order = sameColumn ? ord : `${ord}, ${key}`
 
-  if (input.cursor) {
-    if (sameColumn) {
-      return {
-        text: `SELECT * FROM ${table} WHERE ${ord} > $1 ORDER BY ${order} LIMIT $2`,
-        params: [input.cursor.ordering, input.limit]
-      }
-    }
-    return {
-      text: `SELECT * FROM ${table} WHERE (${ord}, ${key}) > ($1, $2) ORDER BY ${order} LIMIT $3`,
-      params: [input.cursor.ordering, input.cursor.key, input.limit]
-    }
+  const after = input.cursor
+    ? sameColumn
+      ? [input.cursor.ordering]
+      : [input.cursor.ordering, input.cursor.key]
+    : input.startFrom !== undefined
+      ? [input.startFrom]
+      : undefined
+  if (after === undefined) {
+    const newestFirst = sameColumn ? `${ord} DESC` : `${ord} DESC, ${key} DESC`
+    return { text: `SELECT * FROM ${table} ORDER BY ${newestFirst} LIMIT $1`, params: [input.limit] }
   }
-  if (input.startFrom !== undefined) {
-    return {
-      text: `SELECT * FROM ${table} WHERE ${ord} > $1 ORDER BY ${order} LIMIT $2`,
-      params: [input.startFrom, input.limit]
-    }
+  const past = after.length === 1 ? `${ord} > $1` : `(${ord}, ${key}) > ($1, $2)`
+  return {
+    text: `SELECT * FROM ${table} WHERE ${past} ORDER BY ${order} LIMIT $${after.length + 1}`,
+    params: [...after, input.limit]
   }
-  const newestFirst = sameColumn ? `${ord} DESC` : `${ord} DESC, ${key} DESC`
-  return { text: `SELECT * FROM ${table} ORDER BY ${newestFirst} LIMIT $1`, params: [input.limit] }
 }

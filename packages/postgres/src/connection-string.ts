@@ -12,7 +12,7 @@ export interface ConnectionOptions {
   sslMode: SslMode
   /** Path to a PEM CA bundle, or `system` for Node's built-in roots. */
   sslRootCert?: string
-  connectTimeoutMs: number
+  connectTimeoutS: number
   applicationName: string
 }
 
@@ -126,7 +126,7 @@ export function parseConnectionString(raw: string): ConnectionOptions {
     database,
     sslMode: sslMode as SslMode,
     ...(sslRootCert && { sslRootCert }),
-    connectTimeoutMs: connectTimeoutS * 1000,
+    connectTimeoutS,
     applicationName: params.get('application_name') || DEFAULT_APPLICATION_NAME
   }
 }

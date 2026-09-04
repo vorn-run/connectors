@@ -39,7 +39,7 @@ export interface PgClient {
 /** What `ssl` is set to for each sslmode, following the manual's table. */
 export function sslSetting(options: ConnectionOptions, readFile: (path: string) => Buffer = readFileSync): unknown {
   if (options.sslMode === 'disable') return false
-  // The driver falls back to an unencrypted connection for `prefer` only, which is what `allow` asks for too.
+  // An approximation: the manual has allow and prefer try encryption in the opposite order, not accept different outcomes.
   if (options.sslMode === 'allow') return 'prefer'
   if (options.sslMode !== 'verify-ca' && options.sslMode !== 'verify-full') return options.sslMode
   const ca = options.sslRootCert && options.sslRootCert !== 'system' ? readFile(options.sslRootCert) : undefined
@@ -59,7 +59,7 @@ export function driverOptions(options: ConnectionOptions, readFile?: (path: stri
     ...(options.password !== undefined && { pass: options.password }),
     database: options.database,
     ssl: sslSetting(options, readFile),
-    connect_timeout: Math.ceil(options.connectTimeoutMs / 1000),
+    connect_timeout: options.connectTimeoutS,
     // One connection per call, never reused, so preparing a statement would only cost a round trip.
     max: 1,
     prepare: false,
@@ -73,8 +73,7 @@ export function driverOptions(options: ConnectionOptions, readFile?: (path: stri
 
 /** `undefined` is NULL, and an object or array is JSON, which the driver would otherwise send as `[object Object]`. */
 export function toParam(value: unknown): unknown {
-  if (value === undefined) return null
-  if (value === null || value instanceof Date || Buffer.isBuffer(value)) return value
+  if (value === undefined || value === null) return null
   return typeof value === 'object' ? JSON.stringify(value) : value
 }
 

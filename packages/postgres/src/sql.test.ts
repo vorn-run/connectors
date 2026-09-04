@@ -5,7 +5,6 @@ import {
   buildSelect,
   buildUpdate,
   DESCRIBE_TABLE_SQL,
-  jsonArg,
   jsonArray,
   jsonObject,
   LIST_TABLES_SQL,
@@ -41,23 +40,14 @@ describe('identifiers', () => {
 })
 
 describe('JSON arguments', () => {
-  it('parses text, passes objects through and treats blank as absent', () => {
-    expect(jsonArg(undefined, 'x')).toBeUndefined()
-    expect(jsonArg(null, 'x')).toBeUndefined()
-    expect(jsonArg('  ', 'x')).toBeUndefined()
-    expect(jsonArg('[1]', 'x')).toEqual([1])
-    expect(jsonArg({ a: 1 }, 'x')).toEqual({ a: 1 })
-    expect(() => jsonArg('{nope', 'params')).toThrow(/params must be JSON/)
-  })
-
-  it('checks the shape it is asked for', () => {
+  it('checks the shape the SDK has already parsed', () => {
     expect(jsonArray(undefined, 'params')).toEqual([])
-    expect(jsonArray('[1,"two"]', 'params')).toEqual([1, 'two'])
-    expect(() => jsonArray('{"a":1}', 'params')).toThrow(/JSON array/)
-    expect(jsonObject('{"a":1}', 'values')).toEqual({ a: 1 })
+    expect(jsonArray([1, 'two'], 'params')).toEqual([1, 'two'])
+    expect(() => jsonArray({ a: 1 }, 'params')).toThrow(/JSON array/)
+    expect(jsonObject({ a: 1 }, 'values')).toEqual({ a: 1 })
     expect(() => jsonObject(undefined, 'values')).toThrow(/values is required/)
-    expect(() => jsonObject('[1]', 'values')).toThrow(/JSON object/)
-    expect(() => jsonObject('null', 'values')).toThrow(/JSON object/)
+    expect(() => jsonObject([1], 'values')).toThrow(/JSON object/)
+    expect(() => jsonObject(null, 'values')).toThrow(/JSON object/)
   })
 })
 

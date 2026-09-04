@@ -15,7 +15,7 @@ describe('parseConnectionString', () => {
       database: 'app',
       sslMode: 'verify-full',
       sslRootCert: '/etc/ca.pem',
-      connectTimeoutMs: 3000,
+      connectTimeoutS: 3,
       applicationName: 'my-app'
     })
   })
@@ -27,7 +27,7 @@ describe('parseConnectionString', () => {
       port: 5432,
       database: 'bob',
       sslMode: 'prefer',
-      connectTimeoutMs: 10000,
+      connectTimeoutS: 10,
       applicationName: DEFAULT_APPLICATION_NAME
     })
   })
@@ -36,7 +36,7 @@ describe('parseConnectionString', () => {
     const parsed = parseConnectionString(' postgres://bob@host:/?&connect_timeout=&application_name= ')
     expect(parsed.port).toBe(5432)
     expect(parsed.database).toBe('bob')
-    expect(parsed.connectTimeoutMs).toBe(10000)
+    expect(parsed.connectTimeoutS).toBe(10)
     expect(parsed.applicationName).toBe(DEFAULT_APPLICATION_NAME)
   })
 
@@ -88,6 +88,6 @@ describe('parseConnectionString', () => {
   })
 
   it('allows connect_timeout=0, which means no timeout', () => {
-    expect(parseConnectionString('postgres://u@h/db?connect_timeout=0').connectTimeoutMs).toBe(0)
+    expect(parseConnectionString('postgres://u@h/db?connect_timeout=0').connectTimeoutS).toBe(0)
   })
 })

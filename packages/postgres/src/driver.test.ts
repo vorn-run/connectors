@@ -72,11 +72,7 @@ describe('toParam', () => {
     expect(toParam([1, 2])).toBe('[1,2]')
   })
 
-  it('leaves alone the shapes the driver types for itself', () => {
-    const when = new Date('2026-09-04T12:00:00Z')
-    const bytes = Buffer.from('hi')
-    expect(toParam(when)).toBe(when)
-    expect(toParam(bytes)).toBe(bytes)
+  it('passes a scalar through as it is', () => {
     expect(toParam('text')).toBe('text')
     expect(toParam(7)).toBe(7)
     expect(toParam(true)).toBe(true)

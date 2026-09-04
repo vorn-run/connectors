@@ -1,6 +1,12 @@
-import { defineConnector, type ConnectorItem, type PollContext, type PollOutcome } from '@vornrun/connector-sdk'
+import {
+  defineConnector,
+  type ConnectorConfigField,
+  type ConnectorItem,
+  type PollContext,
+  type PollOutcome
+} from '@vornrun/connector-sdk'
 import { parseConnectionString } from './connection-string'
-import { openConnection, type PgClient } from './driver'
+import { openConnection, type PgClient, type QueryResult } from './driver'
 import {
   buildInsert,
   buildNewRows,
@@ -11,12 +17,85 @@ import {
   jsonObject,
   LIST_TABLES_SQL,
   splitTable,
-  type Row
+  type Row,
+  type Statement
 } from './sql'
 
 const DEFAULT_LIMIT = 100
 const MAX_SELECT_LIMIT = 1000
 const CURSOR_VERSION = 1
+
+// Each field states its env name once; an error about a missing one reads it back from here.
+const CONFIG_FIELDS: ConnectorConfigField[] = [
+  {
+    key: 'connectionString',
+    env: 'DATABASE_URL',
+    label: 'Connection string',
+    secret: true,
+    required: true,
+    description:
+      'libpq URI: postgres://user:password@host:5432/database?sslmode=require. ' +
+      'Your provider shows it on the database page; otherwise ask your DBA. A read-only role is enough for triggers.',
+    builderHint:
+      'Percent-encode reserved characters in the password. sslmode defaults to prefer; ' +
+      'verify-full also needs sslrootcert=<path> or sslrootcert=system.'
+  },
+  {
+    key: 'table',
+    env: 'PG_TABLE',
+    label: 'Table',
+    description: 'For "new rows": table or schema.table to watch.',
+    builderHint: 'Used by the newRows trigger only; actions take the table as an argument.'
+  },
+  {
+    key: 'orderingColumn',
+    env: 'PG_ORDERING_COLUMN',
+    label: 'Ordering column',
+    description: 'For "new rows": a column that only grows, such as id or created_at.',
+    builderHint: 'The cursor is this column\'s last seen value; an updated_at that moves backwards will miss rows.'
+  },
+  {
+    key: 'keyColumn',
+    env: 'PG_KEY_COLUMN',
+    label: 'Key column',
+    description:
+      'The column that identifies a row, usually the primary key. Defaults to the ordering column for "new rows"; required for "rows matching a query".'
+  },
+  {
+    key: 'query',
+    env: 'PG_QUERY',
+    label: 'Query',
+    description:
+      'For "rows matching a query": a SELECT with $1 where the cursor goes and, optionally, $2 for the limit, ordered by the cursor column ascending.',
+    builderHint:
+      "e.g. SELECT id, title, updated_at FROM tickets WHERE status = 'open' AND updated_at >= $1 ORDER BY updated_at LIMIT $2"
+  },
+  {
+    key: 'cursorColumn',
+    env: 'PG_CURSOR_COLUMN',
+    label: 'Cursor column',
+    description: 'For "rows matching a query": the result column the cursor advances from.'
+  },
+  {
+    key: 'startFrom',
+    env: 'PG_START_FROM',
+    label: 'Start from',
+    description:
+      'Value of the ordering or cursor column to start after. Required for "rows matching a query"; for "new rows", blank means the newest page.'
+  },
+  {
+    key: 'titleColumn',
+    env: 'PG_TITLE_COLUMN',
+    label: 'Title column',
+    description: 'Column to use as the item title. Blank uses the table and key.'
+  },
+  {
+    key: 'limit',
+    env: 'PG_LIMIT',
+    label: 'Rows per poll',
+    default: String(DEFAULT_LIMIT)
+  }
+]
 
 export interface PostgresConnectorOptions {
   version?: string
@@ -26,22 +105,32 @@ export interface PostgresConnectorOptions {
 
 type Config = Record<string, unknown>
 
-function required(config: Config, key: string, env: string): string {
-  const value = String(config[key] ?? '').trim()
-  if (!value) throw new Error(`${env} is required`)
-  return value
-}
-
 /** Trim a value, treating blank as absent. */
 function text(value: unknown): string | undefined {
   const trimmed = String(value ?? '').trim()
   return trimmed === '' ? undefined : trimmed
 }
 
-function pageLimit(config: Config, context: { limit?: number }, max = Number.MAX_SAFE_INTEGER): number {
-  const configured = Number(config.limit ?? DEFAULT_LIMIT) || DEFAULT_LIMIT
-  const asked = context.limit && context.limit > 0 ? context.limit : configured
+function required(config: Config, key: string): string {
+  const value = text(config[key])
+  if (!value) throw new Error(`${CONFIG_FIELDS.find((field) => field.key === key)?.env} is required`)
+  return value
+}
+
+function requiredArg(value: unknown, name: string): string {
+  const trimmed = text(value)
+  if (!trimmed) throw new Error(`${name} is required`)
+  return trimmed
+}
+
+function clampLimit(value: unknown, max: number): number {
+  const asked = Number(value ?? DEFAULT_LIMIT) || DEFAULT_LIMIT
   return Math.min(Math.max(1, Math.floor(asked)), max)
+}
+
+function pageLimit(config: Config, context: { limit?: number }): number {
+  const asked = context.limit && context.limit > 0 ? context.limit : config.limit
+  return clampLimit(asked, Number.MAX_SAFE_INTEGER)
 }
 
 /** Refuse a column the query never returned, whether or not any row came back. */
@@ -59,19 +148,19 @@ function cellText(row: Row, column: string, what: string): string {
   return typeof value === 'object' ? JSON.stringify(value) : String(value)
 }
 
-function toItem(input: {
-  row: Row
-  key: string
-  titleColumn?: string
-  fallbackTitle: string
-  timeColumn: string
-}): ConnectorItem {
-  const titleValue = input.titleColumn !== undefined ? input.row[input.titleColumn] : undefined
-  const title = titleValue === null || titleValue === undefined ? input.fallbackTitle : String(titleValue)
-  const item: ConnectorItem = { externalId: input.key, title, data: input.row }
-  const time = input.row[input.timeColumn]
+/** A row as an item, with the key it is identified by, which a cursor needs too. */
+function itemFrom(
+  row: Row,
+  options: { keyColumn: string; titleColumn?: string; fallbackPrefix: string; timeColumn: string }
+): { item: ConnectorItem; key: string } {
+  const key = cellText(row, options.keyColumn, 'key column')
+  const titleValue = options.titleColumn !== undefined ? row[options.titleColumn] : undefined
+  const title =
+    titleValue === null || titleValue === undefined ? `${options.fallbackPrefix} ${key}` : String(titleValue)
+  const item: ConnectorItem = { externalId: key, title, data: row }
+  const time = row[options.timeColumn]
   if (time instanceof Date) item.updatedAt = time.toISOString()
-  return item
+  return { item, key }
 }
 
 function parseCursor<T>(cursor: string | undefined, shape: (parsed: Record<string, unknown>) => T | undefined): T | undefined {
@@ -96,7 +185,7 @@ export function createPostgresConnector(options: PostgresConnectorOptions = {}) 
 
   /** One connection per call: open, run, terminate, whatever happens in between. */
   async function withClient<T>(config: Config, work: (client: PgClient) => Promise<T>): Promise<T> {
-    const client = await open(required(config, 'connectionString', 'DATABASE_URL'))
+    const client = await open(required(config, 'connectionString'))
     try {
       return await work(client)
     } finally {
@@ -104,10 +193,14 @@ export function createPostgresConnector(options: PostgresConnectorOptions = {}) 
     }
   }
 
+  function query(config: unknown, statement: Statement): Promise<QueryResult> {
+    return withClient(config as Config, (client) => client.query(statement.text, statement.params))
+  }
+
   async function pollNewRows(context: PollContext): Promise<PollOutcome> {
     const config = context.config as Config
-    const table = required(config, 'table', 'PG_TABLE')
-    const orderingColumn = required(config, 'orderingColumn', 'PG_ORDERING_COLUMN')
+    const table = required(config, 'table')
+    const orderingColumn = required(config, 'orderingColumn')
     const keyColumn = text(config.keyColumn) ?? orderingColumn
     const titleColumn = text(config.titleColumn)
     const startFrom = text(config.startFrom)
@@ -124,7 +217,7 @@ export function createPostgresConnector(options: PostgresConnectorOptions = {}) 
       ...(cursor && { cursor }),
       ...(startFrom !== undefined && { startFrom })
     })
-    const result = await withClient(config, (client) => client.query(statement.text, statement.params))
+    const result = await query(config, statement)
     if (result.rows.length === 0) {
       return { items: [], ...(context.cursor !== undefined && { nextCursor: context.cursor }), hasMore: false }
     }
@@ -133,11 +226,10 @@ export function createPostgresConnector(options: PostgresConnectorOptions = {}) 
     const rows = forward ? result.rows : [...result.rows].reverse()
     requireColumn(result.columns, orderingColumn, 'ordering column')
     requireColumn(result.columns, keyColumn, 'key column')
-    const items = rows.map((row) => {
-      const key = cellText(row, keyColumn, 'key column')
-      cellText(row, orderingColumn, 'ordering column')
-      return toItem({ row, key, titleColumn, fallbackTitle: `${table} ${key}`, timeColumn: orderingColumn })
-    })
+    const items = rows.map(
+      (row) =>
+        itemFrom(row, { keyColumn, titleColumn, fallbackPrefix: table, timeColumn: orderingColumn }).item
+    )
     const last = rows[rows.length - 1] as Row
     const nextCursor = JSON.stringify({
       v: CURSOR_VERSION,
@@ -149,9 +241,9 @@ export function createPostgresConnector(options: PostgresConnectorOptions = {}) 
 
   async function pollQueryRows(context: PollContext): Promise<PollOutcome> {
     const config = context.config as Config
-    const query = required(config, 'query', 'PG_QUERY')
-    const cursorColumn = required(config, 'cursorColumn', 'PG_CURSOR_COLUMN')
-    const keyColumn = required(config, 'keyColumn', 'PG_KEY_COLUMN')
+    const sql = required(config, 'query')
+    const cursorColumn = required(config, 'cursorColumn')
+    const keyColumn = required(config, 'keyColumn')
     const titleColumn = text(config.titleColumn)
     const limit = pageLimit(config, context)
     const cursor = parseCursor(context.cursor, (parsed) =>
@@ -164,25 +256,35 @@ export function createPostgresConnector(options: PostgresConnectorOptions = {}) 
       throw new Error('PG_START_FROM is required for the first poll: the value $1 starts from, e.g. 0 or 2026-01-01')
     }
     // $2 is bound only when the text mentions it; the server rejects a parameter no placeholder uses.
-    const paged = /\$2\b/.test(query)
+    const paged = /\$2\b/.test(sql)
     const params: unknown[] = paged ? [since, limit] : [since]
 
-    const result = await withClient(config, (client) => client.query(query, params))
+    const result = await query(config, { text: sql, params })
     requireColumn(result.columns, cursorColumn, 'cursor column')
     requireColumn(result.columns, keyColumn, 'key column')
 
     const items: ConnectorItem[] = []
-    let newest = cursor ?? { value: since, keys: [] as string[] }
+    let newestValue = since
+    let newestKeys = cursor ? [...cursor.keys] : []
     for (const row of result.rows) {
-      const key = cellText(row, keyColumn, 'key column')
+      const { item, key } = itemFrom(row, {
+        keyColumn,
+        titleColumn,
+        fallbackPrefix: keyColumn,
+        timeColumn: cursorColumn
+      })
       const value = cellText(row, cursorColumn, 'cursor column')
       if (cursor && value === cursor.value && cursor.keys.includes(key)) continue
-      items.push(toItem({ row, key, titleColumn, fallbackTitle: `${keyColumn} ${key}`, timeColumn: cursorColumn }))
-      newest = value === newest.value ? { value, keys: [...newest.keys, key] } : { value, keys: [key] }
+      items.push(item)
+      if (value === newestValue) newestKeys.push(key)
+      else {
+        newestValue = value
+        newestKeys = [key]
+      }
     }
     return {
       items,
-      nextCursor: JSON.stringify({ v: CURSOR_VERSION, c: newest.value, keys: newest.keys }),
+      nextCursor: JSON.stringify({ v: CURSOR_VERSION, c: newestValue, keys: newestKeys }),
       hasMore: paged && result.rows.length >= limit
     }
   }
@@ -202,75 +304,7 @@ export function createPostgresConnector(options: PostgresConnectorOptions = {}) 
       ]
     },
     auth: { rung: 'key', keys: ['connectionString'] },
-    config: [
-      {
-        key: 'connectionString',
-        env: 'DATABASE_URL',
-        label: 'Connection string',
-        secret: true,
-        required: true,
-        description:
-          'libpq URI: postgres://user:password@host:5432/database?sslmode=require. ' +
-          'Your provider shows it on the database page; otherwise ask your DBA. A read-only role is enough for triggers.',
-        builderHint:
-          'Percent-encode reserved characters in the password. sslmode defaults to prefer; ' +
-          'verify-full also needs sslrootcert=<path> or sslrootcert=system.'
-      },
-      {
-        key: 'table',
-        env: 'PG_TABLE',
-        label: 'Table',
-        description: 'For "new rows": table or schema.table to watch.',
-        builderHint: 'Used by the newRows trigger only; actions take the table as an argument.'
-      },
-      {
-        key: 'orderingColumn',
-        env: 'PG_ORDERING_COLUMN',
-        label: 'Ordering column',
-        description: 'For "new rows": a column that only grows, such as id or created_at.',
-        builderHint: 'The cursor is this column\'s last seen value; an updated_at that moves backwards will miss rows.'
-      },
-      {
-        key: 'keyColumn',
-        env: 'PG_KEY_COLUMN',
-        label: 'Key column',
-        description: 'The column that identifies a row, usually the primary key. Defaults to the ordering column for "new rows"; required for "rows matching a query".'
-      },
-      {
-        key: 'query',
-        env: 'PG_QUERY',
-        label: 'Query',
-        description:
-          'For "rows matching a query": a SELECT with $1 where the cursor goes and, optionally, $2 for the limit, ordered by the cursor column ascending.',
-        builderHint:
-          "e.g. SELECT id, title, updated_at FROM tickets WHERE status = 'open' AND updated_at >= $1 ORDER BY updated_at LIMIT $2"
-      },
-      {
-        key: 'cursorColumn',
-        env: 'PG_CURSOR_COLUMN',
-        label: 'Cursor column',
-        description: 'For "rows matching a query": the result column the cursor advances from.'
-      },
-      {
-        key: 'startFrom',
-        env: 'PG_START_FROM',
-        label: 'Start from',
-        description:
-          'Value of the ordering or cursor column to start after. Required for "rows matching a query"; for "new rows", blank means the newest page.'
-      },
-      {
-        key: 'titleColumn',
-        env: 'PG_TITLE_COLUMN',
-        label: 'Title column',
-        description: 'Column to use as the item title. Blank uses the table and key.'
-      },
-      {
-        key: 'limit',
-        env: 'PG_LIMIT',
-        label: 'Rows per poll',
-        default: String(DEFAULT_LIMIT)
-      }
-    ],
+    config: CONFIG_FIELDS,
     triggers: [
       {
         type: 'newRows',
@@ -315,10 +349,10 @@ export function createPostgresConnector(options: PostgresConnectorOptions = {}) 
           { key: 'command', type: 'string', description: 'The command tag, e.g. SELECT or UPDATE' }
         ],
         async run(args, { config }) {
-          const sql = text(args.sql)
-          if (!sql) throw new Error('sql is required')
-          const params = jsonArray(args.params, 'params')
-          const result = await withClient(config as Config, (client) => client.query(sql, params))
+          const result = await query(config, {
+            text: requiredArg(args.sql, 'sql'),
+            params: jsonArray(args.params, 'params')
+          })
           return { rows: result.rows, rowCount: result.rowCount, command: result.command }
         }
       },
@@ -349,17 +383,16 @@ export function createPostgresConnector(options: PostgresConnectorOptions = {}) 
           { key: 'rowCount', type: 'number', description: 'How many came back' }
         ],
         async run(args, { config }) {
-          const table = text(args.table)
-          if (!table) throw new Error('table is required')
-          const limitArg = Number(args.limit ?? DEFAULT_LIMIT) || DEFAULT_LIMIT
+          const where = text(args.where)
+          const orderBy = text(args.orderBy)
           const statement = buildSelect({
-            table,
-            ...(text(args.where) && { where: text(args.where) }),
+            table: requiredArg(args.table, 'table'),
+            ...(where && { where }),
             params: jsonArray(args.params, 'params'),
-            ...(text(args.orderBy) && { orderBy: text(args.orderBy) }),
-            limit: Math.min(Math.max(1, Math.floor(limitArg)), MAX_SELECT_LIMIT)
+            ...(orderBy && { orderBy }),
+            limit: clampLimit(args.limit, MAX_SELECT_LIMIT)
           })
-          const result = await withClient(config as Config, (client) => client.query(statement.text, statement.params))
+          const result = await query(config, statement)
           return { rows: result.rows, rowCount: result.rows.length }
         }
       },
@@ -384,10 +417,8 @@ export function createPostgresConnector(options: PostgresConnectorOptions = {}) 
           { key: 'rowCount', type: 'number', description: '1 when a row was inserted' }
         ],
         async run(args, { config }) {
-          const table = text(args.table)
-          if (!table) throw new Error('table is required')
-          const statement = buildInsert(table, jsonObject(args.values, 'values'))
-          const result = await withClient(config as Config, (client) => client.query(statement.text, statement.params))
+          const statement = buildInsert(requiredArg(args.table, 'table'), jsonObject(args.values, 'values'))
+          const result = await query(config, statement)
           return { row: result.rows[0] ?? null, rowCount: result.rowCount }
         }
       },
@@ -410,15 +441,13 @@ export function createPostgresConnector(options: PostgresConnectorOptions = {}) 
         ],
         outputs: [{ key: 'rowCount', type: 'number', description: 'Rows updated' }],
         async run(args, { config }) {
-          const table = text(args.table)
-          if (!table) throw new Error('table is required')
           const statement = buildUpdate({
-            table,
+            table: requiredArg(args.table, 'table'),
             set: jsonObject(args.set, 'set'),
-            where: text(args.where) ?? '',
+            where: requiredArg(args.where, 'where'),
             params: jsonArray(args.params, 'params')
           })
-          const result = await withClient(config as Config, (client) => client.query(statement.text, statement.params))
+          const result = await query(config, statement)
           return { rowCount: result.rowCount }
         }
       },
@@ -435,7 +464,7 @@ export function createPostgresConnector(options: PostgresConnectorOptions = {}) 
         ],
         async run(args, { config }) {
           const schema = text(args.schema) ?? 'public'
-          const result = await withClient(config as Config, (client) => client.query(LIST_TABLES_SQL, [schema]))
+          const result = await query(config, { text: LIST_TABLES_SQL, params: [schema] })
           const tables = result.rows.map((row) => ({
             schema: row.table_schema,
             name: row.table_name,
@@ -456,10 +485,8 @@ export function createPostgresConnector(options: PostgresConnectorOptions = {}) 
           { key: 'count', type: 'number', description: 'How many' }
         ],
         async run(args, { config }) {
-          const ref = text(args.table)
-          if (!ref) throw new Error('table is required')
-          const { schema, table } = splitTable(ref)
-          const result = await withClient(config as Config, (client) => client.query(DESCRIBE_TABLE_SQL, [schema, table]))
+          const { schema, table } = splitTable(requiredArg(args.table, 'table'))
+          const result = await query(config, { text: DESCRIBE_TABLE_SQL, params: [schema, table] })
           const columns = result.rows.map((row) => ({
             name: row.column_name,
             type: row.data_type,

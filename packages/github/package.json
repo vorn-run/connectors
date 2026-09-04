@@ -45,6 +45,7 @@
       "code review",
       "repositories"
     ],
-    "auth": "Borrows the GitHub CLI's login — `gh auth login` is all it needs, and no token is stored here."
+    "auth": "Borrows the GitHub CLI's login — `gh auth login` is all it needs, and no token is stored here.",
+    "packs": true
   }
 }

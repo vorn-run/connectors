@@ -3,8 +3,6 @@ name: Refresh lockfile
 # For a machine that cannot reach the registry: resolve the lockfile here and push it to the branch.
 on:
   workflow_dispatch:
-  push:
-    branches: [factory/readiness]
 
 permissions:
   contents: write

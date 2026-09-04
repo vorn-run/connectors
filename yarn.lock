@@ -1287,6 +1287,21 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@vornrun/connector-gitlab@workspace:packages/gitlab":
+  version: 0.0.0-use.local
+  resolution: "@vornrun/connector-gitlab@workspace:packages/gitlab"
+  dependencies:
+    "@types/node": "npm:^22.10.2"
+    "@vitest/coverage-v8": "npm:^4.1.10"
+    "@vornrun/connector-sdk": "npm:^0.7.0-beta.10"
+    tsup: "npm:^8.5.1"
+    typescript: "npm:^6.0.3"
+    vitest: "npm:^4.1.10"
+  bin:
+    vorn-connector-gitlab: dist/index.js
+  languageName: unknown
+  linkType: soft
+
 "@vornrun/connector-kusto@workspace:packages/kusto":
   version: 0.0.0-use.local
   resolution: "@vornrun/connector-kusto@workspace:packages/kusto"
@@ -1363,6 +1378,21 @@ __metadata:
   checksum: 10c0/baf4851de19f7b2f1f0836862efb850a3d39af083d03811fd1072088869757faadddcbfa2af518f566278575666da022aa3d105c28012d7d2dc05384458793b0
   languageName: node
   linkType: hard
+
+"@vornrun/connector-slack@workspace:packages/slack":
+  version: 0.0.0-use.local
+  resolution: "@vornrun/connector-slack@workspace:packages/slack"
+  dependencies:
+    "@types/node": "npm:^22.10.2"
+    "@vitest/coverage-v8": "npm:^4.1.10"
+    "@vornrun/connector-sdk": "npm:^0.7.0-beta.10"
+    tsup: "npm:^8.5.1"
+    typescript: "npm:^6.0.3"
+    vitest: "npm:^4.1.10"
+  bin:
+    vorn-connector-slack: dist/index.js
+  languageName: unknown
+  linkType: soft
 
 "abbrev@npm:^5.0.0":
   version: 5.0.0

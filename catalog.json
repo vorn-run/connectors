@@ -169,6 +169,122 @@
       ]
     },
     {
+      "id": "gitlab",
+      "name": "GitLab",
+      "description": "Trigger workflows from GitLab issues, merge requests and pipeline results, and create or comment on issues and merge requests from a step.",
+      "packageName": "@vornrun/connector-gitlab",
+      "version": "0.1.0",
+      "capabilities": [
+        "triggers",
+        "actions"
+      ],
+      "category": "Development",
+      "keywords": [
+        "gitlab",
+        "issues",
+        "merge requests",
+        "pipelines",
+        "ci",
+        "code review",
+        "repositories"
+      ],
+      "auth": "Borrows the GitLab CLI's login — `glab auth login` is all it needs — or takes a personal access token if you would rather paste one.",
+      "authRung": "cli",
+      "verified": {
+        "schema": 1,
+        "version": "0.1.0",
+        "checkedAt": "2026-09-04T03:42:52.496Z",
+        "checks": [
+          "manifest",
+          "auth",
+          "secrets",
+          "actions",
+          "dedupe",
+          "no-lifecycle-scripts",
+          "keywords",
+          "no-runtime-deps",
+          "mock"
+        ]
+      },
+      "icon": {
+        "viewBox": "0 0 24 24",
+        "paths": [
+          "m23.6004 9.5927-.0337-.0862L20.3.9814a.851.851 0 0 0-.3362-.405.8748.8748 0 0 0-.9997.0539.8748.8748 0 0 0-.29.4399l-2.2055 6.748H7.5375l-2.2057-6.748a.8573.8573 0 0 0-.29-.4412.8748.8748 0 0 0-.9997-.0537.8585.8585 0 0 0-.3362.4049L.4332 9.5015l-.0325.0862a6.0657 6.0657 0 0 0 2.0119 7.0105l.0113.0087.03.0213 4.976 3.7264 2.462 1.8627 1.4995 1.1321a1.0085 1.0085 0 0 0 1.2197 0l1.4995-1.1321 2.4619-1.8627 5.006-3.7489.0125-.01a6.0682 6.0682 0 0 0 2.0094-7.003z"
+        ]
+      },
+      "triggers": [
+        {
+          "type": "issueCreated",
+          "label": "An issue is created",
+          "description": "Fires once for each issue created in the project since the last poll."
+        },
+        {
+          "type": "mergeRequestOpened",
+          "label": "A merge request is opened",
+          "description": "Fires once for each merge request opened in the project since the last poll."
+        },
+        {
+          "type": "pipelineFinished",
+          "label": "A pipeline finishes",
+          "description": "Fires once for each pipeline that reaches success, failed, canceled or skipped, with the status on the item."
+        }
+      ],
+      "actions": [
+        {
+          "type": "createIssue",
+          "label": "Create an issue",
+          "description": "Open a new issue in a project."
+        },
+        {
+          "type": "commentOnIssue",
+          "label": "Comment on an issue",
+          "description": "Post a note on an issue."
+        },
+        {
+          "type": "commentOnMergeRequest",
+          "label": "Comment on a merge request",
+          "description": "Post a note on a merge request."
+        },
+        {
+          "type": "getProject",
+          "label": "Get a project",
+          "description": "Read a project by path or id."
+        },
+        {
+          "type": "listOpenMergeRequests",
+          "label": "List open merge requests",
+          "description": "The open merge requests of a project, most recently updated first."
+        },
+        {
+          "type": "getIssue",
+          "label": "Get an issue",
+          "description": "Read one issue by its number."
+        }
+      ],
+      "env": [
+        {
+          "name": "GITLAB_BASE_URL",
+          "required": false,
+          "description": "Instance URL without a trailing slash. Leave the default for gitlab.com."
+        },
+        {
+          "name": "GITLAB_PROJECT",
+          "required": true,
+          "description": "Path such as group/project, or the numeric id. The triggers poll this project."
+        },
+        {
+          "name": "GITLAB_TOKEN",
+          "required": false,
+          "description": "Leave empty to borrow the glab CLI login. Needs scope api, or read_api for the triggers and read-only actions."
+        },
+        {
+          "name": "GITLAB_REF",
+          "required": false,
+          "description": "Branch or tag whose pipelines to watch. Blank for every ref."
+        }
+      ]
+    },
+    {
       "id": "kusto",
       "name": "Azure Data Explorer",
       "description": "Trigger workflows from the rows a KQL query returns.",
@@ -582,6 +698,132 @@
         {
           "name": "PG_LIMIT",
           "required": false
+        }
+      ]
+    },
+    {
+      "id": "slack",
+      "name": "Slack",
+      "description": "Trigger workflows from Slack messages, thread replies and channel members, and post, reply or react from a step.",
+      "packageName": "@vornrun/connector-slack",
+      "version": "0.1.0",
+      "capabilities": [
+        "triggers",
+        "actions"
+      ],
+      "category": "Communication",
+      "keywords": [
+        "slack",
+        "chat",
+        "messages",
+        "channels",
+        "threads",
+        "reactions",
+        "workspace"
+      ],
+      "auth": "Uses a bot token from a Slack app installed to the workspace: api.slack.com/apps, OAuth & Permissions, Bot User OAuth Token.",
+      "authRung": "key",
+      "verified": {
+        "schema": 1,
+        "version": "0.1.0",
+        "checkedAt": "2026-09-04T13:06:19.548Z",
+        "checks": [
+          "manifest",
+          "auth",
+          "secrets",
+          "actions",
+          "dedupe",
+          "no-lifecycle-scripts",
+          "keywords",
+          "no-runtime-deps",
+          "mock"
+        ]
+      },
+      "icon": {
+        "viewBox": "0 0 24 24",
+        "paths": [
+          "M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zm1.271 0a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zm0 1.271a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zm10.122 2.521a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zm-1.268 0a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zm-2.523 10.122a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zm0-1.268a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"
+        ]
+      },
+      "triggers": [
+        {
+          "type": "messageInChannel",
+          "label": "A message is posted in a channel",
+          "description": "Fires for each new message in the configured channel. Bot and system messages are skipped unless includeBots is true."
+        },
+        {
+          "type": "replyInThread",
+          "label": "A reply is posted in a thread",
+          "description": "Fires for each new reply under the configured parent message."
+        },
+        {
+          "type": "memberJoinedChannel",
+          "label": "A member joins a channel",
+          "description": "Fires once for each user id in the channel that has not been seen before."
+        }
+      ],
+      "actions": [
+        {
+          "type": "postMessage",
+          "label": "Post a message",
+          "description": "Post a message to a channel, optionally under a thread or with Block Kit blocks."
+        },
+        {
+          "type": "replyInThread",
+          "label": "Reply in a thread",
+          "description": "Post a reply under a parent message."
+        },
+        {
+          "type": "addReaction",
+          "label": "Add a reaction",
+          "description": "React to a message with an emoji."
+        },
+        {
+          "type": "listChannels",
+          "label": "List channels",
+          "description": "List the public and private channels the bot can see, unarchived only."
+        },
+        {
+          "type": "getChannel",
+          "label": "Get a channel",
+          "description": "Read one channel by id."
+        },
+        {
+          "type": "findUserByEmail",
+          "label": "Find a user by email",
+          "description": "Look a user up by the address registered on the workspace."
+        },
+        {
+          "type": "getUser",
+          "label": "Get a user",
+          "description": "Read one user by id."
+        }
+      ],
+      "env": [
+        {
+          "name": "SLACK_BOT_TOKEN",
+          "required": true,
+          "description": "Bot User OAuth Token (xoxb-…) of a Slack app installed to the workspace, from api.slack.com/apps under OAuth & Permissions."
+        },
+        {
+          "name": "SLACK_CHANNEL",
+          "required": false,
+          "description": "Channel id such as C0123456789 the triggers watch. The bot must be a member."
+        },
+        {
+          "name": "SLACK_THREAD_TS",
+          "required": false,
+          "description": "The parent message ts, such as 1512085950.000216, for the reply trigger."
+        },
+        {
+          "name": "SLACK_INCLUDE_BOTS",
+          "required": false,
+          "description": "true delivers messages with a subtype or a bot_id too; joins, topic changes, app posts."
+        },
+        {
+          "name": "SLACK_LIMIT",
+          "required": false,
+          "description": "Messages read per request, 1 to 999."
         }
       ]
     }

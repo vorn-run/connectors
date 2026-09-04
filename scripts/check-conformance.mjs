@@ -14,13 +14,14 @@
  * changing a connector, the way `build-catalog.mjs` is run without `--check`.
  */
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, readFileSync, readdirSync, existsSync, rmSync } from 'node:fs'
+import { mkdtempSync, readFileSync, readdirSync, existsSync, rmSync, realpathSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
 const RECEIPT_FILE = 'verified.json'
 
-const CLI = resolve('node_modules/@vornrun/connector-sdk/dist/cli.js')
+// Through realpath: the SDK may sit behind a link, and the CLI knows itself only by its real file.
+const CLI = realpathSync(resolve('node_modules/@vornrun/connector-sdk/dist/cli.js'))
 const write = process.argv.includes('--write')
 
 /** What a receipt claims, with the time it was taken left out. */

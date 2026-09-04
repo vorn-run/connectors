@@ -6,7 +6,7 @@
       "name": "Azure DevOps",
       "description": "Trigger workflows from the work items a WIQL query returns.",
       "packageName": "@vornrun/connector-ado",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "capabilities": [
         "triggers",
         "actions"
@@ -21,6 +21,20 @@
         "tfs"
       ],
       "auth": "Signs in with your Azure identity — `az login` is usually all it needs.",
+      "authRung": "cli",
+      "verified": {
+        "schema": 1,
+        "version": "0.2.1",
+        "checkedAt": "2026-09-04T00:31:32.450Z",
+        "checks": [
+          "auth",
+          "secrets",
+          "actions",
+          "no-lifecycle-scripts",
+          "keywords",
+          "no-runtime-deps"
+        ]
+      },
       "icon": {
         "viewBox": "0 0 24 24",
         "paths": [
@@ -73,7 +87,7 @@
       "name": "GitHub",
       "description": "Trigger workflows from GitHub issues and pull requests, and open, close or comment on them from a step.",
       "packageName": "@vornrun/connector-github",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "capabilities": [
         "triggers",
         "actions"
@@ -87,6 +101,20 @@
         "repositories"
       ],
       "auth": "Borrows the GitHub CLI's login — `gh auth login` is all it needs, and no token is stored here.",
+      "authRung": "cli",
+      "verified": {
+        "schema": 1,
+        "version": "0.1.1",
+        "checkedAt": "2026-09-04T00:31:32.928Z",
+        "checks": [
+          "auth",
+          "secrets",
+          "actions",
+          "no-lifecycle-scripts",
+          "keywords",
+          "no-runtime-deps"
+        ]
+      },
       "icon": {
         "viewBox": "0 0 24 24",
         "paths": [
@@ -145,7 +173,7 @@
       "name": "Azure Data Explorer",
       "description": "Trigger workflows from the rows a KQL query returns.",
       "packageName": "@vornrun/connector-kusto",
-      "version": "0.6.0",
+      "version": "0.6.1",
       "capabilities": [
         "triggers",
         "actions"
@@ -161,6 +189,20 @@
         "telemetry"
       ],
       "auth": "Signs in with your Azure identity — `az login` is usually all it needs.",
+      "authRung": "cli",
+      "verified": {
+        "schema": 1,
+        "version": "0.6.1",
+        "checkedAt": "2026-09-04T00:31:33.726Z",
+        "checks": [
+          "auth",
+          "secrets",
+          "actions",
+          "no-lifecycle-scripts",
+          "keywords",
+          "no-runtime-deps"
+        ]
+      },
       "icon": {
         "viewBox": "0 0 24 24",
         "paths": [
@@ -229,7 +271,7 @@
       "name": "Linear",
       "description": "Trigger workflows from Linear issues, and comment or close them from a step.",
       "packageName": "@vornrun/connector-linear",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "capabilities": [
         "triggers",
         "actions"
@@ -243,6 +285,20 @@
         "backlog"
       ],
       "auth": "Uses a Linear personal API key, created at linear.app/settings/api.",
+      "authRung": "key",
+      "verified": {
+        "schema": 1,
+        "version": "0.1.1",
+        "checkedAt": "2026-09-04T00:31:33.965Z",
+        "checks": [
+          "auth",
+          "secrets",
+          "actions",
+          "no-lifecycle-scripts",
+          "keywords",
+          "no-runtime-deps"
+        ]
+      },
       "icon": {
         "viewBox": "0 0 24 24",
         "paths": [
@@ -303,7 +359,7 @@
       "name": "Notion",
       "description": "Trigger workflows from Notion database pages, and create or update them.",
       "packageName": "@vornrun/connector-notion",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "capabilities": [
         "triggers",
         "actions"
@@ -318,6 +374,20 @@
         "wiki"
       ],
       "auth": "Paste a Notion integration token, then share the pages you want it to see with the connection in Notion. There is no Notion CLI to sign in with.",
+      "authRung": "key",
+      "verified": {
+        "schema": 1,
+        "version": "0.1.1",
+        "checkedAt": "2026-09-04T00:31:34.213Z",
+        "checks": [
+          "auth",
+          "secrets",
+          "actions",
+          "no-lifecycle-scripts",
+          "keywords",
+          "no-runtime-deps"
+        ]
+      },
       "icon": {
         "viewBox": "0 0 24 24",
         "paths": [

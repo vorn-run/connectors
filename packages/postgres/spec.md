@@ -131,8 +131,10 @@ manual's lexical rules; a `schema.table` is split at the first dot and each
 part quoted. Values never enter SQL text.
 
 Layout: `src/connection-string.ts` (URI parsing), `src/wire.ts` (frames,
-start-up, auth, queries), `src/sql.ts` (quoting, builders, decoding),
-`src/connector.ts`, `src/entry.ts`, `src/index.ts`, mirroring `linear`.
+start-up, auth, queries), `src/transport.ts` (the one place `node:net` and
+`node:tls` are called, built from injected functions so tests need no socket),
+`src/sql.ts` (quoting, builders, decoding), `src/connector.ts`,
+`src/entry.ts`, `src/index.ts`, mirroring `linear`.
 
 ## Triggers
 
@@ -168,7 +170,8 @@ needs them):
   newest, and tracking starts there, as the SDK does for its own strategies.
 - **Cursor:** `{"v":1,"o":"<ordering value text>","k":"<key text>"}`, the
   server's own text for both, bound back unchanged. `hasMore` when the page
-  was full and a cursor already existed.
+  was full and the query read forward (a cursor or `startFrom`); the newest
+  page is where tracking starts, so it never has more.
 - **Dedupe key:** `externalId` = the key column's text.
 - **Item:** `title` = `titleColumn` value, else `<table> <key>`; `updatedAt` =
   the ordering value when its type OID is timestamp, timestamptz or date,
@@ -325,13 +328,14 @@ against the RFC 7677 vector (user `user`, password `pencil`, nonce
 `rOprNGfwEbeRWgbNEkqO`), MD5 against the manual's formula, the query builders
 and decoders against literal frames.
 
-What the receipt can say: `auth`, `secrets`, `actions`, `no-lifecycle-scripts`,
-`keywords`, `no-runtime-deps`, the same six every connector here carries.
-`mock` is spoiled by design: under `--mock` every action gets
-`connectionString = mock-connectionString`, which the URI parser refuses
-before any socket opens, so the SDK reports `mock-action-failed` at warn
-level and nothing reaches the network. `dedupe` is absent because both
-triggers implement `poll`.
+What the receipt says: `manifest`, `auth`, `secrets`, `actions`,
+`no-lifecycle-scripts`, `keywords`, `no-runtime-deps`. The six every connector
+here carries, plus `manifest`, which the SDK grants only when every action
+input has a description. `mock` is spoiled by design: under `--mock` every
+action gets `connectionString = mock-connectionString`, which the URI parser
+refuses before any socket opens (the JSON inputs refuse the placeholder even
+earlier), so the SDK reports `mock-action-failed` at warn level and nothing
+reaches the network. `dedupe` is absent because both triggers implement `poll`.
 
 ## Live checks
 

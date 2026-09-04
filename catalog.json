@@ -568,6 +568,140 @@
       ]
     },
     {
+      "id": "postgres",
+      "name": "PostgreSQL",
+      "description": "Trigger workflows from new rows in a PostgreSQL database, and query or write to it from a step.",
+      "packageName": "@vornrun/connector-postgres",
+      "version": "0.1.0",
+      "capabilities": [
+        "triggers",
+        "actions"
+      ],
+      "category": "Data & observability",
+      "keywords": [
+        "postgres",
+        "postgresql",
+        "database",
+        "sql",
+        "rows",
+        "tables"
+      ],
+      "auth": "Paste the database's connection string (postgres://user:password@host:5432/db?sslmode=require) from your provider's dashboard or your DBA; a read-only role is enough for triggers.",
+      "authRung": "key",
+      "verified": {
+        "schema": 1,
+        "version": "0.1.0",
+        "checkedAt": "2026-09-04T14:56:22.583Z",
+        "checks": [
+          "manifest",
+          "auth",
+          "secrets",
+          "actions",
+          "no-lifecycle-scripts",
+          "keywords",
+          "no-runtime-deps"
+        ]
+      },
+      "icon": {
+        "viewBox": "0 0 24 24",
+        "paths": [
+          "M12 3c-4.97 0-9 1.34-9 3s4.03 3 9 3 9-1.34 9-3-4.03-3-9-3z",
+          "M3 8v3c0 1.66 4.03 3 9 3s9-1.34 9-3V8c0 1.66-4.03 3-9 3S3 9.66 3 8z",
+          "M3 13v3c0 1.66 4.03 3 9 3s9-1.34 9-3v-3c0 1.66-4.03 3-9 3s-9-1.34-9-3z"
+        ]
+      },
+      "triggers": [
+        {
+          "type": "newRows",
+          "label": "New rows in a table",
+          "description": "Fires once per row inserted after the last seen value of the ordering column."
+        },
+        {
+          "type": "queryRows",
+          "label": "Rows matching a query",
+          "description": "Fires once per row your SELECT returns beyond the cursor value it was last run with."
+        }
+      ],
+      "actions": [
+        {
+          "type": "runQuery",
+          "label": "Run a query",
+          "description": "Run SQL text with positional parameters and return its rows and row count."
+        },
+        {
+          "type": "selectRows",
+          "label": "Select rows",
+          "description": "Read rows from a table, with an optional parameterised WHERE."
+        },
+        {
+          "type": "insertRow",
+          "label": "Insert a row",
+          "description": "Insert one row and return it as stored."
+        },
+        {
+          "type": "updateRows",
+          "label": "Update rows",
+          "description": "Set columns on the rows a WHERE matches and return how many changed."
+        },
+        {
+          "type": "listTables",
+          "label": "List tables",
+          "description": "List the tables and views in a schema that the role can see."
+        },
+        {
+          "type": "describeTable",
+          "label": "Describe a table",
+          "description": "List the columns of a table with their types and nullability."
+        }
+      ],
+      "env": [
+        {
+          "name": "DATABASE_URL",
+          "required": true,
+          "description": "libpq URI: postgres://user:password@host:5432/database?sslmode=require. Your provider shows it on the database page; otherwise ask your DBA. A read-only role is enough for triggers."
+        },
+        {
+          "name": "PG_TABLE",
+          "required": false,
+          "description": "For \"new rows\": table or schema.table to watch."
+        },
+        {
+          "name": "PG_ORDERING_COLUMN",
+          "required": false,
+          "description": "For \"new rows\": a column that only grows, such as id or created_at."
+        },
+        {
+          "name": "PG_KEY_COLUMN",
+          "required": false,
+          "description": "The column that identifies a row, usually the primary key. Defaults to the ordering column for \"new rows\"; required for \"rows matching a query\"."
+        },
+        {
+          "name": "PG_QUERY",
+          "required": false,
+          "description": "For \"rows matching a query\": a SELECT with $1 where the cursor goes and, optionally, $2 for the limit, ordered by the cursor column ascending."
+        },
+        {
+          "name": "PG_CURSOR_COLUMN",
+          "required": false,
+          "description": "For \"rows matching a query\": the result column the cursor advances from."
+        },
+        {
+          "name": "PG_START_FROM",
+          "required": false,
+          "description": "Value of the ordering or cursor column to start after. Required for \"rows matching a query\"; for \"new rows\", blank means the newest page."
+        },
+        {
+          "name": "PG_TITLE_COLUMN",
+          "required": false,
+          "description": "Column to use as the item title. Blank uses the table and key."
+        },
+        {
+          "name": "PG_LIMIT",
+          "required": false
+        }
+      ]
+    },
+    {
       "id": "slack",
       "name": "Slack",
       "description": "Trigger workflows from Slack messages, thread replies and channel members, and post, reply or react from a step.",

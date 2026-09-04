@@ -206,6 +206,7 @@
           "mock"
         ]
       },
+      "packUrl": "https://github.com/vorn-run/connectors/releases/download/gitlab-v0.1.0/gitlab-0.1.0.vorn.tgz",
       "icon": {
         "viewBox": "0 0 24 24",
         "paths": [
@@ -602,6 +603,7 @@
           "no-runtime-deps"
         ]
       },
+      "packUrl": "https://github.com/vorn-run/connectors/releases/download/postgres-v0.1.0/postgres-0.1.0.vorn.tgz",
       "icon": {
         "viewBox": "0 0 24 24",
         "paths": [
@@ -739,6 +741,7 @@
           "mock"
         ]
       },
+      "packUrl": "https://github.com/vorn-run/connectors/releases/download/slack-v0.1.0/slack-0.1.0.vorn.tgz",
       "icon": {
         "viewBox": "0 0 24 24",
         "paths": [

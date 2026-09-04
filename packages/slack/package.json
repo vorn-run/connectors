@@ -47,6 +47,7 @@
       "reactions",
       "workspace"
     ],
-    "auth": "Uses a bot token from a Slack app installed to the workspace: api.slack.com/apps, OAuth & Permissions, Bot User OAuth Token."
+    "auth": "Uses a bot token from a Slack app installed to the workspace: api.slack.com/apps, OAuth & Permissions, Bot User OAuth Token.",
+    "packs": true
   }
 }

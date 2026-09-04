@@ -9,4 +9,8 @@ const { version } = createRequire(import.meta.url)('../package.json') as { versi
 
 export const notionConnector = createNotionConnector({ version })
 
+// The names the SDK's own tooling loads a connector by.
+export { notionConnector as connector }
+export default notionConnector
+
 serveIfEntryPoint(notionConnector, import.meta.url)

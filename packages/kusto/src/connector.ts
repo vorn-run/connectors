@@ -209,6 +209,7 @@ export function createKustoConnector(options: KustoConnectorOptions = {}) {
         'M17.5 13a4.5 4.5 0 103.1 7.7l1.6 1.6a1 1 0 001.4-1.4l-1.6-1.6A4.5 4.5 0 0017.5 13zm0 2a2.5 2.5 0 110 5 2.5 2.5 0 010-5z'
       ]
     },
+    auth: { rung: 'cli', probe: { command: 'az', args: ['account', 'show'] } },
     config: [
       {
         key: 'cluster',

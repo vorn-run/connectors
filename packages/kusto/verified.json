@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "version": "0.6.1",
+  "checkedAt": "2026-09-04T00:31:33.726Z",
+  "checks": [
+    "auth",
+    "secrets",
+    "actions",
+    "no-lifecycle-scripts",
+    "keywords",
+    "no-runtime-deps"
+  ]
+}

@@ -2,6 +2,11 @@
 
 All notable changes to `@vornrun/connector-linear`.
 
+## 0.1.1
+
+Declares how it signs in: it asks for an API key, so the app can say so before
+anyone installs it. Ships a conformance receipt.
+
 ## 0.1.0
 
 First release.

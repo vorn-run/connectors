@@ -22,6 +22,12 @@ import { connectorManifest } from '@vornrun/connector-sdk'
 import { catalogEntry, readTemplateFiles } from './templates.mjs'
 
 const CATALOG_VERSION = 1
+/** Written by `yarn conformance`, committed, and quoted here as the verified badge. */
+const RECEIPT_FILE = 'verified.json'
+/** Where a release carries a connector's pack, under the tag that published it. */
+const PACK_URL = (dir, id, version) =>
+  `https://github.com/vorn-run/connectors/releases/download/` +
+  `${dir}-v${version}/${id}-${version}.vorn.tgz`
 
 /** Trim an action's inputs down to what someone deciding would want to see. */
 function summarize(entries) {
@@ -52,6 +58,19 @@ function requiredEnv(manifest) {
   }))
 }
 
+/** A connector's conformance receipt, if it has been run and committed. */
+function receiptFor(dir) {
+  const path = `packages/${dir}/${RECEIPT_FILE}`
+  if (!existsSync(path)) return undefined
+  const receipt = JSON.parse(readFileSync(path, 'utf8'))
+  return {
+    schema: receipt.schema,
+    version: receipt.version,
+    checkedAt: receipt.checkedAt,
+    checks: receipt.checks
+  }
+}
+
 async function entryFor(dir) {
   const pkg = JSON.parse(readFileSync(`packages/${dir}/package.json`, 'utf8'))
   const built = resolve(`packages/${dir}/dist/index.js`)
@@ -71,6 +90,8 @@ async function entryFor(dir) {
   if (manifest.triggers.length > 0) capabilities.push('triggers')
   if (manifest.actions.length > 0) capabilities.push('actions')
 
+  const receipt = receiptFor(dir)
+
   return {
     id: manifest.id,
     name: manifest.name,
@@ -81,6 +102,13 @@ async function entryFor(dir) {
     ...(listing.category && { category: listing.category }),
     ...(listing.keywords && { keywords: listing.keywords }),
     ...(listing.auth && { auth: listing.auth }),
+    // The rung the connector itself declares; the line above is the prose for it.
+    ...(manifest.auth?.rung && { authRung: manifest.auth.rung }),
+    ...(receipt && { verified: receipt }),
+    // Only where the release actually carries the asset: the app prefers this
+    // over the package name, so advertising one that is not there yet would
+    // turn an install that works into a download that 404s.
+    ...(listing.packs && { packUrl: PACK_URL(dir, manifest.id, pkg.version) }),
     ...(manifest.icon && { icon: manifest.icon }),
     triggers: summarize(manifest.triggers),
     actions: summarize(manifest.actions),

@@ -9,4 +9,8 @@ const { version } = createRequire(import.meta.url)('../package.json') as { versi
 
 export const linearConnector = createLinearConnector({ version })
 
+// The names the SDK's own tooling loads a connector by.
+export { linearConnector as connector }
+export default linearConnector
+
 serveIfEntryPoint(linearConnector, import.meta.url)

@@ -1335,6 +1335,21 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@vornrun/connector-postgres@workspace:packages/postgres":
+  version: 0.0.0-use.local
+  resolution: "@vornrun/connector-postgres@workspace:packages/postgres"
+  dependencies:
+    "@types/node": "npm:^22.10.2"
+    "@vitest/coverage-v8": "npm:^4.1.10"
+    "@vornrun/connector-sdk": "npm:^0.7.0-beta.10"
+    tsup: "npm:^8.5.1"
+    typescript: "npm:^6.0.3"
+    vitest: "npm:^4.1.10"
+  bin:
+    vorn-connector-postgres: dist/index.js
+  languageName: unknown
+  linkType: soft
+
 "@vornrun/connector-sdk@npm:^0.7.0-beta.10":
   version: 0.7.0-beta.11
   resolution: "@vornrun/connector-sdk@npm:0.7.0-beta.11"

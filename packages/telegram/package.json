@@ -38,7 +38,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@vornrun/connector-sdk": "^0.5.7"
+    "@vornrun/connector-sdk": "^0.7.0-beta.14"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
@@ -56,6 +56,7 @@
       "bot",
       "messaging"
     ],
-    "auth": "Paste a bot token from @BotFather. There is no Telegram CLI to sign in with, and Telegram's OAuth grants only outbound messaging, never reads."
+    "auth": "Paste a bot token from @BotFather. There is no Telegram CLI to sign in with, and Telegram's OAuth grants only outbound messaging, never reads.",
+    "packs": true
   }
 }

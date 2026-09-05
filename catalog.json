@@ -862,6 +862,23 @@
         "messaging"
       ],
       "auth": "Paste a bot token from @BotFather. There is no Telegram CLI to sign in with, and Telegram's OAuth grants only outbound messaging, never reads.",
+      "authRung": "key",
+      "verified": {
+        "schema": 1,
+        "version": "0.1.0",
+        "checkedAt": "2026-09-05T21:03:12.339Z",
+        "checks": [
+          "manifest",
+          "auth",
+          "secrets",
+          "actions",
+          "no-lifecycle-scripts",
+          "keywords",
+          "no-runtime-deps",
+          "launch"
+        ]
+      },
+      "packUrl": "https://github.com/vorn-run/connectors/releases/download/telegram-v0.1.0/telegram-0.1.0.vorn.tgz",
       "icon": {
         "viewBox": "0 0 24 24",
         "paths": [

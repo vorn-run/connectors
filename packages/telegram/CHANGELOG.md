@@ -29,6 +29,10 @@ by one connection, there is no backfill, editing a message starts a second run
 rather than revising the first, and `vorn-connector check --live` consumes real
 messages. The README says all of this louder.
 
+Ships as a pack: the release carries `telegram-0.1.0.vorn.tgz`, which Vorn
+installs and starts from its own files, and the receipt records the checks that
+proved it.
+
 Built against Telegram's own Bot API reference at 10.2, hand-rolled at zero
 dependencies. There is no vendor SDK to prefer — Telegram maintains none — and
 the three community frameworks are bot runtimes we would install to use about

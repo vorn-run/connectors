@@ -28,24 +28,13 @@ export const MAX_MESSAGE_LENGTH = 4096
 
 const DEFAULT_POLL_TIMEOUT_SECONDS = 10
 
-/**
- * The longest long poll this connector will hold open.
- *
- * Telegram documents no ceiling. This one is ours: the seeded workflow polls
- * every minute, and a poll that can outlive its own schedule stacks runs.
- */
+// Ours, not Telegram's, which documents no ceiling: a poll that outlives its own one-minute schedule stacks runs.
 const MAX_POLL_TIMEOUT_SECONDS = 50
 
 /** How much of a message's first line becomes the item title. */
 const TITLE_LIMIT = 120
 
-/**
- * The update types this connector can turn into an item.
- *
- * Anything else is refused at config time rather than skipped at poll time.
- * Skipping would still *confirm* the update — reading is acking — so an
- * unmappable type asked for here would quietly destroy updates.
- */
+// Refused at config time rather than skipped at poll time: reading is acking, so an unmappable type would destroy updates.
 export const SUPPORTED_UPDATE_TYPES = [
   'message',
   'edited_message',
@@ -55,12 +44,7 @@ export const SUPPORTED_UPDATE_TYPES = [
 
 export type SupportedUpdateType = (typeof SUPPORTED_UPDATE_TYPES)[number]
 
-/**
- * Defaults to both halves of the pair.
- *
- * An update carries at most one of these, so defaulting to `message` alone
- * would make the `edited` status below unreachable.
- */
+// Both halves of the pair: an update carries one or the other, so `message` alone would make `edited` unreachable.
 const DEFAULT_UPDATE_TYPES: SupportedUpdateType[] = ['message', 'edited_message']
 
 const EDIT_TYPES = new Set<SupportedUpdateType>(['edited_message', 'edited_channel_post'])
@@ -71,10 +55,7 @@ export interface TelegramConnectorOptions {
   fetchImpl?: FetchLike
   /** Injected in tests, so no test spends real time asleep. */
   sleep?: (ms: number) => Promise<void>
-  /**
-   * Where advisories go. Defaults to stderr: stdout carries the MCP protocol,
-   * and the SDK gives a trigger no channel for a warning.
-   */
+  /** Advisories go to stderr: stdout carries the MCP protocol, and a trigger has no channel for a warning. */
   warn?: (message: string) => void
 }
 
@@ -155,16 +136,7 @@ export function readSettings(config: Record<string, unknown>): Settings {
 
 /* --------------------------------------------------------------- cursor -- */
 
-/**
- * The cursor is the ack.
- *
- * `getUpdates(offset: N)` confirms everything below N and returns from N, so
- * the offset carried into the *next* poll is what confirms *this* poll's
- * messages. The host persists the items and this cursor from one response
- * together, which is the only reason nothing is ever confirmed that Vorn does
- * not already hold. It is opaque JSON so the shape can change without a
- * migration.
- */
+// The cursor is the ack: `getUpdates(offset: N)` confirms everything below N, so the next poll's offset confirms this poll's messages.
 interface CursorState {
   v: 1
   offset: number
@@ -174,16 +146,7 @@ export function formatCursor(offset: number): string {
   return JSON.stringify({ v: 1, offset } satisfies CursorState)
 }
 
-/**
- * Read a cursor back, treating anything unreadable as "start from what is
- * unconfirmed".
- *
- * Deliberately not a throw. A poll that refuses to run is a poll that is not
- * draining a 24-hour queue, and that costs messages; starting from the oldest
- * unconfirmed update costs at worst a few re-delivered items, which Vorn
- * dedupes on `externalId`. A negative or non-integer offset is treated the same
- * way — it must never reach the wire.
- */
+// Anything unreadable starts from what is unconfirmed rather than throwing: a poll that refuses to run costs messages, re-delivery costs a dedupe.
 export function parseCursor(
   raw: string | undefined,
   warn: (message: string) => void
@@ -209,15 +172,7 @@ export function parseCursor(
   return offset
 }
 
-/**
- * The offset for the next poll, recalculated from this response.
- *
- * The reference instructs exactly this — "recalculate offset after each server
- * response" — rather than incrementing a counter we hold, which drifts the
- * moment a response is short, reordered or retried. It can only move forwards,
- * so a stray low `update_id` cannot walk the watermark back over messages the
- * host has already stored.
- */
+// Recalculated from each response as the reference instructs, and only ever forwards, so a stray low `update_id` cannot walk back over stored messages.
 export function nextOffset(updates: TelegramUpdate[], previous?: number): number | undefined {
   let next = previous
   for (const update of updates) {
@@ -258,12 +213,7 @@ function isoFromUnix(seconds: number): string {
   return new Date(seconds * 1000).toISOString()
 }
 
-/**
- * Does this message belong to the chat the connection watches?
- *
- * Matched on the numeric id as a string, or on `@username` for a public chat,
- * because both are things a person can get hold of and paste.
- */
+// Matched on the numeric id or on `@username`, because both are things a person can paste.
 export function matchesChat(chat: TelegramChat, wanted?: string): boolean {
   if (!wanted) return true
   if (String(chat.id) === wanted) return true
@@ -271,29 +221,7 @@ export function matchesChat(chat: TelegramChat, wanted?: string): boolean {
   return chat.username !== undefined && chat.username.toLowerCase() === handle.toLowerCase()
 }
 
-/**
- * One Telegram message as Vorn holds it.
- *
- * `externalId` is compound — `chatId:messageId` — because the reference defines
- * `message_id` as "unique message identifier inside this chat". Every other
- * connector here has a globally unique id; this one cannot.
- *
- * An edit adds `:e<edit_date>`, so it is a *different* event from the message it
- * edits. That is not decoration. Vorn stores an item with
- * `INSERT OR IGNORE ... UNIQUE (workflow_id, connection_id, event_type,
- * event_id)`, and `event_id` is this field — so an edit that reused the
- * message's id would be dropped by the host before any workflow saw it, and the
- * `edited` status below would be unreachable for every message already
- * delivered. There is no update path: a repeated id is discarded, not applied.
- *
- * The cost is that editing a message starts a second run rather than revising
- * the first, which is the honest shape of what Telegram reports. Two edits
- * inside the same second collapse into one, because `edit_date` is seconds.
- *
- * There is no `url`. Telegram's Bot API documents no permalink for a message,
- * and the `t.me` forms that circulate are not in the reference and do not work
- * for private chats. An invented link that 404s is worse than no link.
- */
+// One message as Vorn holds it: `message_id` is unique only inside its chat, and Telegram documents no permalink, so there is no `url`.
 export function updateToItem(
   update: TelegramUpdate,
   type: SupportedUpdateType,
@@ -306,14 +234,11 @@ export function updateToItem(
   const author = message.from
 
   return {
-    // Keyed on the update type, not on edit_date being present: the reference
-    // marks that field optional, and an edit reusing the message's id is
-    // discarded by the host rather than delivered.
+    // Keyed on the update type: an edit is its own event, since a repeated id is discarded by the host rather than applied.
     externalId: EDIT_TYPES.has(type)
       ? `${message.chat.id}:${message.message_id}:e${message.edit_date ?? message.date}`
       : `${message.chat.id}:${message.message_id}`,
-    // A photo with no caption has no text at all, and the SDK rejects an item
-    // with an empty title.
+    // A photo with no caption has no text at all, and the SDK refuses an empty title.
     title: title || `Message ${message.message_id} in ${chatLabel(message.chat)}`,
     description: body,
     status: EDIT_TYPES.has(type) ? 'edited' : 'received',
@@ -323,8 +248,7 @@ export function updateToItem(
     data: {
       updateId: update.update_id,
       updateType: type,
-      // A string: a chat id carries up to 52 significant bits, and a template
-      // that rendered it as a rounded number would address the wrong chat.
+      // A string: a chat id can outgrow an exact double, and a rounded one would address the wrong chat.
       chatId: String(message.chat.id),
       chatType: message.chat.type,
       chatTitle: chatLabel(message.chat),
@@ -338,19 +262,7 @@ export function updateToItem(
 
 /* -------------------------------------------------------- privacy mode -- */
 
-/**
- * What to say about privacy mode, if anything.
- *
- * A bot added to a group runs in privacy mode by default and sees only
- * commands and replies — the commonest way this connector looks broken while
- * being configured correctly. It is detectable, because `getMe` reports
- * `can_read_all_group_messages`.
- *
- * But the same paragraph exempts admins: "bot admins always receive all
- * messages". An admin bot can read everything while still reporting `false`,
- * so this is worded as a possibility and never as a verdict, and it never
- * blocks a poll.
- */
+// `getMe` reports `can_read_all_group_messages`, but an admin bot reads everything while still reporting false, so this is a possibility and never blocks a poll.
 export function privacyModeWarning(me: TelegramUser): string | undefined {
   if (me.can_read_all_group_messages) return undefined
   return (
@@ -386,14 +298,7 @@ export function createTelegramConnector(options: TelegramConnectorOptions = {}) 
     }
   }
 
-  /**
-   * One page of updates.
-   *
-   * Hand-written rather than declarative because the cursor *is* the ack, so
-   * the connector has to own its exact value. `context.since` is ignored:
-   * Telegram has no time filter and no history endpoint, so the only thing that
-   * decides what a poll returns is the offset.
-   */
+  // Hand-written because the cursor is the ack: `context.since` is ignored, since only the offset decides what a poll returns.
   async function pollUpdates(context: PollContext): Promise<PollOutcome> {
     const settings = readSettings(context.config as Record<string, unknown>)
     const offset = parseCursor(context.cursor, warn)
@@ -489,14 +394,7 @@ export function createTelegramConnector(options: TelegramConnectorOptions = {}) 
     return body
   }
 
-  /**
-   * Send, following a migration once if Telegram reports one.
-   *
-   * A group that becomes a supergroup gets a new id and the old one stops
-   * working. `migrate_to_chat_id` is the reference's answer to that, so it is
-   * followed rather than surfaced as a failure — and the id actually used comes
-   * back in the output, so the workflow can see the connection needs updating.
-   */
+  // A group that becomes a supergroup gets a new id, so `migrate_to_chat_id` is followed once and the id used comes back in the output.
   async function sendFollowingMigration(
     token: string,
     chatId: string,
@@ -536,6 +434,7 @@ export function createTelegramConnector(options: TelegramConnectorOptions = {}) 
     ...(options.version && { version: options.version }),
     description:
       'Trigger workflows from Telegram messages, and send, reply or edit from a step.',
+    auth: { rung: 'key', keys: ['token'] },
     // Telegram's own paper plane.
     icon: {
       viewBox: '0 0 24 24',
@@ -618,7 +517,12 @@ export function createTelegramConnector(options: TelegramConnectorOptions = {}) 
         // Telegram has no idempotency key: two calls post two messages.
         idempotent: false,
         inputs: [
-          { key: 'text', label: 'Message', required: true },
+          {
+            key: 'text',
+            label: 'Message',
+            required: true,
+            description: 'The text to post. Telegram refuses an empty message.'
+          },
           {
             key: 'chatId',
             label: 'Chat',
@@ -653,7 +557,12 @@ export function createTelegramConnector(options: TelegramConnectorOptions = {}) 
             required: true,
             description: 'From {{trigger.item.messageId}}.'
           },
-          { key: 'text', label: 'Message', required: true },
+          {
+            key: 'text',
+            label: 'Message',
+            required: true,
+            description: 'The reply text. Telegram refuses an empty message.'
+          },
           {
             key: 'chatId',
             label: 'Chat',
@@ -693,7 +602,12 @@ export function createTelegramConnector(options: TelegramConnectorOptions = {}) 
             required: true,
             description: 'From {{steps.sendMessage.messageId}}.'
           },
-          { key: 'text', label: 'New text', required: true },
+          {
+            key: 'text',
+            label: 'New text',
+            required: true,
+            description: 'Replaces the message in full; Telegram has no partial edit.'
+          },
           { key: 'chatId', label: 'Chat', description: 'Defaults to the connection’s chat.' }
         ],
         outputs: [

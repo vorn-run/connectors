@@ -15,7 +15,8 @@
     ],
     "noEmit": true,
     "ignoreDeprecations": "6.0",
-    "allowImportingTsExtensions": true
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true
   },
   "include": [
     "src/**/*",

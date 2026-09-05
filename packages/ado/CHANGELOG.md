@@ -2,6 +2,10 @@
 
 All notable changes to `@vornrun/connector-ado`.
 
+## 0.2.3
+
+Start as a pack: the bundle now carries the require its CommonJS dependencies were built against.
+
 ## 0.2.2
 
 Read the version from the bundle instead of a package.json the packed connector does not carry.

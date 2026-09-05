@@ -85,6 +85,140 @@
       ]
     },
     {
+      "id": "airtable",
+      "name": "Airtable",
+      "description": "Trigger workflows from new or updated Airtable records, and create, update, upsert, delete or read records and base schemas from a step.",
+      "packageName": "@vornrun/connector-airtable",
+      "version": "0.1.0",
+      "capabilities": [
+        "triggers",
+        "actions"
+      ],
+      "category": "Productivity",
+      "keywords": [
+        "airtable",
+        "records",
+        "tables",
+        "bases",
+        "spreadsheet",
+        "database"
+      ],
+      "auth": "Paste an Airtable personal access token with data.records:read, data.records:write and schema.bases:read, granted access to the bases it should reach. There is no Airtable CLI to sign in with.",
+      "authRung": "key",
+      "verified": {
+        "schema": 1,
+        "version": "0.1.0",
+        "checkedAt": "2026-09-05T22:40:56.030Z",
+        "checks": [
+          "manifest",
+          "auth",
+          "secrets",
+          "actions",
+          "dedupe",
+          "no-lifecycle-scripts",
+          "keywords",
+          "no-runtime-deps",
+          "launch",
+          "mock"
+        ]
+      },
+      "packUrl": "https://github.com/vorn-run/connectors/releases/download/airtable-v0.1.0/airtable-0.1.0.vorn.tgz",
+      "icon": {
+        "viewBox": "0 0 24 24",
+        "paths": [
+          "M12 1.5 23 6l-11 4.5L1 6z",
+          "M1 8l10 4.5v11L1 19z",
+          "M13 12.5l8.6-3.9L23 9.3v9.2L13 23z"
+        ]
+      },
+      "triggers": [
+        {
+          "type": "newRecord",
+          "label": "A record is created",
+          "description": "Fires once for each record created in the table since the last poll, oldest first."
+        },
+        {
+          "type": "updatedRecord",
+          "label": "A record is updated",
+          "description": "Fires for each record modified since the last poll. Name a last-modified-time field to stamp items with the real time; without one the poll time stands in."
+        }
+      ],
+      "actions": [
+        {
+          "type": "createRecord",
+          "label": "Create a record",
+          "description": "Add one record to a table."
+        },
+        {
+          "type": "updateRecord",
+          "label": "Update a record",
+          "description": "Change the given fields of a record and leave the rest as they were."
+        },
+        {
+          "type": "upsertRecords",
+          "label": "Upsert records",
+          "description": "Create or update up to 10 records at once, matching each on the merge fields: no match creates, one match updates, several fail the call."
+        },
+        {
+          "type": "deleteRecord",
+          "label": "Delete a record",
+          "description": "Delete one record. A second call for the same id answers 404."
+        },
+        {
+          "type": "getRecord",
+          "label": "Get a record",
+          "description": "Read one record by id. Empty cells are omitted from fields."
+        },
+        {
+          "type": "listRecords",
+          "label": "List records",
+          "description": "List the records of a table, optionally filtered by a formula or a view, up to maxRecords across pages."
+        },
+        {
+          "type": "listBases",
+          "label": "List bases",
+          "description": "The bases the token can reach, 1000 at a time, with the permission level it holds on each."
+        },
+        {
+          "type": "getBaseSchema",
+          "label": "Get a base schema",
+          "description": "The tables of a base with their fields and views."
+        }
+      ],
+      "env": [
+        {
+          "name": "AIRTABLE_API_KEY",
+          "required": true,
+          "description": "A personal access token from airtable.com/create/tokens with the scopes data.records:read, data.records:write and schema.bases:read, granted access to each base it should reach."
+        },
+        {
+          "name": "AIRTABLE_BASE_ID",
+          "required": true,
+          "description": "The base the triggers watch, app… from the base URL or listBases."
+        },
+        {
+          "name": "AIRTABLE_TABLE",
+          "required": true,
+          "description": "The table the triggers watch, by id (tbl…) or by name."
+        },
+        {
+          "name": "AIRTABLE_VIEW",
+          "required": false,
+          "description": "A view name or id to watch. Records hidden by the view are skipped. Blank for the whole table."
+        },
+        {
+          "name": "AIRTABLE_FILTER_BY_FORMULA",
+          "required": false,
+          "description": "An extra Airtable formula a record must satisfy, such as {Status} = \"Open\"."
+        },
+        {
+          "name": "AIRTABLE_LAST_MODIFIED_FIELD",
+          "required": false,
+          "description": "The name of a \"Last modified time\" field in the table, for the updated-record trigger. Blank falls back to LAST_MODIFIED_TIME() and the poll time."
+        }
+      ]
+    },
+    {
       "id": "discord",
       "name": "Discord",
       "description": "Trigger workflows from new Discord messages, members and threads, and send messages, reply in threads, react, pin or read channels and members from a step.",

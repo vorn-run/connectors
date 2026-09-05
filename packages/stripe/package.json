@@ -1,0 +1,63 @@
+{
+  "name": "@vornrun/connector-stripe",
+  "version": "0.1.0",
+  "description": "Trigger workflows from Stripe customers, payments and invoices, and create customers or refunds from a step.",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vorn-run/connectors.git",
+    "directory": "packages/stripe"
+  },
+  "keywords": [
+    "vorn",
+    "connector",
+    "stripe",
+    "mcp"
+  ],
+  "bin": {
+    "vorn-connector-stripe": "dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@vornrun/connector-sdk": "^0.7.0-beta.14"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@vitest/coverage-v8": "^4.1.10",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.10"
+  },
+  "vorn": {
+    "category": "Finance",
+    "keywords": [
+      "stripe",
+      "payments",
+      "customers",
+      "invoices",
+      "refunds",
+      "billing",
+      "charges"
+    ],
+    "auth": "Borrows the Stripe CLI's login — `stripe login` is all it needs — or takes a restricted or secret API key if you would rather paste one.",
+    "packs": true
+  }
+}

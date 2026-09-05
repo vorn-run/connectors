@@ -1,6 +1,6 @@
 {
   "name": "@vornrun/connector-kusto",
-  "version": "0.6.0",
+  "version": "0.6.2",
   "description": "Trigger Vorn workflows from an Azure Data Explorer (Kusto) query",
   "type": "module",
   "license": "MIT",
@@ -41,7 +41,7 @@
   },
   "dependencies": {
     "@azure/identity": "^4.13.1",
-    "@vornrun/connector-sdk": "^0.5.5",
+    "@vornrun/connector-sdk": "^0.7.0-beta.14",
     "azure-kusto-data": "7.2.0"
   },
   "devDependencies": {
@@ -62,6 +62,7 @@
       "logs",
       "telemetry"
     ],
-    "auth": "Signs in with your Azure identity — `az login` is usually all it needs."
+    "auth": "Signs in with your Azure identity — `az login` is usually all it needs.",
+    "packs": true
   }
 }

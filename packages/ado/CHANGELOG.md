@@ -2,6 +2,19 @@
 
 All notable changes to `@vornrun/connector-ado`.
 
+## 0.2.3
+
+Start as a pack: the bundle now carries the require its CommonJS dependencies were built against.
+
+## 0.2.2
+
+Read the version from the bundle instead of a package.json the packed connector does not carry.
+
+## 0.2.1
+
+Declares how it signs in: it borrows the Azure CLI's login, so the app can say
+so before anyone installs it. Ships a conformance receipt.
+
 ## 0.2.0
 
 Azure DevOps can now write, not just watch.

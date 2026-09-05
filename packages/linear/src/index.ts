@@ -1,12 +1,16 @@
-import { createRequire } from 'node:module'
-import { createLinearConnector } from './connector'
-import { serveIfEntryPoint } from './entry'
+import { createLinearConnector } from "./connector";
+import { serveIfEntryPoint } from "./entry";
+import pkg from "../package.json";
 
-export { createLinearConnector } from './connector'
-export type { LinearConnectorOptions } from './connector'
+export { createLinearConnector } from "./connector";
+export type { LinearConnectorOptions } from "./connector";
 
-const { version } = createRequire(import.meta.url)('../package.json') as { version: string }
+const { version } = pkg;
 
-export const linearConnector = createLinearConnector({ version })
+export const linearConnector = createLinearConnector({ version });
 
-serveIfEntryPoint(linearConnector, import.meta.url)
+// The names the SDK's own tooling loads a connector by.
+export { linearConnector as connector };
+export default linearConnector;
+
+serveIfEntryPoint(linearConnector, import.meta.url);

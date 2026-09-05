@@ -1,12 +1,16 @@
-import { createRequire } from 'node:module'
-import { createKustoConnector } from './connector'
-import { serveIfEntryPoint } from './entry'
+import { createKustoConnector } from "./connector";
+import { serveIfEntryPoint } from "./entry";
+import pkg from "../package.json";
 
-export { createKustoConnector } from './connector'
-export type { KustoConnectorOptions } from './connector'
+export { createKustoConnector } from "./connector";
+export type { KustoConnectorOptions } from "./connector";
 
-const { version } = createRequire(import.meta.url)('../package.json') as { version: string }
+const { version } = pkg;
 
-export const kustoConnector = createKustoConnector({ version })
+export const kustoConnector = createKustoConnector({ version });
 
-serveIfEntryPoint(kustoConnector, import.meta.url)
+// The names the SDK's own tooling loads a connector by.
+export { kustoConnector as connector };
+export default kustoConnector;
+
+serveIfEntryPoint(kustoConnector, import.meta.url);

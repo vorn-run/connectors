@@ -19,8 +19,15 @@ import { readFileSync, writeFileSync, readdirSync, existsSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 import { resolve } from 'node:path'
 import { connectorManifest } from '@vornrun/connector-sdk'
+import { catalogEntry, readTemplateFiles } from './templates.mjs'
 
 const CATALOG_VERSION = 1
+/** Written by `yarn conformance`, committed, and quoted here as the verified badge. */
+const RECEIPT_FILE = 'verified.json'
+/** Where a release carries a connector's pack, under the tag that published it. */
+const PACK_URL = (dir, id, version) =>
+  `https://github.com/vorn-run/connectors/releases/download/` +
+  `${dir}-v${version}/${id}-${version}.vorn.tgz`
 
 /** Trim an action's inputs down to what someone deciding would want to see. */
 function summarize(entries) {
@@ -51,6 +58,19 @@ function requiredEnv(manifest) {
   }))
 }
 
+/** A connector's conformance receipt, if it has been run and committed. */
+function receiptFor(dir) {
+  const path = `packages/${dir}/${RECEIPT_FILE}`
+  if (!existsSync(path)) return undefined
+  const receipt = JSON.parse(readFileSync(path, 'utf8'))
+  return {
+    schema: receipt.schema,
+    version: receipt.version,
+    checkedAt: receipt.checkedAt,
+    checks: receipt.checks
+  }
+}
+
 async function entryFor(dir) {
   const pkg = JSON.parse(readFileSync(`packages/${dir}/package.json`, 'utf8'))
   const built = resolve(`packages/${dir}/dist/index.js`)
@@ -70,6 +90,8 @@ async function entryFor(dir) {
   if (manifest.triggers.length > 0) capabilities.push('triggers')
   if (manifest.actions.length > 0) capabilities.push('actions')
 
+  const receipt = receiptFor(dir)
+
   return {
     id: manifest.id,
     name: manifest.name,
@@ -80,6 +102,13 @@ async function entryFor(dir) {
     ...(listing.category && { category: listing.category }),
     ...(listing.keywords && { keywords: listing.keywords }),
     ...(listing.auth && { auth: listing.auth }),
+    // The rung the connector itself declares; the line above is the prose for it.
+    ...(manifest.auth?.rung && { authRung: manifest.auth.rung }),
+    ...(receipt && { verified: receipt }),
+    // Only where the release actually carries the asset: the app prefers this
+    // over the package name, so advertising one that is not there yet would
+    // turn an install that works into a download that 404s.
+    ...(listing.packs && { packUrl: PACK_URL(dir, manifest.id, pkg.version) }),
     ...(manifest.icon && { icon: manifest.icon }),
     triggers: summarize(manifest.triggers),
     actions: summarize(manifest.actions),
@@ -95,7 +124,12 @@ const dirs = readdirSync('packages', { withFileTypes: true })
 const connectors = []
 for (const dir of dirs) connectors.push(await entryFor(dir))
 
-const catalog = JSON.stringify({ version: CATALOG_VERSION, connectors }, null, 2) + '\n'
+// Templates ride the same document because the app fetches one file: a second
+// URL would be a second thing to be stale, offline, or half-published.
+const templates = readTemplateFiles().map((file) => catalogEntry(file.document))
+
+const catalog = JSON.stringify({ version: CATALOG_VERSION, connectors, templates }, null, 2) + '\n'
+const summary = `${connectors.length} connector(s), ${templates.length} template(s)`
 
 if (process.argv.includes('--check')) {
   const current = existsSync('catalog.json') ? readFileSync('catalog.json', 'utf8') : ''
@@ -103,8 +137,8 @@ if (process.argv.includes('--check')) {
     console.error('catalog.json is stale — run `node scripts/build-catalog.mjs` and commit it.')
     process.exit(1)
   }
-  console.log(`catalog ok — ${connectors.length} connector(s), matching their manifests`)
+  console.log(`catalog ok — ${summary}, matching their manifests`)
 } else {
   writeFileSync('catalog.json', catalog)
-  console.log(`catalog written — ${connectors.length} connector(s)`)
+  console.log(`catalog written — ${summary}`)
 }

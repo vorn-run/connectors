@@ -1,0 +1,61 @@
+{
+  "name": "@vornrun/connector-postgres",
+  "version": "0.1.1",
+  "description": "Trigger workflows from new rows in a PostgreSQL database, and query or write to it from a step.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Javier Canizalez <javier-canizalez@outlook.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vorn-run/connectors.git",
+    "directory": "packages/postgres"
+  },
+  "keywords": [
+    "vorn",
+    "connector",
+    "postgres",
+    "postgresql",
+    "mcp"
+  ],
+  "bin": {
+    "vorn-connector-postgres": "dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "check": "vorn-connector check src/index.ts",
+    "pack": "vorn-connector pack src/index.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@vornrun/connector-sdk": "^0.7.0-beta.14"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@vitest/coverage-v8": "^4.1.10",
+    "postgres": "^3.4.9",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.10"
+  },
+  "vorn": {
+    "category": "Data & observability",
+    "keywords": [
+      "postgres",
+      "postgresql",
+      "database",
+      "sql",
+      "rows",
+      "tables"
+    ],
+    "auth": "Paste the database's connection string (postgres://user:password@host:5432/db?sslmode=require) from your provider's dashboard or your DBA; a read-only role is enough for triggers.",
+    "packs": true
+  }
+}

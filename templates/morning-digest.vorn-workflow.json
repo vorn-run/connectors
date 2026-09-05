@@ -1,0 +1,54 @@
+{
+  "meta": {
+    "id": "morning-digest",
+    "name": "Morning digest",
+    "description": "Every weekday morning, gather what changed overnight and have an agent write it up.",
+    "steps": ["Schedule", "Script", "Agent"],
+    "category": "Reporting"
+  },
+  "version": 1,
+  "slug": "morning-digest",
+  "name": "Morning digest",
+  "icon": "Newspaper",
+  "iconColor": "#c9972a",
+  "nodes": [
+    {
+      "id": "trigger",
+      "type": "trigger",
+      "label": "Schedule (Recurring)",
+      "config": { "triggerType": "recurring", "cron": "0 9 * * 1-5" },
+      "position": { "x": 0, "y": 0 }
+    },
+    {
+      "id": "gather",
+      "type": "script",
+      "label": "Execute Script",
+      "slug": "execute-script",
+      "config": {
+        "scriptType": "bash",
+        "projectName": "{{project.name}}",
+        "projectPath": "{{project.path}}",
+        "scriptContent": "git log --since=yesterday --oneline\n"
+      },
+      "position": { "x": 0, "y": 0 }
+    },
+    {
+      "id": "write",
+      "type": "launchAgent",
+      "label": "Launch Agent",
+      "slug": "launch-agent",
+      "config": {
+        "agentType": "claude",
+        "projectName": "{{project.name}}",
+        "projectPath": "{{project.path}}",
+        "headless": true,
+        "prompt": "Write a short digest of these commits for the team:\n\n{{steps.execute-script.output}}"
+      },
+      "position": { "x": 0, "y": 0 }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "source": "trigger", "target": "gather" },
+    { "id": "e2", "source": "gather", "target": "write" }
+  ]
+}

@@ -88,6 +88,13 @@ jobs:
             exit 1
           fi
 
+      # The same bytes the app installs when it prefers a pack over npm, built
+      # from the dist/ the catalog check just read. Named `<id>-<version>.vorn.tgz`
+      # by the packer, which is the address the catalog's packUrl points at.
+      - name: Pack the connector for the release
+        working-directory: ${{ steps.pkg.outputs.dir }}
+        run: node ../../node_modules/@vornrun/connector-sdk/dist/cli.js pack ./dist/index.js --out ../../release-assets
+
       # `yarn build` above already built this package along with the rest, so
       # what ships is the artifact the catalog check just read rather than a
       # second, later build of the same source.
@@ -113,4 +120,5 @@ jobs:
           } >> release-notes.md
           gh release create "$GITHUB_REF_NAME" \
             --title "$WORKSPACE $VERSION" \
-            --notes-file release-notes.md
+            --notes-file release-notes.md \
+            release-assets/*.vorn.tgz

@@ -2,6 +2,15 @@
 
 All notable changes to `@vornrun/connector-kusto`.
 
+## 0.6.2
+
+Read the version from the bundle instead of a package.json the packed connector does not carry.
+
+## 0.6.1
+
+Declares how it signs in: it borrows the Azure CLI's login, so the app can say
+so before anyone installs it. Ships a conformance receipt.
+
 ## 0.6.0
 
 Trigger a workflow from the rows an Azure Data Explorer (Kusto) query returns.

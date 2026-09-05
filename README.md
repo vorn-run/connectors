@@ -56,6 +56,7 @@ and timestamp if they are not called `Id` and `Timestamp`.
 
 ```
 packages/<name>/     one npm package per connector
+templates/           workflows a new workflow can start from
 catalog.json         the list the app offers under Connections → Add
 scripts/             repository checks run in CI
 ```
@@ -65,6 +66,43 @@ icon, triggers, actions and the settings it will ask for come out of its own
 manifest, so the list cannot advertise a trigger that has since been renamed.
 Run `node scripts/build-catalog.mjs` after changing a connector; CI checks the
 committed file still matches.
+
+## Contribute a template
+
+A template is a starting point for a new workflow: someone picks it instead of
+an empty canvas and gets a wired one, with anything it still needs — a
+connection, an HTTP profile — named on the step that wants it.
+
+Templates are exported workflows, so building one is building a workflow:
+
+1. Build it in Vorn and run it, so you know it works.
+2. **Export as file** from the workflow's menu.
+3. Add the file to `templates/` and give it a `meta` block:
+
+```json
+{
+  "meta": {
+    "id": "morning-digest",
+    "name": "Morning digest",
+    "description": "Every weekday morning, gather what changed overnight and have an agent write it up.",
+    "steps": ["Schedule", "Script", "Agent"],
+    "category": "Reporting"
+  },
+  "version": 1,
+  "...": "the rest of the exported file, unchanged"
+}
+```
+
+The filename is `<id>.vorn-workflow.json`, and `meta.steps` is the chain as
+someone scanning the list would read it.
+
+4. Run `node scripts/check-templates.mjs`, then
+   `node scripts/build-catalog.mjs` to put it in the catalog, and commit both.
+
+Export already replaces your paths with `{{project.path}}` and leaves connection
+ids and webhook tokens behind — each install resolves its own. CI checks that
+again: a machine path, a published token, or a step type the app cannot draw
+fails the build rather than reaching anyone.
 
 ## Developing
 
@@ -113,6 +151,34 @@ goes in that package's `package.json` under `"vorn"`.
 
 Tests run with coverage thresholds, and `node scripts/check-packages.mjs` checks
 the package is wired into the build the same way the others are. CI runs both.
+
+Every connector declares how it signs in, and the check refuses one that does not:
+
+```ts
+auth: { rung: 'cli', probe: { command: 'gh', args: ['auth', 'status'] } }
+```
+
+`none` needs nothing, `cli` borrows a login the machine already has, `key` names
+the config fields holding it. The app shows the rung on the row, so someone
+browsing knows what a connector will ask of them before installing it.
+
+## Conformance
+
+```bash
+yarn build
+yarn conformance     # runs each connector against the mock, writes verified.json
+```
+
+The receipt is committed beside the connector and quoted in the catalog as the
+verified badge, so it names checks a reader can see. CI re-runs the same checks
+and compares them with the committed receipt rather than writing a new one — a
+file rewritten on every run would carry a new timestamp and leave the catalog
+disagreeing with the commit it came from.
+
+A connector whose releases carry a packed `.tgz` asset sets `"packs": true` in
+its `"vorn"` block; the catalog then addresses the pack directly instead of the
+package name. Leave it off until the release actually uploads one, because the
+app prefers that address over npm.
 
 Write the implementation from the service's own published API documentation, and
 link to it in the package README so the next person can check it. Existing

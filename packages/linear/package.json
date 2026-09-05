@@ -1,6 +1,6 @@
 {
   "name": "@vornrun/connector-linear",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Trigger workflows from Linear issues.",
   "type": "module",
   "license": "MIT",
@@ -24,7 +24,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@vornrun/connector-sdk": "^0.5.7"
+    "@vornrun/connector-sdk": "^0.7.0-beta.14"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
@@ -42,6 +42,7 @@
       "engineering",
       "backlog"
     ],
-    "auth": "Uses a Linear personal API key, created at linear.app/settings/api."
+    "auth": "Uses a Linear personal API key, created at linear.app/settings/api.",
+    "packs": true
   }
 }

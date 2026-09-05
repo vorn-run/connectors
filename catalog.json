@@ -6,7 +6,7 @@
       "name": "Azure DevOps",
       "description": "Trigger workflows from the work items a WIQL query returns.",
       "packageName": "@vornrun/connector-ado",
-      "version": "0.2.0",
+      "version": "0.2.3",
       "capabilities": [
         "triggers",
         "actions"
@@ -21,6 +21,22 @@
         "tfs"
       ],
       "auth": "Signs in with your Azure identity — `az login` is usually all it needs.",
+      "authRung": "cli",
+      "verified": {
+        "schema": 1,
+        "version": "0.2.3",
+        "checkedAt": "2026-09-05T00:34:09.529Z",
+        "checks": [
+          "auth",
+          "secrets",
+          "actions",
+          "no-lifecycle-scripts",
+          "keywords",
+          "no-runtime-deps",
+          "launch"
+        ]
+      },
+      "packUrl": "https://github.com/vorn-run/connectors/releases/download/ado-v0.2.3/ado-0.2.3.vorn.tgz",
       "icon": {
         "viewBox": "0 0 24 24",
         "paths": [
@@ -73,7 +89,7 @@
       "name": "GitHub",
       "description": "Trigger workflows from GitHub issues and pull requests, and open, close or comment on them from a step.",
       "packageName": "@vornrun/connector-github",
-      "version": "0.1.0",
+      "version": "0.1.2",
       "capabilities": [
         "triggers",
         "actions"
@@ -87,6 +103,22 @@
         "repositories"
       ],
       "auth": "Borrows the GitHub CLI's login — `gh auth login` is all it needs, and no token is stored here.",
+      "authRung": "cli",
+      "verified": {
+        "schema": 1,
+        "version": "0.1.2",
+        "checkedAt": "2026-09-05T00:34:11.663Z",
+        "checks": [
+          "auth",
+          "secrets",
+          "actions",
+          "no-lifecycle-scripts",
+          "keywords",
+          "no-runtime-deps",
+          "launch"
+        ]
+      },
+      "packUrl": "https://github.com/vorn-run/connectors/releases/download/github-v0.1.2/github-0.1.2.vorn.tgz",
       "icon": {
         "viewBox": "0 0 24 24",
         "paths": [
@@ -141,11 +173,129 @@
       ]
     },
     {
+      "id": "gitlab",
+      "name": "GitLab",
+      "description": "Trigger workflows from GitLab issues, merge requests and pipeline results, and create or comment on issues and merge requests from a step.",
+      "packageName": "@vornrun/connector-gitlab",
+      "version": "0.1.1",
+      "capabilities": [
+        "triggers",
+        "actions"
+      ],
+      "category": "Development",
+      "keywords": [
+        "gitlab",
+        "issues",
+        "merge requests",
+        "pipelines",
+        "ci",
+        "code review",
+        "repositories"
+      ],
+      "auth": "Borrows the GitLab CLI's login — `glab auth login` is all it needs — or takes a personal access token if you would rather paste one.",
+      "authRung": "cli",
+      "verified": {
+        "schema": 1,
+        "version": "0.1.1",
+        "checkedAt": "2026-09-05T00:34:12.999Z",
+        "checks": [
+          "manifest",
+          "auth",
+          "secrets",
+          "actions",
+          "dedupe",
+          "no-lifecycle-scripts",
+          "keywords",
+          "no-runtime-deps",
+          "launch",
+          "mock"
+        ]
+      },
+      "packUrl": "https://github.com/vorn-run/connectors/releases/download/gitlab-v0.1.1/gitlab-0.1.1.vorn.tgz",
+      "icon": {
+        "viewBox": "0 0 24 24",
+        "paths": [
+          "m23.6004 9.5927-.0337-.0862L20.3.9814a.851.851 0 0 0-.3362-.405.8748.8748 0 0 0-.9997.0539.8748.8748 0 0 0-.29.4399l-2.2055 6.748H7.5375l-2.2057-6.748a.8573.8573 0 0 0-.29-.4412.8748.8748 0 0 0-.9997-.0537.8585.8585 0 0 0-.3362.4049L.4332 9.5015l-.0325.0862a6.0657 6.0657 0 0 0 2.0119 7.0105l.0113.0087.03.0213 4.976 3.7264 2.462 1.8627 1.4995 1.1321a1.0085 1.0085 0 0 0 1.2197 0l1.4995-1.1321 2.4619-1.8627 5.006-3.7489.0125-.01a6.0682 6.0682 0 0 0 2.0094-7.003z"
+        ]
+      },
+      "triggers": [
+        {
+          "type": "issueCreated",
+          "label": "An issue is created",
+          "description": "Fires once for each issue created in the project since the last poll."
+        },
+        {
+          "type": "mergeRequestOpened",
+          "label": "A merge request is opened",
+          "description": "Fires once for each merge request opened in the project since the last poll."
+        },
+        {
+          "type": "pipelineFinished",
+          "label": "A pipeline finishes",
+          "description": "Fires once for each pipeline that reaches success, failed, canceled or skipped, with the status on the item."
+        }
+      ],
+      "actions": [
+        {
+          "type": "createIssue",
+          "label": "Create an issue",
+          "description": "Open a new issue in a project."
+        },
+        {
+          "type": "commentOnIssue",
+          "label": "Comment on an issue",
+          "description": "Post a note on an issue."
+        },
+        {
+          "type": "commentOnMergeRequest",
+          "label": "Comment on a merge request",
+          "description": "Post a note on a merge request."
+        },
+        {
+          "type": "getProject",
+          "label": "Get a project",
+          "description": "Read a project by path or id."
+        },
+        {
+          "type": "listOpenMergeRequests",
+          "label": "List open merge requests",
+          "description": "The open merge requests of a project, most recently updated first."
+        },
+        {
+          "type": "getIssue",
+          "label": "Get an issue",
+          "description": "Read one issue by its number."
+        }
+      ],
+      "env": [
+        {
+          "name": "GITLAB_BASE_URL",
+          "required": false,
+          "description": "Instance URL without a trailing slash. Leave the default for gitlab.com."
+        },
+        {
+          "name": "GITLAB_PROJECT",
+          "required": true,
+          "description": "Path such as group/project, or the numeric id. The triggers poll this project."
+        },
+        {
+          "name": "GITLAB_TOKEN",
+          "required": false,
+          "description": "Leave empty to borrow the glab CLI login. Needs scope api, or read_api for the triggers and read-only actions."
+        },
+        {
+          "name": "GITLAB_REF",
+          "required": false,
+          "description": "Branch or tag whose pipelines to watch. Blank for every ref."
+        }
+      ]
+    },
+    {
       "id": "kusto",
       "name": "Azure Data Explorer",
       "description": "Trigger workflows from the rows a KQL query returns.",
       "packageName": "@vornrun/connector-kusto",
-      "version": "0.6.0",
+      "version": "0.6.2",
       "capabilities": [
         "triggers",
         "actions"
@@ -161,6 +311,22 @@
         "telemetry"
       ],
       "auth": "Signs in with your Azure identity — `az login` is usually all it needs.",
+      "authRung": "cli",
+      "verified": {
+        "schema": 1,
+        "version": "0.6.2",
+        "checkedAt": "2026-09-05T00:34:14.929Z",
+        "checks": [
+          "auth",
+          "secrets",
+          "actions",
+          "no-lifecycle-scripts",
+          "keywords",
+          "no-runtime-deps",
+          "launch"
+        ]
+      },
+      "packUrl": "https://github.com/vorn-run/connectors/releases/download/kusto-v0.6.2/kusto-0.6.2.vorn.tgz",
       "icon": {
         "viewBox": "0 0 24 24",
         "paths": [
@@ -229,7 +395,7 @@
       "name": "Linear",
       "description": "Trigger workflows from Linear issues, and comment or close them from a step.",
       "packageName": "@vornrun/connector-linear",
-      "version": "0.1.0",
+      "version": "0.1.2",
       "capabilities": [
         "triggers",
         "actions"
@@ -243,6 +409,22 @@
         "backlog"
       ],
       "auth": "Uses a Linear personal API key, created at linear.app/settings/api.",
+      "authRung": "key",
+      "verified": {
+        "schema": 1,
+        "version": "0.1.2",
+        "checkedAt": "2026-09-05T00:34:16.335Z",
+        "checks": [
+          "auth",
+          "secrets",
+          "actions",
+          "no-lifecycle-scripts",
+          "keywords",
+          "no-runtime-deps",
+          "launch"
+        ]
+      },
+      "packUrl": "https://github.com/vorn-run/connectors/releases/download/linear-v0.1.2/linear-0.1.2.vorn.tgz",
       "icon": {
         "viewBox": "0 0 24 24",
         "paths": [
@@ -303,7 +485,7 @@
       "name": "Notion",
       "description": "Trigger workflows from Notion database pages, and create or update them.",
       "packageName": "@vornrun/connector-notion",
-      "version": "0.1.0",
+      "version": "0.1.2",
       "capabilities": [
         "triggers",
         "actions"
@@ -318,6 +500,22 @@
         "wiki"
       ],
       "auth": "Paste a Notion integration token, then share the pages you want it to see with the connection in Notion. There is no Notion CLI to sign in with.",
+      "authRung": "key",
+      "verified": {
+        "schema": 1,
+        "version": "0.1.2",
+        "checkedAt": "2026-09-05T00:34:17.762Z",
+        "checks": [
+          "auth",
+          "secrets",
+          "actions",
+          "no-lifecycle-scripts",
+          "keywords",
+          "no-runtime-deps",
+          "launch"
+        ]
+      },
+      "packUrl": "https://github.com/vorn-run/connectors/releases/download/notion-v0.1.2/notion-0.1.2.vorn.tgz",
       "icon": {
         "viewBox": "0 0 24 24",
         "paths": [
@@ -378,6 +576,270 @@
         {
           "name": "NOTION_LIMIT",
           "required": false
+        }
+      ]
+    },
+    {
+      "id": "postgres",
+      "name": "PostgreSQL",
+      "description": "Trigger workflows from new rows in a PostgreSQL database, and query or write to it from a step.",
+      "packageName": "@vornrun/connector-postgres",
+      "version": "0.1.1",
+      "capabilities": [
+        "triggers",
+        "actions"
+      ],
+      "category": "Data & observability",
+      "keywords": [
+        "postgres",
+        "postgresql",
+        "database",
+        "sql",
+        "rows",
+        "tables"
+      ],
+      "auth": "Paste the database's connection string (postgres://user:password@host:5432/db?sslmode=require) from your provider's dashboard or your DBA; a read-only role is enough for triggers.",
+      "authRung": "key",
+      "verified": {
+        "schema": 1,
+        "version": "0.1.1",
+        "checkedAt": "2026-09-05T00:34:19.149Z",
+        "checks": [
+          "manifest",
+          "auth",
+          "secrets",
+          "actions",
+          "no-lifecycle-scripts",
+          "keywords",
+          "no-runtime-deps",
+          "launch"
+        ]
+      },
+      "packUrl": "https://github.com/vorn-run/connectors/releases/download/postgres-v0.1.1/postgres-0.1.1.vorn.tgz",
+      "icon": {
+        "viewBox": "0 0 24 24",
+        "paths": [
+          "M12 3c-4.97 0-9 1.34-9 3s4.03 3 9 3 9-1.34 9-3-4.03-3-9-3z",
+          "M3 8v3c0 1.66 4.03 3 9 3s9-1.34 9-3V8c0 1.66-4.03 3-9 3S3 9.66 3 8z",
+          "M3 13v3c0 1.66 4.03 3 9 3s9-1.34 9-3v-3c0 1.66-4.03 3-9 3s-9-1.34-9-3z"
+        ]
+      },
+      "triggers": [
+        {
+          "type": "newRows",
+          "label": "New rows in a table",
+          "description": "Fires once per row inserted after the last seen value of the ordering column."
+        },
+        {
+          "type": "queryRows",
+          "label": "Rows matching a query",
+          "description": "Fires once per row your SELECT returns beyond the cursor value it was last run with."
+        }
+      ],
+      "actions": [
+        {
+          "type": "runQuery",
+          "label": "Run a query",
+          "description": "Run SQL text with positional parameters and return its rows and row count."
+        },
+        {
+          "type": "selectRows",
+          "label": "Select rows",
+          "description": "Read rows from a table, with an optional parameterised WHERE."
+        },
+        {
+          "type": "insertRow",
+          "label": "Insert a row",
+          "description": "Insert one row and return it as stored."
+        },
+        {
+          "type": "updateRows",
+          "label": "Update rows",
+          "description": "Set columns on the rows a WHERE matches and return how many changed."
+        },
+        {
+          "type": "listTables",
+          "label": "List tables",
+          "description": "List the tables and views in a schema that the role can see."
+        },
+        {
+          "type": "describeTable",
+          "label": "Describe a table",
+          "description": "List the columns of a table with their types and nullability."
+        }
+      ],
+      "env": [
+        {
+          "name": "DATABASE_URL",
+          "required": true,
+          "description": "libpq URI: postgres://user:password@host:5432/database?sslmode=require. Your provider shows it on the database page; otherwise ask your DBA. A read-only role is enough for triggers."
+        },
+        {
+          "name": "PG_TABLE",
+          "required": false,
+          "description": "For \"new rows\": table or schema.table to watch."
+        },
+        {
+          "name": "PG_ORDERING_COLUMN",
+          "required": false,
+          "description": "For \"new rows\": a column that only grows, such as id or created_at."
+        },
+        {
+          "name": "PG_KEY_COLUMN",
+          "required": false,
+          "description": "The column that identifies a row, usually the primary key. Defaults to the ordering column for \"new rows\"; required for \"rows matching a query\"."
+        },
+        {
+          "name": "PG_QUERY",
+          "required": false,
+          "description": "For \"rows matching a query\": a SELECT with $1 where the cursor goes and, optionally, $2 for the limit, ordered by the cursor column ascending."
+        },
+        {
+          "name": "PG_CURSOR_COLUMN",
+          "required": false,
+          "description": "For \"rows matching a query\": the result column the cursor advances from."
+        },
+        {
+          "name": "PG_START_FROM",
+          "required": false,
+          "description": "Value of the ordering or cursor column to start after. Required for \"rows matching a query\"; for \"new rows\", blank means the newest page."
+        },
+        {
+          "name": "PG_TITLE_COLUMN",
+          "required": false,
+          "description": "Column to use as the item title. Blank uses the table and key."
+        },
+        {
+          "name": "PG_LIMIT",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "slack",
+      "name": "Slack",
+      "description": "Trigger workflows from Slack messages, thread replies and channel members, and post, reply or react from a step.",
+      "packageName": "@vornrun/connector-slack",
+      "version": "0.1.0",
+      "capabilities": [
+        "triggers",
+        "actions"
+      ],
+      "category": "Communication",
+      "keywords": [
+        "slack",
+        "chat",
+        "messages",
+        "channels",
+        "threads",
+        "reactions",
+        "workspace"
+      ],
+      "auth": "Uses a bot token from a Slack app installed to the workspace: api.slack.com/apps, OAuth & Permissions, Bot User OAuth Token.",
+      "authRung": "key",
+      "verified": {
+        "schema": 1,
+        "version": "0.1.0",
+        "checkedAt": "2026-09-05T00:34:20.433Z",
+        "checks": [
+          "manifest",
+          "auth",
+          "secrets",
+          "actions",
+          "dedupe",
+          "no-lifecycle-scripts",
+          "keywords",
+          "no-runtime-deps",
+          "launch",
+          "mock"
+        ]
+      },
+      "packUrl": "https://github.com/vorn-run/connectors/releases/download/slack-v0.1.0/slack-0.1.0.vorn.tgz",
+      "icon": {
+        "viewBox": "0 0 24 24",
+        "paths": [
+          "M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zm1.271 0a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zm0 1.271a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zm10.122 2.521a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zm-1.268 0a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zm-2.523 10.122a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zm0-1.268a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"
+        ]
+      },
+      "triggers": [
+        {
+          "type": "messageInChannel",
+          "label": "A message is posted in a channel",
+          "description": "Fires for each new message in the configured channel. Bot and system messages are skipped unless includeBots is true."
+        },
+        {
+          "type": "replyInThread",
+          "label": "A reply is posted in a thread",
+          "description": "Fires for each new reply under the configured parent message."
+        },
+        {
+          "type": "memberJoinedChannel",
+          "label": "A member joins a channel",
+          "description": "Fires once for each user id in the channel that has not been seen before."
+        }
+      ],
+      "actions": [
+        {
+          "type": "postMessage",
+          "label": "Post a message",
+          "description": "Post a message to a channel, optionally under a thread or with Block Kit blocks."
+        },
+        {
+          "type": "replyInThread",
+          "label": "Reply in a thread",
+          "description": "Post a reply under a parent message."
+        },
+        {
+          "type": "addReaction",
+          "label": "Add a reaction",
+          "description": "React to a message with an emoji."
+        },
+        {
+          "type": "listChannels",
+          "label": "List channels",
+          "description": "List the public and private channels the bot can see, unarchived only."
+        },
+        {
+          "type": "getChannel",
+          "label": "Get a channel",
+          "description": "Read one channel by id."
+        },
+        {
+          "type": "findUserByEmail",
+          "label": "Find a user by email",
+          "description": "Look a user up by the address registered on the workspace."
+        },
+        {
+          "type": "getUser",
+          "label": "Get a user",
+          "description": "Read one user by id."
+        }
+      ],
+      "env": [
+        {
+          "name": "SLACK_BOT_TOKEN",
+          "required": true,
+          "description": "Bot User OAuth Token (xoxb-…) of a Slack app installed to the workspace, from api.slack.com/apps under OAuth & Permissions."
+        },
+        {
+          "name": "SLACK_CHANNEL",
+          "required": false,
+          "description": "Channel id such as C0123456789 the triggers watch. The bot must be a member."
+        },
+        {
+          "name": "SLACK_THREAD_TS",
+          "required": false,
+          "description": "The parent message ts, such as 1512085950.000216, for the reply trigger."
+        },
+        {
+          "name": "SLACK_INCLUDE_BOTS",
+          "required": false,
+          "description": "true delivers messages with a subtype or a bot_id too; joins, topic changes, app posts."
+        },
+        {
+          "name": "SLACK_LIMIT",
+          "required": false,
+          "description": "Messages read per request, 1 to 999."
         }
       ]
     },
@@ -457,6 +919,229 @@
           "description": "1 to 100. Anything left over is read by the next poll."
         }
       ]
+    }
+  ],
+  "templates": [
+    {
+      "id": "morning-digest",
+      "name": "Morning digest",
+      "description": "Every weekday morning, gather what changed overnight and have an agent write it up.",
+      "steps": [
+        "Schedule",
+        "Script",
+        "Agent"
+      ],
+      "category": "Reporting",
+      "portable": {
+        "version": 1,
+        "slug": "morning-digest",
+        "name": "Morning digest",
+        "icon": "Newspaper",
+        "iconColor": "#c9972a",
+        "nodes": [
+          {
+            "id": "trigger",
+            "type": "trigger",
+            "label": "Schedule (Recurring)",
+            "config": {
+              "triggerType": "recurring",
+              "cron": "0 9 * * 1-5"
+            },
+            "position": {
+              "x": 0,
+              "y": 0
+            }
+          },
+          {
+            "id": "gather",
+            "type": "script",
+            "label": "Execute Script",
+            "slug": "execute-script",
+            "config": {
+              "scriptType": "bash",
+              "projectName": "{{project.name}}",
+              "projectPath": "{{project.path}}",
+              "scriptContent": "git log --since=yesterday --oneline\n"
+            },
+            "position": {
+              "x": 0,
+              "y": 0
+            }
+          },
+          {
+            "id": "write",
+            "type": "launchAgent",
+            "label": "Launch Agent",
+            "slug": "launch-agent",
+            "config": {
+              "agentType": "claude",
+              "projectName": "{{project.name}}",
+              "projectPath": "{{project.path}}",
+              "headless": true,
+              "prompt": "Write a short digest of these commits for the team:\n\n{{steps.execute-script.output}}"
+            },
+            "position": {
+              "x": 0,
+              "y": 0
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "trigger",
+            "target": "gather"
+          },
+          {
+            "id": "e2",
+            "source": "gather",
+            "target": "write"
+          }
+        ]
+      }
+    },
+    {
+      "id": "triage-new-tasks",
+      "name": "Triage new tasks",
+      "description": "When a task is created, have an agent read it and say what it will take.",
+      "steps": [
+        "Task created",
+        "Agent"
+      ],
+      "category": "Tasks",
+      "portable": {
+        "version": 1,
+        "slug": "triage-new-tasks",
+        "name": "Triage new tasks",
+        "icon": "ListChecks",
+        "iconColor": "#7d9471",
+        "nodes": [
+          {
+            "id": "trigger",
+            "type": "trigger",
+            "label": "When Task Created",
+            "config": {
+              "triggerType": "taskCreated"
+            },
+            "position": {
+              "x": 0,
+              "y": 0
+            }
+          },
+          {
+            "id": "triage",
+            "type": "launchAgent",
+            "label": "Launch Agent",
+            "slug": "launch-agent",
+            "config": {
+              "agentType": "claude",
+              "projectName": "{{project.name}}",
+              "projectPath": "{{project.path}}",
+              "headless": true,
+              "prompt": "Read this task and reply with the files it touches and a rough size:\n\n{{task.title}}\n\n{{task.description}}"
+            },
+            "position": {
+              "x": 0,
+              "y": 0
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "trigger",
+            "target": "triage"
+          }
+        ]
+      }
+    },
+    {
+      "id": "webhook-to-report",
+      "name": "Webhook to report",
+      "description": "Take a request from another system, look at what it says, and post the ones that matter on somewhere else.",
+      "steps": [
+        "Webhook",
+        "Condition",
+        "HTTP request"
+      ],
+      "category": "Integrations",
+      "portable": {
+        "version": 1,
+        "slug": "webhook-to-report",
+        "name": "Webhook to report",
+        "icon": "Webhook",
+        "iconColor": "#6f8faf",
+        "requires": [
+          {
+            "kind": "httpProfile",
+            "nodeId": "report",
+            "name": "reporting API"
+          }
+        ],
+        "nodes": [
+          {
+            "id": "trigger",
+            "type": "trigger",
+            "label": "Webhook",
+            "config": {
+              "triggerType": "webhook",
+              "method": "POST",
+              "token": ""
+            },
+            "position": {
+              "x": 0,
+              "y": 0
+            }
+          },
+          {
+            "id": "check",
+            "type": "condition",
+            "label": "Condition",
+            "slug": "condition",
+            "config": {
+              "variable": "{{trigger.body.severity}}",
+              "operator": "contains",
+              "value": "bug"
+            },
+            "position": {
+              "x": 0,
+              "y": 0
+            }
+          },
+          {
+            "id": "report",
+            "type": "httpRequest",
+            "label": "HTTP Request",
+            "slug": "http-request",
+            "config": {
+              "nodeType": "httpRequest",
+              "method": "POST",
+              "url": "/reports",
+              "headers": {
+                "Content-Type": "application/json"
+              },
+              "body": "{\"summary\": \"{{trigger.body.summary}}\"}"
+            },
+            "position": {
+              "x": 0,
+              "y": 0
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "trigger",
+            "target": "check"
+          },
+          {
+            "id": "e2",
+            "source": "check",
+            "target": "report",
+            "conditionBranch": "true"
+          }
+        ]
+      }
     }
   ]
 }

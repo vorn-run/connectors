@@ -190,6 +190,7 @@ describe('argument helpers', () => {
   it('reads field names from a list or a line', () => {
     expect(namesArg('Name, Address ,', 'fields')).toEqual(['Name', 'Address'])
     expect(namesArg('["Name","Address"]', 'fields')).toEqual(['Name', 'Address'])
+    expect(namesArg(['Name', 'City, State'], 'fields')).toEqual(['Name', 'City, State'])
     expect(namesArg(undefined, 'fields')).toEqual([])
     expect(() => namesArg('[1]', 'fields')).toThrow('fields must be a JSON array of field names')
   })

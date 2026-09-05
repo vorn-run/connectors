@@ -93,9 +93,9 @@ export function recordsArg(value: unknown): Array<{ fields: Record<string, unkno
 
 // Field names as a JSON array or one comma-separated line, whichever the step found easier to write.
 export function namesArg(value: unknown, key: string): string[] {
-  const raw = text(value)
+  const raw = Array.isArray(value) ? value : text(value)
   if (raw === undefined) return []
-  const list = raw.startsWith('[') ? parsed(raw, key) : raw.split(',')
+  const list = Array.isArray(raw) ? raw : raw.startsWith('[') ? parsed(raw, key) : raw.split(',')
   if (!Array.isArray(list) || list.some((entry) => typeof entry !== 'string')) {
     throw new Error(`${key} must be a JSON array of field names or a comma-separated list`)
   }

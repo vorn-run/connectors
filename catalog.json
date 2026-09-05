@@ -719,6 +719,157 @@
       ]
     },
     {
+      "id": "openai",
+      "name": "OpenAI",
+      "description": "Trigger workflows when an OpenAI batch or fine-tuning job finishes or a file is uploaded, and create responses, chat completions, embeddings, moderations and batches from a step.",
+      "packageName": "@vornrun/connector-openai",
+      "version": "0.1.0",
+      "capabilities": [
+        "triggers",
+        "actions"
+      ],
+      "category": "AI",
+      "keywords": [
+        "openai",
+        "gpt",
+        "chatgpt",
+        "llm",
+        "responses",
+        "chat completions",
+        "embeddings",
+        "moderation",
+        "batches",
+        "fine-tuning"
+      ],
+      "auth": "Paste an API key from https://platform.openai.com/api-keys. There is no OpenAI CLI to sign in with.",
+      "authRung": "key",
+      "verified": {
+        "schema": 1,
+        "version": "0.1.0",
+        "checkedAt": "2026-09-05T22:45:34.762Z",
+        "checks": [
+          "manifest",
+          "auth",
+          "secrets",
+          "actions",
+          "dedupe",
+          "no-lifecycle-scripts",
+          "keywords",
+          "no-runtime-deps",
+          "launch",
+          "mock"
+        ]
+      },
+      "packUrl": "https://github.com/vorn-run/connectors/releases/download/openai-v0.1.0/openai-0.1.0.vorn.tgz",
+      "icon": {
+        "viewBox": "0 0 24 24",
+        "paths": [
+          "M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"
+        ]
+      },
+      "triggers": [
+        {
+          "type": "batchFinished",
+          "label": "A batch finishes",
+          "description": "Fires once when a batch reaches completed, failed, expired or cancelled. The list has no status filter, so every batch created inside the look-back is read and the terminal ones kept."
+        },
+        {
+          "type": "fileUploaded",
+          "label": "A file is uploaded",
+          "description": "Fires once per file uploaded since the last poll, newest first from GET /files."
+        },
+        {
+          "type": "fineTuningJobFinished",
+          "label": "A fine-tuning job finishes",
+          "description": "Fires once when a fine-tuning job reaches succeeded, failed or cancelled."
+        }
+      ],
+      "actions": [
+        {
+          "type": "createResponse",
+          "label": "Create a response",
+          "description": "Ask a model for a response with the Responses API, optionally constrained to a JSON schema. Spends tokens; not stored unless asked."
+        },
+        {
+          "type": "createChatCompletion",
+          "label": "Create a chat completion",
+          "description": "Ask a model for the next message in a conversation with the Chat Completions API. Spends tokens."
+        },
+        {
+          "type": "createEmbeddings",
+          "label": "Create embeddings",
+          "description": "Turn text into embedding vectors. The same input yields the same vectors and nothing is stored."
+        },
+        {
+          "type": "moderateText",
+          "label": "Moderate text",
+          "description": "Classify text against OpenAI’s usage policies. Free, and nothing is stored."
+        },
+        {
+          "type": "listModels",
+          "label": "List models",
+          "description": "List the models the key can use, with their owner."
+        },
+        {
+          "type": "getModel",
+          "label": "Get a model",
+          "description": "Read one model by id. An unknown id answers 404 model_not_found."
+        },
+        {
+          "type": "listFiles",
+          "label": "List files",
+          "description": "List uploaded files, newest first, optionally by purpose."
+        },
+        {
+          "type": "getBatch",
+          "label": "Get a batch",
+          "description": "Read one batch by id, with its status, request counts and output files."
+        },
+        {
+          "type": "createBatch",
+          "label": "Create a batch",
+          "description": "Queue a batch of requests from an uploaded JSONL file. Each call queues a new batch that runs and bills."
+        }
+      ],
+      "env": [
+        {
+          "name": "OPENAI_API_KEY",
+          "required": true,
+          "description": "Sent as `Authorization: Bearer <key>`. Create one at https://platform.openai.com/api-keys (Create new secret key) and set OPENAI_API_KEY on the connection."
+        },
+        {
+          "name": "OPENAI_ORGANIZATION",
+          "required": false,
+          "description": "Organization id (org-…), sent as OpenAI-Organization. Only needed when the key belongs to more than one organization."
+        },
+        {
+          "name": "OPENAI_PROJECT",
+          "required": false,
+          "description": "Project id (proj_…), sent as OpenAI-Project. Only needed when a legacy user key should bill one project."
+        },
+        {
+          "name": "OPENAI_BATCH_ENDPOINT",
+          "required": false,
+          "description": "Only batches for this endpoint, such as /v1/chat/completions. Empty delivers every batch."
+        },
+        {
+          "name": "OPENAI_BATCH_LOOKBACK_HOURS",
+          "required": false,
+          "description": "How far before the watermark the batch poll reads, because a batch finishes up to a day after it is created."
+        },
+        {
+          "name": "OPENAI_FILE_PURPOSE",
+          "required": false,
+          "description": "Only files uploaded with this purpose (assistants, assistants_output, batch, batch_output, fine-tune, fine-tune-results, vision, user_data). Empty delivers every file."
+        },
+        {
+          "name": "OPENAI_FINE_TUNING_LOOKBACK_HOURS",
+          "required": false,
+          "description": "How far before the watermark the fine-tuning poll reads, because a job is created long before it finishes."
+        }
+      ]
+    },
+    {
       "id": "postgres",
       "name": "PostgreSQL",
       "description": "Trigger workflows from new rows in a PostgreSQL database, and query or write to it from a step.",

@@ -25,7 +25,7 @@ this connection.
 
 Two gateway intents also gate HTTP responses. Both are switches under
 **Privileged Gateway Intents** on the same Bot page, and an app with fewer
-than 10,000 servers can turn them on without approval.
+than 10,000 users can turn them on without approval.
 
 | Intent | Unlocks |
 | --- | --- |

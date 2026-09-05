@@ -35,7 +35,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@vornrun/connector-sdk": "^0.7.0-beta.10"
+    "@vornrun/connector-sdk": "^0.7.0-beta.14"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

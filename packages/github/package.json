@@ -27,7 +27,7 @@
     "@octokit/plugin-retry": "^8.1.1",
     "@octokit/plugin-throttling": "^11.0.5",
     "@octokit/rest": "^22.0.1",
-    "@vornrun/connector-sdk": "^0.7.0-beta.10"
+    "@vornrun/connector-sdk": "^0.7.0-beta.14"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
@@ -45,7 +45,7 @@
       "code review",
       "repositories"
     ],
-    "auth": "Borrows the GitHub CLI's login \u2014 `gh auth login` is all it needs, and no token is stored here.",
+    "auth": "Borrows the GitHub CLI's login — `gh auth login` is all it needs, and no token is stored here.",
     "packs": true
   }
 }

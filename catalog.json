@@ -6,7 +6,7 @@
       "name": "Azure DevOps",
       "description": "Trigger workflows from the work items a WIQL query returns.",
       "packageName": "@vornrun/connector-ado",
-      "version": "0.2.2",
+      "version": "0.2.3",
       "capabilities": [
         "triggers",
         "actions"
@@ -24,18 +24,19 @@
       "authRung": "cli",
       "verified": {
         "schema": 1,
-        "version": "0.2.2",
-        "checkedAt": "2026-09-04T22:55:19.978Z",
+        "version": "0.2.3",
+        "checkedAt": "2026-09-05T00:34:09.529Z",
         "checks": [
           "auth",
           "secrets",
           "actions",
           "no-lifecycle-scripts",
           "keywords",
-          "no-runtime-deps"
+          "no-runtime-deps",
+          "launch"
         ]
       },
-      "packUrl": "https://github.com/vorn-run/connectors/releases/download/ado-v0.2.2/ado-0.2.2.vorn.tgz",
+      "packUrl": "https://github.com/vorn-run/connectors/releases/download/ado-v0.2.3/ado-0.2.3.vorn.tgz",
       "icon": {
         "viewBox": "0 0 24 24",
         "paths": [
@@ -106,14 +107,15 @@
       "verified": {
         "schema": 1,
         "version": "0.1.2",
-        "checkedAt": "2026-09-04T22:55:21.748Z",
+        "checkedAt": "2026-09-05T00:34:11.663Z",
         "checks": [
           "auth",
           "secrets",
           "actions",
           "no-lifecycle-scripts",
           "keywords",
-          "no-runtime-deps"
+          "no-runtime-deps",
+          "launch"
         ]
       },
       "packUrl": "https://github.com/vorn-run/connectors/releases/download/github-v0.1.2/github-0.1.2.vorn.tgz",
@@ -195,7 +197,7 @@
       "verified": {
         "schema": 1,
         "version": "0.1.1",
-        "checkedAt": "2026-09-04T22:55:22.895Z",
+        "checkedAt": "2026-09-05T00:34:12.999Z",
         "checks": [
           "manifest",
           "auth",
@@ -205,6 +207,7 @@
           "no-lifecycle-scripts",
           "keywords",
           "no-runtime-deps",
+          "launch",
           "mock"
         ]
       },
@@ -312,14 +315,15 @@
       "verified": {
         "schema": 1,
         "version": "0.6.2",
-        "checkedAt": "2026-09-04T22:55:24.351Z",
+        "checkedAt": "2026-09-05T00:34:14.929Z",
         "checks": [
           "auth",
           "secrets",
           "actions",
           "no-lifecycle-scripts",
           "keywords",
-          "no-runtime-deps"
+          "no-runtime-deps",
+          "launch"
         ]
       },
       "packUrl": "https://github.com/vorn-run/connectors/releases/download/kusto-v0.6.2/kusto-0.6.2.vorn.tgz",
@@ -409,14 +413,15 @@
       "verified": {
         "schema": 1,
         "version": "0.1.2",
-        "checkedAt": "2026-09-04T22:55:25.448Z",
+        "checkedAt": "2026-09-05T00:34:16.335Z",
         "checks": [
           "auth",
           "secrets",
           "actions",
           "no-lifecycle-scripts",
           "keywords",
-          "no-runtime-deps"
+          "no-runtime-deps",
+          "launch"
         ]
       },
       "packUrl": "https://github.com/vorn-run/connectors/releases/download/linear-v0.1.2/linear-0.1.2.vorn.tgz",
@@ -499,14 +504,15 @@
       "verified": {
         "schema": 1,
         "version": "0.1.2",
-        "checkedAt": "2026-09-04T22:55:26.655Z",
+        "checkedAt": "2026-09-05T00:34:17.762Z",
         "checks": [
           "auth",
           "secrets",
           "actions",
           "no-lifecycle-scripts",
           "keywords",
-          "no-runtime-deps"
+          "no-runtime-deps",
+          "launch"
         ]
       },
       "packUrl": "https://github.com/vorn-run/connectors/releases/download/notion-v0.1.2/notion-0.1.2.vorn.tgz",
@@ -597,7 +603,7 @@
       "verified": {
         "schema": 1,
         "version": "0.1.1",
-        "checkedAt": "2026-09-04T22:55:27.856Z",
+        "checkedAt": "2026-09-05T00:34:19.149Z",
         "checks": [
           "manifest",
           "auth",
@@ -605,7 +611,8 @@
           "actions",
           "no-lifecycle-scripts",
           "keywords",
-          "no-runtime-deps"
+          "no-runtime-deps",
+          "launch"
         ]
       },
       "packUrl": "https://github.com/vorn-run/connectors/releases/download/postgres-v0.1.1/postgres-0.1.1.vorn.tgz",
@@ -733,7 +740,7 @@
       "verified": {
         "schema": 1,
         "version": "0.1.0",
-        "checkedAt": "2026-09-04T22:55:28.955Z",
+        "checkedAt": "2026-09-05T00:34:20.433Z",
         "checks": [
           "manifest",
           "auth",
@@ -743,6 +750,7 @@
           "no-lifecycle-scripts",
           "keywords",
           "no-runtime-deps",
+          "launch",
           "mock"
         ]
       },

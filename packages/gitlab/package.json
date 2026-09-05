@@ -24,7 +24,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@vornrun/connector-sdk": "^0.7.0-beta.10"
+    "@vornrun/connector-sdk": "^0.7.0-beta.14"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
@@ -44,7 +44,7 @@
       "code review",
       "repositories"
     ],
-    "auth": "Borrows the GitLab CLI's login \u2014 `glab auth login` is all it needs \u2014 or takes a personal access token if you would rather paste one.",
+    "auth": "Borrows the GitLab CLI's login — `glab auth login` is all it needs — or takes a personal access token if you would rather paste one.",
     "packs": true
   }
 }

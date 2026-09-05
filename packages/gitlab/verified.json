@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "version": "0.1.1",
-  "checkedAt": "2026-09-04T22:55:22.895Z",
+  "checkedAt": "2026-09-05T00:34:12.999Z",
   "checks": [
     "manifest",
     "auth",
@@ -11,6 +11,7 @@
     "no-lifecycle-scripts",
     "keywords",
     "no-runtime-deps",
+    "launch",
     "mock"
   ]
 }

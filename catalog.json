@@ -844,6 +844,139 @@
       ]
     },
     {
+      "id": "stripe",
+      "name": "Stripe",
+      "description": "Trigger workflows from new Stripe customers, succeeded payments and paid or failed invoices, and create customers, issue refunds or read balances and charges from a step.",
+      "packageName": "@vornrun/connector-stripe",
+      "version": "0.1.0",
+      "capabilities": [
+        "triggers",
+        "actions"
+      ],
+      "category": "Finance",
+      "keywords": [
+        "stripe",
+        "payments",
+        "customers",
+        "invoices",
+        "refunds",
+        "billing",
+        "charges"
+      ],
+      "auth": "Borrows the Stripe CLI's login — `stripe login` is all it needs — or takes a restricted or secret API key if you would rather paste one.",
+      "authRung": "cli",
+      "verified": {
+        "schema": 1,
+        "version": "0.1.0",
+        "checkedAt": "2026-09-05T21:42:19.579Z",
+        "checks": [
+          "manifest",
+          "auth",
+          "secrets",
+          "actions",
+          "dedupe",
+          "no-lifecycle-scripts",
+          "keywords",
+          "no-runtime-deps",
+          "launch",
+          "mock"
+        ]
+      },
+      "packUrl": "https://github.com/vorn-run/connectors/releases/download/stripe-v0.1.0/stripe-0.1.0.vorn.tgz",
+      "icon": {
+        "viewBox": "0 0 24 24",
+        "paths": [
+          "M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.594-7.305h.003z"
+        ]
+      },
+      "triggers": [
+        {
+          "type": "newCustomer",
+          "label": "A customer is created",
+          "description": "Fires once for each customer created since the last poll."
+        },
+        {
+          "type": "paymentSucceeded",
+          "label": "A payment succeeds",
+          "description": "Fires once for each payment intent that reaches succeeded. Amounts are integers in the smallest currency unit."
+        },
+        {
+          "type": "invoicePaid",
+          "label": "An invoice is paid",
+          "description": "Fires once for each invoice that becomes paid, stamped with when it was paid."
+        },
+        {
+          "type": "invoicePaymentFailed",
+          "label": "An invoice payment fails",
+          "description": "Fires once for each failed payment attempt on an open invoice, and again for each failed retry."
+        }
+      ],
+      "actions": [
+        {
+          "type": "createCustomer",
+          "label": "Create a customer",
+          "description": "Create a customer. Identical inputs within 24 hours return the first customer rather than a second one."
+        },
+        {
+          "type": "getCustomer",
+          "label": "Get a customer",
+          "description": "Read a customer by id. A deleted customer comes back with deleted true and little else."
+        },
+        {
+          "type": "listCharges",
+          "label": "List recent charges",
+          "description": "The most recent charges, newest first. Amounts are integers in the smallest currency unit."
+        },
+        {
+          "type": "createRefund",
+          "label": "Refund a payment",
+          "description": "Refund a payment intent or charge, in full or for an amount in the smallest currency unit. Identical inputs within 24 hours return the first refund."
+        },
+        {
+          "type": "getBalance",
+          "label": "Get the account balance",
+          "description": "The current balance of the account the key belongs to, in the smallest currency unit per currency."
+        },
+        {
+          "type": "listCustomers",
+          "label": "List customers",
+          "description": "Customers newest first, optionally only those with one exact email address."
+        }
+      ],
+      "env": [
+        {
+          "name": "STRIPE_API_KEY",
+          "required": false,
+          "description": "Leave empty to borrow the Stripe CLI login. A restricted key with read access to customers, charges, invoices and payment intents plus write access to customers and refunds is enough."
+        },
+        {
+          "name": "STRIPE_LIVE_MODE",
+          "required": false,
+          "description": "true borrows the live key from the CLI profile instead of the test one. A pasted key carries its own mode."
+        },
+        {
+          "name": "STRIPE_PROJECT",
+          "required": false,
+          "description": "The stripe --project-name profile to borrow from. Blank for the default profile."
+        },
+        {
+          "name": "STRIPE_CUSTOMER",
+          "required": false,
+          "description": "Only this customer’s invoices, for the two invoice triggers. Blank for every customer."
+        },
+        {
+          "name": "STRIPE_LOOKBACK_MINUTES",
+          "required": false,
+          "description": "How far before the watermark the payment and paid-invoice polls re-read, to catch an intent or invoice that succeeded a while after it was created."
+        },
+        {
+          "name": "STRIPE_FAILED_LOOKBACK_MINUTES",
+          "required": false,
+          "description": "How far before now the failed-invoice poll reads open invoices. A day by default, because retries are days apart."
+        }
+      ]
+    },
+    {
       "id": "telegram",
       "name": "Telegram",
       "description": "Trigger workflows from Telegram messages, and send, reply or edit from a step.",

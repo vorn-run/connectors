@@ -219,6 +219,115 @@
       ]
     },
     {
+      "id": "anthropic",
+      "name": "Anthropic",
+      "description": "Trigger workflows when a message batch finishes or a model becomes available, and create messages, count tokens, list models and run message batches from a step.",
+      "packageName": "@vornrun/connector-anthropic",
+      "version": "0.1.0",
+      "capabilities": [
+        "triggers",
+        "actions"
+      ],
+      "category": "AI",
+      "keywords": [
+        "anthropic",
+        "claude",
+        "messages",
+        "llm",
+        "batches",
+        "tokens",
+        "models"
+      ],
+      "auth": "Paste an Anthropic API key from console.anthropic.com/settings/keys for a single workspace. There is no CLI to sign in with.",
+      "authRung": "key",
+      "verified": {
+        "schema": 1,
+        "version": "0.1.0",
+        "checkedAt": "2026-09-05T22:56:39.691Z",
+        "checks": [
+          "manifest",
+          "auth",
+          "secrets",
+          "actions",
+          "dedupe",
+          "no-lifecycle-scripts",
+          "keywords",
+          "no-runtime-deps",
+          "launch",
+          "mock"
+        ]
+      },
+      "packUrl": "https://github.com/vorn-run/connectors/releases/download/anthropic-v0.1.0/anthropic-0.1.0.vorn.tgz",
+      "icon": {
+        "viewBox": "0 0 24 24",
+        "paths": [
+          "M9 3 15 3 22.5 21 16.5 21z",
+          "M1.5 21 7.5 21 12.5 8.5 9.5 3.8z"
+        ]
+      },
+      "triggers": [
+        {
+          "type": "batchEnded",
+          "label": "A message batch finished",
+          "description": "Fires once for each message batch whose processing has ended since the last poll, oldest first. Read the results with getBatchResults."
+        },
+        {
+          "type": "newModel",
+          "label": "A model became available",
+          "description": "Fires once for each model released since the last poll, oldest first. The first poll looks 30 days back."
+        }
+      ],
+      "actions": [
+        {
+          "type": "createMessage",
+          "label": "Create a message",
+          "description": "Send a conversation to a model and get its reply. Every call bills a generation."
+        },
+        {
+          "type": "countTokens",
+          "label": "Count tokens",
+          "description": "Count the tokens a conversation and system prompt would use, without creating a message."
+        },
+        {
+          "type": "listModels",
+          "label": "List models",
+          "description": "The models the key can use, newest release first."
+        },
+        {
+          "type": "getModel",
+          "label": "Get a model",
+          "description": "Read one model by id, or resolve an alias to its model id."
+        },
+        {
+          "type": "createMessageBatch",
+          "label": "Create a message batch",
+          "description": "Queue up to 100,000 message requests for asynchronous processing. Two calls queue two batches."
+        },
+        {
+          "type": "getMessageBatch",
+          "label": "Get a message batch",
+          "description": "Read a batch and its request counts; poll it until processingStatus is ended."
+        },
+        {
+          "type": "getBatchResults",
+          "label": "Get batch results",
+          "description": "Read the results of an ended batch, one entry per request, matched by custom_id rather than by order."
+        },
+        {
+          "type": "cancelMessageBatch",
+          "label": "Cancel a message batch",
+          "description": "Ask for a batch to stop; it enters canceling and requests already running may still finish."
+        }
+      ],
+      "env": [
+        {
+          "name": "ANTHROPIC_API_KEY",
+          "required": true,
+          "description": "An API key from console.anthropic.com/settings/keys, for a single workspace."
+        }
+      ]
+    },
+    {
       "id": "discord",
       "name": "Discord",
       "description": "Trigger workflows from new Discord messages, members and threads, and send messages, reply in threads, react, pin or read channels and members from a step.",

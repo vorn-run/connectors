@@ -40,8 +40,7 @@ API; the connection takes a bot token.
 | --- | --- | --- |
 | `botToken` (secret) | `DISCORD_BOT_TOKEN` | https://discord.com/developers/applications: pick or create an application, open the **Bot** tab, press **Reset Token** and copy the token it shows once |
 
-Sent as `Authorization: Bot <token>`, exactly as the reference's example
-`Authorization: Bot <token>`.
+Sent as `Authorization: Bot <token>`, as the reference's example shows.
 A `Bearer` token is an OAuth2 user token and is not this connection; the
 connector strips a pasted `Bot ` prefix and otherwise lets the API judge the
 value. A missing or wrong token answers `401` ("The `Authorization` header

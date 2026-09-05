@@ -31,6 +31,13 @@ describe('serveIfEntryPoint', () => {
     expect(await serveIfEntryPoint(HERE, serve)).toBe(false)
     expect(serve).not.toHaveBeenCalled()
   })
+
+  it('serves the connector when the module is the entry point', async () => {
+    const serve = vi.fn(async () => {})
+    const self = `file://${process.argv[1]}`
+    expect(await serveIfEntryPoint(self, serve)).toBe(true)
+    expect(serve).toHaveBeenCalledWith(connector)
+  })
 })
 
 describe('the packaged connector', () => {

@@ -673,6 +673,156 @@
       ]
     },
     {
+      "id": "jira",
+      "name": "Jira",
+      "description": "Trigger workflows when a Jira Cloud issue is created, updated or moved to a status, and create, edit, transition, comment on, assign, read or search issues from a step.",
+      "packageName": "@vornrun/connector-jira",
+      "version": "0.1.0",
+      "capabilities": [
+        "triggers",
+        "actions"
+      ],
+      "category": "Development",
+      "keywords": [
+        "jira",
+        "atlassian",
+        "issues",
+        "tickets",
+        "jql",
+        "sprints",
+        "bugs"
+      ],
+      "auth": "Paste your Atlassian site URL, account email and an API token from id.atlassian.com/manage-profile/security/api-tokens. There is no Jira CLI to sign in with.",
+      "authRung": "key",
+      "verified": {
+        "schema": 1,
+        "version": "0.1.0",
+        "checkedAt": "2026-09-06T16:54:47.550Z",
+        "checks": [
+          "manifest",
+          "auth",
+          "secrets",
+          "actions",
+          "dedupe",
+          "no-lifecycle-scripts",
+          "keywords",
+          "no-runtime-deps",
+          "launch",
+          "mock"
+        ]
+      },
+      "packUrl": "https://github.com/vorn-run/connectors/releases/download/jira-v0.1.0/jira-0.1.0.vorn.tgz",
+      "icon": {
+        "viewBox": "0 0 24 24",
+        "paths": [
+          "M16 9 23 16 16 23 9 16 10.75 14.25 12.5 16 16 12.5 14.25 10.75z",
+          "M12 5 15.5 8.5 13.25 10.75 15 12.5 12.5 15 10.75 13.25 8.5 15.5 5 12 6.75 10.25 8.5 12 12 8.5 10.25 6.75z",
+          "M8 1 11.5 4.5 9.25 6.75 11 8.5 8.5 11 6.75 9.25 4.5 11.5 1 8z"
+        ]
+      },
+      "triggers": [
+        {
+          "type": "newIssue",
+          "label": "An issue is created",
+          "description": "Fires once for each issue created since the last poll, oldest first, within the project and JQL filter from the settings."
+        },
+        {
+          "type": "issueUpdated",
+          "label": "An issue is updated",
+          "description": "Fires for each change to an issue since the last poll, keyed by issue and update time, so an issue edited twice fires twice."
+        },
+        {
+          "type": "issueTransitioned",
+          "label": "An issue moves to a status",
+          "description": "Fires when an issue is transitioned into the status named in the settings. JQL records that the change happened, not when, so the issue's last update stands in as the time."
+        }
+      ],
+      "actions": [
+        {
+          "type": "createIssue",
+          "label": "Create an issue",
+          "description": "Create one issue in a project. The description is written as plain text and converted to Atlassian Document Format."
+        },
+        {
+          "type": "updateIssue",
+          "label": "Update an issue",
+          "description": "Edit the summary, description or any fields of an issue; the rest stays as it was. Transitions are ignored here, use transitionIssue."
+        },
+        {
+          "type": "transitionIssue",
+          "label": "Transition an issue",
+          "description": "Move an issue through a workflow transition, by transition id or name, optionally with a comment and screen fields."
+        },
+        {
+          "type": "addComment",
+          "label": "Add a comment",
+          "description": "Post a comment on an issue. Plain text is converted to Atlassian Document Format."
+        },
+        {
+          "type": "assignIssue",
+          "label": "Assign an issue",
+          "description": "Assign an issue to an account, or unassign it."
+        },
+        {
+          "type": "getIssue",
+          "label": "Get an issue",
+          "description": "Read one issue by key or id, with its main fields flattened and the description as plain text."
+        },
+        {
+          "type": "searchIssues",
+          "label": "Search issues",
+          "description": "Run a JQL query and return the matching issues, paging until maxResults are collected."
+        },
+        {
+          "type": "listTransitions",
+          "label": "List transitions",
+          "description": "The workflow transitions an issue can take from its current status."
+        },
+        {
+          "type": "listProjects",
+          "label": "List projects",
+          "description": "The projects the account can browse, ordered by key, optionally filtered by a name or key fragment and by type."
+        },
+        {
+          "type": "getCurrentUser",
+          "label": "Get the current user",
+          "description": "The account the API token belongs to, with its account id and time zone."
+        }
+      ],
+      "env": [
+        {
+          "name": "JIRA_SITE_URL",
+          "required": true,
+          "description": "Your Jira Cloud site, such as https://example.atlassian.net."
+        },
+        {
+          "name": "JIRA_EMAIL",
+          "required": true,
+          "description": "The email address of the Atlassian account the API token belongs to."
+        },
+        {
+          "name": "JIRA_API_TOKEN",
+          "required": true,
+          "description": "An API token from https://id.atlassian.com/manage-profile/security/api-tokens, created without scopes. Every issue created or comment posted is attributed to this account."
+        },
+        {
+          "name": "JIRA_PROJECT_KEY",
+          "required": false,
+          "description": "Limit the triggers to one project, by key (EX). Blank watches every project the account can browse."
+        },
+        {
+          "name": "JIRA_JQL",
+          "required": false,
+          "description": "An extra JQL filter every trigger applies, such as issuetype = Bug AND priority in (High, Highest)."
+        },
+        {
+          "name": "JIRA_STATUS",
+          "required": false,
+          "description": "The status name the issueTransitioned trigger watches for, such as Done. Only that trigger reads it."
+        }
+      ]
+    },
+    {
       "id": "kusto",
       "name": "Azure Data Explorer",
       "description": "Trigger workflows from the rows a KQL query returns.",

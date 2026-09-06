@@ -39,7 +39,7 @@ const CONFIG_FIELDS: ConnectorConfigField[] = [
     required: true,
     description:
       'mysql://user:password@host:3306/database. Your provider shows it on the database page; otherwise ask your DBA. ' +
-      'The user needs SELECT, INSERT and UPDATE on the tables the workflow touches.',
+      'The user needs SELECT, INSERT, UPDATE or DELETE on the tables the workflow touches, as the steps demand.',
     builderHint:
       'Percent-encode @ / : ? # and % in the password. The port defaults to 3306; the database after the slash is the default schema. ' +
       'An ssl-mode=… attribute is honoured when the ssl setting is blank.'
@@ -267,9 +267,18 @@ export function createMysqlConnector(options: MysqlConnectorOptions = {}) {
     )
     const since = cursor?.value ?? text(config.startFrom)
 
+    // The rows already delivered at the cursor value are excluded by the server, so a page of ties still advances.
     const result = await run(
       config,
-      buildUpdatedRows({ table, updatedAtColumn, keyColumn, limit, ...(where && { where }), ...(since !== undefined && { since }) })
+      buildUpdatedRows({
+        table,
+        updatedAtColumn,
+        keyColumn,
+        limit,
+        ...(where && { where }),
+        ...(since !== undefined && { since }),
+        ...(cursor && { exceptKeys: cursor.keys })
+      })
     )
     const rows = since === undefined ? [...result.rows].reverse() : result.rows
 
@@ -279,7 +288,6 @@ export function createMysqlConnector(options: MysqlConnectorOptions = {}) {
     for (const row of rows) {
       const key = cellText(row, keyColumn, 'key column')
       const value = cellText(row, updatedAtColumn, 'updated-at column')
-      if (cursor && value === cursor.value && cursor.keys.includes(key)) continue
       items.push(itemFrom(row, { externalId: `${key}@${value}`, key, titleColumn, fallbackPrefix: table, timeColumn: updatedAtColumn }))
       if (value === newestValue) newestKeys.push(key)
       else {
@@ -288,12 +296,10 @@ export function createMysqlConnector(options: MysqlConnectorOptions = {}) {
       }
     }
     if (newestValue === undefined) return { items, ...(context.cursor !== undefined && { nextCursor: context.cursor }), hasMore: false }
-    const values = new Set(rows.map((row) => String(row[updatedAtColumn])))
     return {
       items,
       nextCursor: JSON.stringify({ v: CURSOR_VERSION, c: newestValue, keys: newestKeys }),
-      // A page of ties cannot advance by value, so it advances by the keys alone.
-      hasMore: since !== undefined && rows.length >= limit && values.size > 1
+      hasMore: since !== undefined && rows.length >= limit
     }
   }
 

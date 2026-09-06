@@ -24,10 +24,11 @@ about 1.4 MB, most of it the driver's encoding tables and CA bundles.
 
 One pool of two connections per connection URL, kept for the life of the
 process and ended when Vorn hangs up stdin or the process is told to stop.
-Each pooled socket is unref'd so a one-shot `vorn-connector poll` exits when
-its work is done. `maxIdle` stays equal to the connection limit on purpose:
-below it the driver arms a sweep timer every second that would hold the
-process open.
+Each pooled socket is unref'd while idle and ref'd while a statement is in
+flight, so a one-shot `vorn-connector poll` exits when its work is done and
+not before. A stop signal closes the pools and then exits. `maxIdle` stays
+equal to the connection limit on purpose: below it the driver arms a sweep
+timer every second that would hold the process open.
 
 Every value is bound through a server-side prepared statement, a `LIMIT`
 as a typed BIGINT so servers that do not report parameter types accept it.

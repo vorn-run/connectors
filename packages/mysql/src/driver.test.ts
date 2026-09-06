@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { parseConnectionString } from './connection-string'
-import { clientFrom, normalize, openPool, poolOptions, PoolRegistry, sslSetting, toParam, unrefSocket, type SqlPool } from './driver'
+import { clientFrom, normalize, openPool, poolOptions, PoolRegistry, refSocket, sslSetting, toParam, unrefSocket, type SqlPool } from './driver'
 import { LimitParam } from './sql'
 
 const options = (dsn: string, settings?: { ssl?: string; sslCa?: string }) => parseConnectionString(dsn, settings)
@@ -122,13 +122,19 @@ describe('clientFrom', () => {
   })
 })
 
-describe('unrefSocket', () => {
-  it('unrefs the stream on either shape of connection, and tolerates neither', () => {
+describe('refSocket and unrefSocket', () => {
+  it('find the stream on either shape of connection, and tolerate neither', () => {
+    const ref = vi.fn()
     const unref = vi.fn()
-    unrefSocket({ stream: { unref } })
-    unrefSocket({ connection: { stream: { unref } } })
-    unrefSocket({})
-    unrefSocket(undefined)
+    refSocket({ stream: { ref, unref } })
+    refSocket({ connection: { stream: { ref, unref } } })
+    unrefSocket({ stream: { ref, unref } })
+    unrefSocket({ connection: { stream: { ref, unref } } })
+    for (const nothing of [{}, { stream: {} }, undefined]) {
+      refSocket(nothing)
+      unrefSocket(nothing)
+    }
+    expect(ref).toHaveBeenCalledTimes(2)
     expect(unref).toHaveBeenCalledTimes(2)
   })
 })
@@ -161,9 +167,14 @@ describe('PoolRegistry', () => {
 })
 
 describe('openPool', () => {
-  it('builds a pool without reaching for the network and ends it', async () => {
+  it('builds a pool without reaching for the network, refs a socket while acquired, and ends it', async () => {
     const p = openPool(options(BASE))
     expect(typeof p.execute).toBe('function')
+    const stream = { ref: vi.fn(), unref: vi.fn() }
+    ;(p as unknown as { emit(event: string, payload: unknown): void }).emit('acquire', { stream })
+    ;(p as unknown as { emit(event: string, payload: unknown): void }).emit('release', { stream })
+    expect(stream.ref).toHaveBeenCalledTimes(1)
+    expect(stream.unref).toHaveBeenCalledTimes(1)
     await expect(p.end()).resolves.toBeUndefined()
   })
 })

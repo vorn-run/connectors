@@ -7,11 +7,12 @@ import connector, { connector as named, mysqlConnector } from './index'
 
 const HERE = import.meta.url
 
-/** A process with a stdin, both plain emitters. */
+/** A process with a stdin, both plain emitters, whose exit only records the code. */
 function fakeProcess() {
-  const proc = Object.assign(new EventEmitter(), { stdin: new EventEmitter() })
-  return proc
+  return Object.assign(new EventEmitter(), { stdin: new EventEmitter(), exit: vi.fn() })
 }
+
+const settled = () => new Promise((resolve) => setImmediate(resolve))
 
 describe('isEntryPoint', () => {
   it('is false when the process was started without a script', () => {
@@ -33,19 +34,30 @@ describe('isEntryPoint', () => {
 })
 
 describe('closeOnExit', () => {
-  it('closes the pools when stdin ends or closes and on a stop signal, swallowing a failed close', async () => {
+  it('closes the pools when stdin ends or closes, without exiting', async () => {
     const close = vi.fn(async () => {})
     const proc = fakeProcess()
     closeOnExit(close, proc)
     proc.stdin.emit('end')
     proc.stdin.emit('close')
+    expect(close).toHaveBeenCalledTimes(2)
+    await settled()
+    expect(proc.exit).not.toHaveBeenCalled()
+  })
+
+  it('closes the pools on a stop signal and then exits with the conventional code, even when a close fails', async () => {
+    const proc = fakeProcess()
+    const close = vi.fn(async () => {})
+    closeOnExit(close, proc)
     proc.emit('SIGTERM')
-    proc.emit('SIGINT')
-    expect(close).toHaveBeenCalledTimes(4)
+    await settled()
+    expect(close).toHaveBeenCalledTimes(1)
+    expect(proc.exit).toHaveBeenCalledWith(143)
     const failing = fakeProcess()
     closeOnExit(vi.fn(async () => { throw new Error('gone') }), failing)
-    failing.emit('SIGTERM')
-    await new Promise((resolve) => setImmediate(resolve))
+    failing.emit('SIGINT')
+    await settled()
+    expect(failing.exit).toHaveBeenCalledWith(130)
   })
 })
 

@@ -71,10 +71,11 @@ ordering column as `updatedAt` when it is date text. Every comparison happens
 in SQL, in the column's own type, so an integer id and a timestamp both work.
 
 **Updated rows in a table** (`updatedRows`). Each poll reads
-``SELECT * FROM `t` WHERE `upd` >= ? ORDER BY `upd`, `key` LIMIT ?`` from the
-newest `updated_at` delivered. The cursor also holds the keys delivered at
-exactly that value, so the `>=` never redelivers a tie and never loses one,
-which matters when `updated_at` has second resolution. Items are identified
+``SELECT * FROM `t` WHERE `upd` >= ? AND NOT (`upd` = ? AND `key` IN (…)) ORDER BY `upd`, `key` LIMIT ?``
+from the newest `updated_at` delivered. The cursor also holds the keys
+delivered at exactly that value, which the `IN` list leaves out, so the `>=`
+never redelivers a tie and never loses one, even when a bulk update stamps
+more rows than a page with the same second. Items are identified
 by `<key>@<updated_at>`, so a row changed again is a new item while the same
 change seen twice is not.
 

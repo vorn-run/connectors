@@ -96,19 +96,26 @@ what is wrong in a sentence.
 the connector module and created on first use; every poll and action runs
 `pool.execute` or `pool.query`, which acquire and release a connection
 themselves (the pool source). Options: `connectionLimit: 2`,
-`waitForConnections: true`, `queueLimit: 0`, `maxIdle: 2`, `idleTimeout:
-30000` so a connection nobody used for half a minute is closed by the pool's
-own sweep, `connectTimeout: 10000` (the driver's default, restated so a poller
-never waits indefinitely), `multipleStatements: false` (the default; one
-statement per `runQuery`). The SDK has no stop hook, so the connector module
-registers `closePools()` — `pool.end()` on every pool, tolerant of errors — on
+`waitForConnections: true`, `queueLimit: 0`, `maxIdle: 2`, `connectTimeout:
+10000` (the driver's default, restated so a poller never waits indefinitely),
+`multipleStatements: false` (the default; one statement per `runQuery`).
+`maxIdle` equals the limit on purpose and `idleTimeout` is not set: the
+driver only runs its idle sweep when `maxIdle < connectionLimit`, and it runs
+it as a `setTimeout` re-armed every second for the life of the pool, never
+`unref`'d, which would hold a one-shot process such as `vorn-connector poll`
+open. A pooled connection the server drops after its `wait_timeout` removes
+itself from the pool on its `end` or `error` event, so the next statement
+gets a fresh one. The SDK has no stop hook, so the connector module registers
+`closePools()` — `pool.end()` on every pool, tolerant of errors — on
 `process.stdin` `end` and `close` (how the MCP server learns Vorn has gone),
-and on `SIGTERM` and `SIGINT`. Because an idle pooled socket would keep a
-one-shot process such as `vorn-connector poll` alive until the sweep closes
-it, the pool's `connection` event `unref`s each new connection's socket
-(`connection.connection.stream` from the promise wrapper); the develop step
-verifies the property against the driver's typings and falls back to
-`maxIdle: 0` if the typings do not expose the stream.
+and on `SIGTERM` and `SIGINT`; a signal listener replaces Node's default of
+exiting, so those two exit the process themselves (143 and 130) once the
+pools are closed. So that an idle pooled socket does not keep a one-shot
+process alive while a busy one still keeps it from exiting mid-statement, the
+pool's `acquire` event `ref`s the connection's socket and its `release` event
+`unref`s it (`connection.stream`; the promise wrapper forwards both events
+from the core pool, and the typings do not name the stream, so it is felt
+for).
 
 **Values.** Every value is bound with `execute`, the server-side prepared
 statement path; `query`, whose placeholders are substituted client-side, is
@@ -206,16 +213,22 @@ A NULL in the ordering or key column is an error naming the column.
 ### `updatedRows` — updated rows in a table
 
 - **Poll, with a cursor:**
-  ``SELECT * FROM `t` WHERE `upd` >= ? [AND (<where>)] ORDER BY `upd`, `key` LIMIT ?``.
-- **First poll:** with `startFrom`, the same query bound to it. Without it,
+  ``SELECT * FROM `t` WHERE `upd` >= ? AND NOT (`upd` = ? AND `key` IN (?, …)) [AND (<where>)] ORDER BY `upd`, `key` LIMIT ?``,
+  the `IN` list being the cursor's `keys`, so the rows already delivered at
+  the cursor value are left out by the server and a page of ties still
+  advances.
+- **First poll:** with `startFrom`, ``WHERE `upd` >= ? … ORDER BY `upd`, `key` LIMIT ?``
+  bound to it, with no keys to exclude. Without it,
   ``ORDER BY `upd` DESC, `key` DESC LIMIT ?``, reversed, as `newRows`.
 - **Cursor:** `{"v":1,"c":"<newest updated_at text>","keys":["<key>", ...]}`:
   the newest `updatedAtColumn` value delivered and the keys delivered at
-  exactly that value. Rows at the cursor value whose key is listed are
-  dropped, so the `>=` never redelivers a tie and never loses one; the SDK's
-  timestamp boundary rule, run by the connector. `hasMore` when the page was
-  full and not every row was at one value (a page of ties advances by
-  `keys` alone).
+  exactly that value. The next query excludes those keys at that value, so
+  the `>=` never redelivers a tie and never loses one, even when a bulk
+  `UPDATE` stamps more rows than a page with the same second; the SDK's
+  timestamp boundary rule, run by the connector in SQL. `hasMore` when the
+  page was full and the query read forward. The list only grows while the
+  newest value stands still, one placeholder per key, far inside the
+  server's 65,535.
 - **Dedupe key:** `externalId` = `<key>@<updated_at text>`, so a row changed
   again is a new item while the same change seen twice is not.
 - **Item:** `title` as `newRows`; `updatedAt` = the `updatedAtColumn` text

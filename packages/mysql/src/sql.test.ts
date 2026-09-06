@@ -165,5 +165,15 @@ describe('builders', () => {
         params: ['2026-09-04 09:30:00', limit(20)]
       })
     })
+
+    it('excludes the keys already delivered at the start value, binding each one', () => {
+      expect(buildUpdatedRows({ ...base, since: '2026-09-04 09:30:00', exceptKeys: ['2', '3'], where: 'open = 1' })).toEqual({
+        text:
+          'SELECT * FROM `tickets` WHERE `updated_at` >= ? AND NOT (`updated_at` = ? AND `id` IN (?, ?)) AND (open = 1) ' +
+          'ORDER BY `updated_at`, `id` LIMIT ?',
+        params: ['2026-09-04 09:30:00', '2026-09-04 09:30:00', '2', '3', limit(20)]
+      })
+      expect(buildUpdatedRows({ ...base, since: '2026-09-04 09:30:00', exceptKeys: [] }).params).toEqual(['2026-09-04 09:30:00', limit(20)])
+    })
   })
 })

@@ -172,7 +172,10 @@ export function buildNewRows(input: {
   }
 }
 
-/** The `updatedRows` page: rows at or past the newest updated_at seen, or the newest page. */
+/**
+ * The `updatedRows` page: rows at or past the newest updated_at seen, or the newest page.
+ * The keys already delivered at `since` are excluded by the server, so a page of ties still advances.
+ */
 export function buildUpdatedRows(input: {
   table: string
   updatedAtColumn: string
@@ -180,6 +183,7 @@ export function buildUpdatedRows(input: {
   where?: string
   limit: number
   since?: string
+  exceptKeys?: string[]
 }): Statement {
   const table = quoteTable(input.table)
   const upd = quoteIdent(input.updatedAtColumn)
@@ -189,8 +193,10 @@ export function buildUpdatedRows(input: {
     const filter = input.where && input.where.trim() ? ` WHERE (${input.where.trim()})` : ''
     return { text: `SELECT * FROM ${table}${filter} ORDER BY ${upd} DESC, ${key} DESC LIMIT ?`, params: [limit] }
   }
+  const except = input.exceptKeys ?? []
+  const known = except.length > 0 ? ` AND NOT (${upd} = ? AND ${key} IN (${except.map(() => '?').join(', ')}))` : ''
   return {
-    text: `SELECT * FROM ${table} WHERE ${upd} >= ?${andWhere(input.where)} ORDER BY ${upd}, ${key} LIMIT ?`,
-    params: [input.since, limit]
+    text: `SELECT * FROM ${table} WHERE ${upd} >= ?${known}${andWhere(input.where)} ORDER BY ${upd}, ${key} LIMIT ?`,
+    params: [input.since, ...(known ? [input.since, ...except] : []), limit]
   }
 }

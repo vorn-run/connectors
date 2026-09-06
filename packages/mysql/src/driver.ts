@@ -21,7 +21,7 @@ export interface SqlPool {
   query(sql: string, params?: unknown[]): Promise<DriverResult>
   execute(sql: string, params?: unknown[]): Promise<DriverResult>
   end(): Promise<void>
-  on(event: 'connection', listener: (connection: unknown) => void): unknown
+  on(event: 'acquire' | 'release', listener: (connection: unknown) => void): unknown
 }
 
 export interface QueryResult {
@@ -110,16 +110,23 @@ export function clientFrom(pool: SqlPool): MysqlClient {
   }
 }
 
-/** Let an idle pooled socket stop holding the process open; the driver's typings do not name the stream, so it is felt for. */
-export function unrefSocket(connection: unknown): void {
-  const core = connection as { stream?: { unref?: () => void }; connection?: { stream?: { unref?: () => void } } }
-  const stream = core?.stream ?? core?.connection?.stream
-  stream?.unref?.()
+type Socket = { ref?: () => void; unref?: () => void }
+
+/** The socket under a pooled connection; the driver's typings do not name it, so it is felt for. */
+export function socketOf(connection: unknown): Socket | undefined {
+  const core = connection as { stream?: Socket; connection?: { stream?: Socket } } | undefined
+  return core?.stream ?? core?.connection?.stream
 }
+
+/** A busy socket keeps the process alive until its statement is answered. */
+export const refSocket = (connection: unknown): void => socketOf(connection)?.ref?.()
+/** An idle socket lets a one-shot process such as `vorn-connector poll` exit. */
+export const unrefSocket = (connection: unknown): void => socketOf(connection)?.unref?.()
 
 export function openPool(options: ConnectionOptions): SqlPool {
   const pool = mysql.createPool(poolOptions(options)) as unknown as SqlPool
-  pool.on('connection', unrefSocket)
+  pool.on('acquire', refSocket)
+  pool.on('release', unrefSocket)
   return pool
 }
 

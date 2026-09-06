@@ -205,33 +205,37 @@ describe('updatedRows', () => {
     expect(page.hasMore).toBe(true)
   })
 
-  it('drops the rows already delivered at the cursor value and keeps the rest', async () => {
+  it('asks the server to leave out the rows already delivered at the cursor value and keeps the rest', async () => {
     const f = fake([
       rows([
-        { id: 2, title: 'Two', updated_at: '2026-09-04 09:30:00' },
-        { id: 3, title: 'Three', updated_at: '2026-09-04 09:30:00' },
         { id: 4, title: 'Four', updated_at: '2026-09-04 09:30:00' },
         { id: 5, title: 'Five', updated_at: '2026-09-04 10:00:00' }
       ])
     ])
     const page = await f.harness(config).poll('updatedRows', { cursor: '{"v":1,"c":"2026-09-04 09:30:00","keys":["2","3"]}', limit: 10 })
-    expect(f.calls[0]?.params).toEqual(['2026-09-04 09:30:00', 10])
+    expect(f.calls[0]).toEqual({
+      method: 'execute',
+      sql:
+        'SELECT * FROM `tickets` WHERE `updated_at` >= ? AND NOT (`updated_at` = ? AND `id` IN (?, ?)) ' +
+        'ORDER BY `updated_at`, `id` LIMIT ?',
+      params: ['2026-09-04 09:30:00', '2026-09-04 09:30:00', '2', '3', 10]
+    })
     expect(page.items.map((item) => item.externalId)).toEqual(['4@2026-09-04 09:30:00', '5@2026-09-04 10:00:00'])
     expect(page.nextCursor).toBe('{"v":1,"c":"2026-09-04 10:00:00","keys":["5"]}')
     expect(page.hasMore).toBe(false)
   })
 
-  it('keeps the cursor and its keys when only known rows come back, and advances by keys alone on a page of ties', async () => {
-    const known = fake([rows([{ id: 2, title: 'Two', updated_at: '2026-09-04 09:30:00' }])])
+  it('keeps the cursor and its keys when nothing new comes back, and a full page of ties still advances', async () => {
+    const known = fake([rows([])])
     const cursor = '{"v":1,"c":"2026-09-04 09:30:00","keys":["2"]}'
     const page = await known.harness(config).poll('updatedRows', { cursor })
     expect(page.items).toEqual([])
     expect(page.nextCursor).toBe(cursor)
-    const ties = fake([rows([{ id: 2, title: 'Two', updated_at: '2026-09-04 09:30:00' }, { id: 6, title: 'Six', updated_at: '2026-09-04 09:30:00' }])])
+    const ties = fake([rows([{ id: 6, title: 'Six', updated_at: '2026-09-04 09:30:00' }, { id: 7, title: 'Seven', updated_at: '2026-09-04 09:30:00' }])])
     const tied = await ties.harness(config).poll('updatedRows', { cursor, limit: 2 })
-    expect(tied.items.map((item) => item.externalId)).toEqual(['6@2026-09-04 09:30:00'])
-    expect(tied.nextCursor).toBe('{"v":1,"c":"2026-09-04 09:30:00","keys":["2","6"]}')
-    expect(tied.hasMore).toBe(false)
+    expect(tied.items.map((item) => item.externalId)).toEqual(['6@2026-09-04 09:30:00', '7@2026-09-04 09:30:00'])
+    expect(tied.nextCursor).toBe('{"v":1,"c":"2026-09-04 09:30:00","keys":["2","6","7"]}')
+    expect(tied.hasMore).toBe(true)
   })
 
   it('answers an empty first page without a cursor', async () => {

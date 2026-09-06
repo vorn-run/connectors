@@ -55,7 +55,7 @@
       "rows",
       "tables"
     ],
-    "auth": "Paste the database's connection URL (mysql://user:password@host:3306/database) from your provider's dashboard or your DBA; SELECT, INSERT and UPDATE on the tables the workflow touches is enough.",
+    "auth": "Paste the database's connection URL (mysql://user:password@host:3306/database) from your provider's dashboard or your DBA; SELECT, INSERT, UPDATE or DELETE on the tables the workflow touches, as the steps demand, is enough.",
     "packs": true
   }
 }

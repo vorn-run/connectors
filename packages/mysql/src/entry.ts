@@ -16,15 +16,18 @@ export function isEntryPoint(moduleUrl: string, entry = process.argv[1]): boolea
 interface ProcessLike {
   stdin: { on(event: string, listener: () => void): unknown }
   on(event: string, listener: () => void): unknown
+  exit(code?: number): void
 }
 
 /** The SDK has no stop hook, so the pools close when Vorn hangs up stdin or the process is told to stop. */
 export function closeOnExit(close: () => Promise<void>, proc: ProcessLike = process): void {
-  const closeAll = () => void close().catch(() => undefined)
-  proc.stdin.on('end', closeAll)
-  proc.stdin.on('close', closeAll)
-  proc.on('SIGTERM', closeAll)
-  proc.on('SIGINT', closeAll)
+  const closeAll = () => close().catch(() => undefined)
+  proc.stdin.on('end', () => void closeAll())
+  proc.stdin.on('close', () => void closeAll())
+  // A signal listener replaces Node's default of exiting, so the exit happens here once the pools are closed.
+  const stop = (code: number) => () => void closeAll().then(() => proc.exit(code))
+  proc.on('SIGTERM', stop(143))
+  proc.on('SIGINT', stop(130))
 }
 
 /** Start the MCP server, but only when run directly; importing must start nothing. */

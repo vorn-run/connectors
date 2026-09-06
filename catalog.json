@@ -881,12 +881,12 @@
         "rows",
         "tables"
       ],
-      "auth": "Paste the database's connection URL (mysql://user:password@host:3306/database) from your provider's dashboard or your DBA; SELECT, INSERT and UPDATE on the tables the workflow touches is enough.",
+      "auth": "Paste the database's connection URL (mysql://user:password@host:3306/database) from your provider's dashboard or your DBA; SELECT, INSERT, UPDATE or DELETE on the tables the workflow touches, as the steps demand, is enough.",
       "authRung": "key",
       "verified": {
         "schema": 1,
         "version": "0.1.0",
-        "checkedAt": "2026-09-06T17:21:51.868Z",
+        "checkedAt": "2026-09-06T17:31:04.823Z",
         "checks": [
           "manifest",
           "auth",
@@ -965,7 +965,7 @@
         {
           "name": "MYSQL_URL",
           "required": true,
-          "description": "mysql://user:password@host:3306/database. Your provider shows it on the database page; otherwise ask your DBA. The user needs SELECT, INSERT and UPDATE on the tables the workflow touches."
+          "description": "mysql://user:password@host:3306/database. Your provider shows it on the database page; otherwise ask your DBA. The user needs SELECT, INSERT, UPDATE or DELETE on the tables the workflow touches, as the steps demand."
         },
         {
           "name": "MYSQL_SSL",

@@ -165,3 +165,4 @@ The REST API v3 reference and Atlassian's support pages were the only sources.
 - Myself: https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-myself/
 - Atlassian Document Format: https://developer.atlassian.com/cloud/jira/platform/apis/document/structure/
 - JQL: https://support.atlassian.com/jira-software-cloud/docs/use-advanced-search-with-jira-query-language-jql/ (fields: https://support.atlassian.com/jira-software-cloud/docs/jql-fields/, operators: https://support.atlassian.com/jira-software-cloud/docs/jql-operators/)
+- OpenAPI document the reference pages are rendered from: https://developer.atlassian.com/cloud/jira/platform/swagger-v3.v3.json

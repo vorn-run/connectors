@@ -588,7 +588,7 @@
       "verified": {
         "schema": 1,
         "version": "0.1.0",
-        "checkedAt": "2026-09-06T16:51:48.443Z",
+        "checkedAt": "2026-09-06T16:54:47.550Z",
         "checks": [
           "manifest",
           "auth",

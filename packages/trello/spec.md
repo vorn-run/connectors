@@ -240,7 +240,9 @@ asks for `memberCreator=true&member=false&fields=id,type,date,data` plus
 - **Cursor:** none; the window moves with the clock, so every poll
   re-evaluates the board and dedupe does the filtering.
 - **Dedupe key:** `${card.id}:${card.due}`, so a card fires once per due
-  date and fires again if the due date is changed.
+  date and fires again if the due date is changed. The item carries no
+  `updatedAt` (the SDK then remembers the key for as long as the card stays
+  in the window), so `updatedAt` is the poll time.
 - **Sample item** (from the reference's card example):
 
 ```json
@@ -347,9 +349,10 @@ idempotent in effect. Changes data, so no live sample.
 | `cardId` | string | yes | Card id or short link |
 
 Output: the updated `Card` with `closed: true`. Idempotent: a second call
-leaves the card archived. The live check does not run it against a real
-card unless `TRELLO_CARD_ID` names a throwaway card; the mock check uses the
-placeholder `{ "cardId": "5abbe4b7ddc1b351ef961414" }`.
+leaves the card archived. The live sample is set only when
+`TRELLO_ARCHIVE_CARD_ID` names a throwaway card, so the card `getCard` reads
+is never archived; the mock check uses the placeholder
+`{ "cardId": "5abbe4b7ddc1b351ef961414" }`.
 
 ### `getCard` — get a card (`GET /cards/{id}`), idempotent
 
@@ -369,7 +372,8 @@ shortUrl }`. Live sample: `{ "cardId": "<TRELLO_CARD_ID>" }`; mock sample:
 | `filter` | string | no | "`all` or a comma-separated list of: `closed`, `members`, `open`, `organization`, `public`, `starred`", default `open` |
 
 Sends `fields=id,name,desc,closed,idOrganization,url,shortUrl,dateLastActivity`.
-Output: `{ boards: Board[] }`. Sample: no arguments. This route is under
+Output: `{ items: Board[] }` (a bare array answer is stored by the SDK under
+`items`). Sample: no arguments. This route is under
 `/1/members/`, whose budget is 100 requests per 900 seconds.
 
 ### `listLists` — lists on a board (`GET /boards/{id}/lists`), idempotent
@@ -379,7 +383,7 @@ Output: `{ boards: Board[] }`. Sample: no arguments. This route is under
 | `boardId` | string | yes | Board id or short link |
 | `filter` | string | no | "Filter to apply to Lists": `all`, `closed`, `none`, `open`; default `open` |
 
-Sends `fields=id,name,closed,idBoard,pos`. Output: `{ lists: List[] }`
+Sends `fields=id,name,closed,idBoard,pos`. Output: `{ items: List[] }`
 where a List is `id`, `name`, `closed`, `idBoard`, `pos`, `subscribed`,
 `softLimit`. Sample: `{ "boardId": "<TRELLO_BOARD_ID>" }`, mock
 `{ "boardId": "5abbe4b7ddc1b351ef961414" }`.
@@ -390,7 +394,7 @@ where a List is `id`, `name`, `closed`, `idBoard`, `pos`, `subscribed`,
 | --- | --- | --- | --- |
 | `listId` | string | yes | "The ID of the list" |
 
-Output: `{ cards: Card[] }`. Sample: `{ "listId": "<TRELLO_LIST_ID>" }`,
+Output: `{ items: Card[] }`. Sample: `{ "listId": "<TRELLO_LIST_ID>" }`,
 mock `{ "listId": "5abbe4b7ddc1b351ef961414" }`.
 
 ### `searchCards` — search cards (`GET /search`), idempotent
@@ -441,9 +445,10 @@ then, when the optional ids are set, `GET /boards/$TRELLO_BOARD_ID/lists`,
 | `TRELLO_BOARD_ID` | no | `listLists`, the actions probe; skipped when unset |
 | `TRELLO_LIST_ID` | no | `listCards`; skipped when unset |
 | `TRELLO_CARD_ID` | no | `getCard`; skipped when unset |
+| `TRELLO_ARCHIVE_CARD_ID` | no | the live sample of `archiveCard`; a throwaway card, because it will be archived |
 
-Nothing is created, moved, commented or archived: the live check touches
-only idempotent reads. No key or token exists on this machine.
+Nothing is created, moved, commented or archived unless
+`TRELLO_ARCHIVE_CARD_ID` is set: the live check touches only idempotent reads. No key or token exists on this machine.
 
 ## Dependencies
 

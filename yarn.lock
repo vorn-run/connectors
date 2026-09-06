@@ -1347,6 +1347,21 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@vornrun/connector-hubspot@workspace:packages/hubspot":
+  version: 0.0.0-use.local
+  resolution: "@vornrun/connector-hubspot@workspace:packages/hubspot"
+  dependencies:
+    "@types/node": "npm:^22.10.2"
+    "@vitest/coverage-v8": "npm:^4.1.10"
+    "@vornrun/connector-sdk": "npm:^0.7.0-beta.14"
+    tsup: "npm:^8.5.1"
+    typescript: "npm:^6.0.3"
+    vitest: "npm:^4.1.10"
+  bin:
+    vorn-connector-hubspot: dist/index.js
+  languageName: unknown
+  linkType: soft
+
 "@vornrun/connector-jira@workspace:packages/jira":
   version: 0.0.0-use.local
   resolution: "@vornrun/connector-jira@workspace:packages/jira"

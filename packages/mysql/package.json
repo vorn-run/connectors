@@ -1,0 +1,61 @@
+{
+  "name": "@vornrun/connector-mysql",
+  "version": "0.1.0",
+  "description": "Trigger workflows from new or updated rows in a MySQL or MariaDB database, and query or write to it from a step.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Javier Canizalez <javier-canizalez@outlook.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vorn-run/connectors.git",
+    "directory": "packages/mysql"
+  },
+  "keywords": [
+    "vorn",
+    "connector",
+    "mysql",
+    "mariadb",
+    "mcp"
+  ],
+  "bin": {
+    "vorn-connector-mysql": "dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "check": "vorn-connector check src/index.ts",
+    "pack": "vorn-connector pack src/index.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@vornrun/connector-sdk": "^0.7.0-beta.14"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@vitest/coverage-v8": "^4.1.10",
+    "mysql2": "^3",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.10"
+  },
+  "vorn": {
+    "category": "Data & observability",
+    "keywords": [
+      "mysql",
+      "mariadb",
+      "database",
+      "sql",
+      "rows",
+      "tables"
+    ],
+    "auth": "Paste the database's connection URL (mysql://user:password@host:3306/database) from your provider's dashboard or your DBA; SELECT, INSERT and UPDATE on the tables the workflow touches is enough.",
+    "packs": true
+  }
+}

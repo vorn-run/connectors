@@ -89,6 +89,7 @@ export function createdToItem(record: CrmRecord, scope: ItemScope): ConnectorIte
 }
 
 // A deal at a stage: the id carries the stage so the same deal fires once per stage it reaches.
+// No updatedAt on purpose: the SDK then remembers the id itself, so an edit that bumps the modified date is not a redelivery.
 export function stageToItem(record: CrmRecord, portalId?: string): ConnectorItem {
   const stage = property(record, 'dealstage') ?? ''
   const url = recordUrl(portalId, 'deals', record.id)
@@ -97,9 +98,13 @@ export function stageToItem(record: CrmRecord, portalId?: string): ConnectorItem
     title: `${property(record, 'dealname') ?? record.id} moved to ${stage || 'no stage'}`,
     ...(url !== undefined && { url }),
     status: stage,
-    updatedAt: property(record, 'hs_lastmodifieddate') ?? record.updatedAt ?? '',
     data: recordData(record)
   }
+}
+
+// When a record last changed, from the property HubSpot keeps it in.
+export function modifiedAt(record: CrmRecord): string {
+  return property(record, 'hs_lastmodifieddate') ?? property(record, 'lastmodifieddate') ?? record.updatedAt ?? ''
 }
 
 export function recordOutput(record: CrmRecord): Record<string, unknown> {

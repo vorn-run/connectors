@@ -21,6 +21,8 @@ import {
   createdToItem,
   epochMillis,
   filter,
+  modifiedAt,
+  property,
   recordOutput,
   stageToItem,
   type ObjectType,
@@ -42,6 +44,9 @@ export interface HubSpotConnectorOptions {
 
 // How far back the very first poll looks, before any watermark exists.
 const FIRST_POLL_LOOKBACK_MS = 60 * 60_000
+
+// How far back every stage-change poll looks: the SDK remembers the ids it delivered, so the window need only cover a few polls.
+export const STAGE_LOOKBACK_MS = 60 * 60_000
 
 // "It may take a few moments for newly created or updated CRM objects to appear in search results".
 export const INDEXING_MARGIN_MS = 30_000
@@ -186,10 +191,13 @@ export function createHubSpotConnector(options: HubSpotConnectorOptions = {}) {
   }
 
   // The watermark, or the hour before now on the very first poll rather than the account's whole history.
-  function windowOf(context: FetchContext): { since: string; until: number } {
+  function windowOf(context: FetchContext, lookback?: number): { since: string; until: number } {
     const nowMs = Date.parse(context.now())
-    const sinceMs = context.since === undefined ? nowMs - FIRST_POLL_LOOKBACK_MS : Date.parse(context.since)
-    return { since: String(sinceMs), until: nowMs - INDEXING_MARGIN_MS }
+    const since =
+      lookback !== undefined || context.since === undefined
+        ? String(nowMs - (lookback ?? FIRST_POLL_LOOKBACK_MS))
+        : epochMillis(context.since)
+    return { since, until: nowMs - INDEXING_MARGIN_MS }
   }
 
   // Everything changed at or after the watermark on the cursor property, oldest first, up to ten pages of 100.
@@ -197,9 +205,10 @@ export function createHubSpotConnector(options: HubSpotConnectorOptions = {}) {
     context: FetchContext,
     objectType: ObjectType,
     cursorProperty: string,
-    extra: SearchFilter[]
+    extra: SearchFilter[],
+    lookback?: number
   ): Promise<{ records: CrmRecord[]; until: number }> {
-    const { since, until } = windowOf(context)
+    const { since, until } = windowOf(context, lookback)
     const body: SearchBody = {
       filterGroups: [{ filters: [filter(cursorProperty, 'GTE', since), ...extra] }],
       sorts: [{ propertyName: cursorProperty, direction: 'ASCENDING' }],
@@ -210,8 +219,8 @@ export function createHubSpotConnector(options: HubSpotConnectorOptions = {}) {
   }
 
   // A record HubSpot indexed in the last half minute waits for the next poll, so the watermark never passes what search has not shown yet.
-  function settled(items: ConnectorItem[], until: number): ConnectorItem[] {
-    return items.filter((item) => !(Date.parse(String(item.updatedAt ?? '')) > until))
+  function settled(records: CrmRecord[], until: number, stamp: (record: CrmRecord) => string): CrmRecord[] {
+    return records.filter((record) => !(Date.parse(stamp(record)) > until))
   }
 
   function pipelineFilters(config: ConnectorConfig, withStage: boolean): SearchFilter[] {
@@ -227,20 +236,17 @@ export function createHubSpotConnector(options: HubSpotConnectorOptions = {}) {
     return async (context: FetchContext): Promise<ConnectorItem[]> => {
       const { records, until } = await searchSince(context, objectType, 'createdate', extra(context.config))
       const portalId = text(context.config.portalId)
-      return settled(
-        records.map((record) => createdToItem(record, { objectType, portalId })),
-        until
+      return settled(records, until, (record) => property(record, 'createdate') ?? record.createdAt ?? '').map((record) =>
+        createdToItem(record, { objectType, portalId })
       )
     }
   }
 
+  // Windowed on the clock rather than the watermark: the items carry no time, so the SDK keeps their ids instead of a boundary.
   async function fetchStageChanges(context: FetchContext): Promise<ConnectorItem[]> {
-    const { records, until } = await searchSince(context, 'deals', 'hs_lastmodifieddate', pipelineFilters(context.config, true))
+    const { records, until } = await searchSince(context, 'deals', 'hs_lastmodifieddate', pipelineFilters(context.config, true), STAGE_LOOKBACK_MS)
     const portalId = text(context.config.portalId)
-    return settled(
-      records.map((record) => stageToItem(record, portalId)),
-      until
-    )
+    return settled(records, until, modifiedAt).map((record) => stageToItem(record, portalId))
   }
 
   // Live samples come from the environment; without them the actions that need a real id are left out of the live run.

@@ -12,6 +12,7 @@ import {
   dealTitle,
   epochMillis,
   filter,
+  modifiedAt,
   property,
   recordOutput,
   recordUrl,
@@ -95,13 +96,17 @@ describe('stageToItem', () => {
       title: 'New deal moved to contractsent',
       url: 'https://app.hubspot.com/contacts/123/record/0-3/21678228008',
       status: 'contractsent',
-      updatedAt: '2019-12-07T16:50:06.678Z'
+      data: { updatedAt: '2019-12-07T16:50:06.678Z' }
     })
-    expect(stageToItem({ id: '5', properties: {}, updatedAt: '2020-01-01T00:00:00.000Z' })).toMatchObject({
-      externalId: '5:',
-      title: '5 moved to no stage',
-      updatedAt: '2020-01-01T00:00:00.000Z'
-    })
+    expect(stageToItem(SAMPLE_DEAL)).not.toHaveProperty('updatedAt')
+    expect(stageToItem({ id: '5', properties: {} })).toMatchObject({ externalId: '5:', title: '5 moved to no stage' })
+  })
+
+  it('reads when a record last changed from whichever property carries it', () => {
+    expect(modifiedAt(SAMPLE_DEAL)).toBe('2019-12-07T16:50:06.678Z')
+    expect(modifiedAt(SAMPLE_CONTACT)).toBe('2025-07-07T20:27:17.947Z')
+    expect(modifiedAt({ id: '1', properties: {}, updatedAt: '2020-01-01T00:00:00.000Z' })).toBe('2020-01-01T00:00:00.000Z')
+    expect(modifiedAt({ id: '1', properties: {} })).toBe('')
   })
 })
 

@@ -1,7 +1,7 @@
 import { connector } from './connector'
 import { serveIfEntryPoint } from './entry'
 
-export { connector, createHubSpotConnector, INDEXING_MARGIN_MS } from './connector'
+export { connector, createHubSpotConnector, INDEXING_MARGIN_MS, STAGE_LOOKBACK_MS } from './connector'
 export type { HubSpotConnectorOptions } from './connector'
 export { count, filterGroupsArg, isEmail, namesArg, propertiesArg } from './connector'
 export {
@@ -32,6 +32,7 @@ export {
   dealTitle,
   epochMillis,
   filter,
+  modifiedAt,
   property,
   recordOutput,
   recordUrl,

@@ -697,7 +697,7 @@
       "verified": {
         "schema": 1,
         "version": "0.1.0",
-        "checkedAt": "2026-09-06T17:07:28.793Z",
+        "checkedAt": "2026-09-06T17:08:40.460Z",
         "checks": [
           "manifest",
           "auth",
@@ -822,6 +822,156 @@
           "name": "HUBSPOT_DEAL_STAGE",
           "required": false,
           "description": "A stage id such as closedwon or a numeric custom stage id; the stage-changed trigger then fires only for deals reaching it."
+        }
+      ]
+    },
+    {
+      "id": "jira",
+      "name": "Jira",
+      "description": "Trigger workflows when a Jira Cloud issue is created, updated or moved to a status, and create, edit, transition, comment on, assign, read or search issues from a step.",
+      "packageName": "@vornrun/connector-jira",
+      "version": "0.1.0",
+      "capabilities": [
+        "triggers",
+        "actions"
+      ],
+      "category": "Development",
+      "keywords": [
+        "jira",
+        "atlassian",
+        "issues",
+        "tickets",
+        "jql",
+        "sprints",
+        "bugs"
+      ],
+      "auth": "Paste your Atlassian site URL, account email and an API token from id.atlassian.com/manage-profile/security/api-tokens. There is no Jira CLI to sign in with.",
+      "authRung": "key",
+      "verified": {
+        "schema": 1,
+        "version": "0.1.0",
+        "checkedAt": "2026-09-06T16:54:47.550Z",
+        "checks": [
+          "manifest",
+          "auth",
+          "secrets",
+          "actions",
+          "dedupe",
+          "no-lifecycle-scripts",
+          "keywords",
+          "no-runtime-deps",
+          "launch",
+          "mock"
+        ]
+      },
+      "packUrl": "https://github.com/vorn-run/connectors/releases/download/jira-v0.1.0/jira-0.1.0.vorn.tgz",
+      "icon": {
+        "viewBox": "0 0 24 24",
+        "paths": [
+          "M16 9 23 16 16 23 9 16 10.75 14.25 12.5 16 16 12.5 14.25 10.75z",
+          "M12 5 15.5 8.5 13.25 10.75 15 12.5 12.5 15 10.75 13.25 8.5 15.5 5 12 6.75 10.25 8.5 12 12 8.5 10.25 6.75z",
+          "M8 1 11.5 4.5 9.25 6.75 11 8.5 8.5 11 6.75 9.25 4.5 11.5 1 8z"
+        ]
+      },
+      "triggers": [
+        {
+          "type": "newIssue",
+          "label": "An issue is created",
+          "description": "Fires once for each issue created since the last poll, oldest first, within the project and JQL filter from the settings."
+        },
+        {
+          "type": "issueUpdated",
+          "label": "An issue is updated",
+          "description": "Fires for each change to an issue since the last poll, keyed by issue and update time, so an issue edited twice fires twice."
+        },
+        {
+          "type": "issueTransitioned",
+          "label": "An issue moves to a status",
+          "description": "Fires when an issue is transitioned into the status named in the settings. JQL records that the change happened, not when, so the issue's last update stands in as the time."
+        }
+      ],
+      "actions": [
+        {
+          "type": "createIssue",
+          "label": "Create an issue",
+          "description": "Create one issue in a project. The description is written as plain text and converted to Atlassian Document Format."
+        },
+        {
+          "type": "updateIssue",
+          "label": "Update an issue",
+          "description": "Edit the summary, description or any fields of an issue; the rest stays as it was. Transitions are ignored here, use transitionIssue."
+        },
+        {
+          "type": "transitionIssue",
+          "label": "Transition an issue",
+          "description": "Move an issue through a workflow transition, by transition id or name, optionally with a comment and screen fields."
+        },
+        {
+          "type": "addComment",
+          "label": "Add a comment",
+          "description": "Post a comment on an issue. Plain text is converted to Atlassian Document Format."
+        },
+        {
+          "type": "assignIssue",
+          "label": "Assign an issue",
+          "description": "Assign an issue to an account, or unassign it."
+        },
+        {
+          "type": "getIssue",
+          "label": "Get an issue",
+          "description": "Read one issue by key or id, with its main fields flattened and the description as plain text."
+        },
+        {
+          "type": "searchIssues",
+          "label": "Search issues",
+          "description": "Run a JQL query and return the matching issues, paging until maxResults are collected."
+        },
+        {
+          "type": "listTransitions",
+          "label": "List transitions",
+          "description": "The workflow transitions an issue can take from its current status."
+        },
+        {
+          "type": "listProjects",
+          "label": "List projects",
+          "description": "The projects the account can browse, ordered by key, optionally filtered by a name or key fragment and by type."
+        },
+        {
+          "type": "getCurrentUser",
+          "label": "Get the current user",
+          "description": "The account the API token belongs to, with its account id and time zone."
+        }
+      ],
+      "env": [
+        {
+          "name": "JIRA_SITE_URL",
+          "required": true,
+          "description": "Your Jira Cloud site, such as https://example.atlassian.net."
+        },
+        {
+          "name": "JIRA_EMAIL",
+          "required": true,
+          "description": "The email address of the Atlassian account the API token belongs to."
+        },
+        {
+          "name": "JIRA_API_TOKEN",
+          "required": true,
+          "description": "An API token from https://id.atlassian.com/manage-profile/security/api-tokens, created without scopes. Every issue created or comment posted is attributed to this account."
+        },
+        {
+          "name": "JIRA_PROJECT_KEY",
+          "required": false,
+          "description": "Limit the triggers to one project, by key (EX). Blank watches every project the account can browse."
+        },
+        {
+          "name": "JIRA_JQL",
+          "required": false,
+          "description": "An extra JQL filter every trigger applies, such as issuetype = Bug AND priority in (High, Highest)."
+        },
+        {
+          "name": "JIRA_STATUS",
+          "required": false,
+          "description": "The status name the issueTransitioned trigger watches for, such as Done. Only that trigger reads it."
         }
       ]
     },
@@ -1753,6 +1903,158 @@
           "name": "TELEGRAM_LIMIT",
           "required": false,
           "description": "1 to 100. Anything left over is read by the next poll."
+        }
+      ]
+    },
+    {
+      "id": "trello",
+      "name": "Trello",
+      "description": "Trigger workflows from cards created, moved, commented on or due soon on a Trello board, and create, update, move, comment on, label, archive, read and search cards from a step.",
+      "packageName": "@vornrun/connector-trello",
+      "version": "0.1.0",
+      "capabilities": [
+        "triggers",
+        "actions"
+      ],
+      "category": "Productivity",
+      "keywords": [
+        "trello",
+        "cards",
+        "boards",
+        "lists",
+        "kanban",
+        "tasks"
+      ],
+      "auth": "Paste a Power-Up API key from trello.com/power-ups/admin and the member token its authorization page grants for read and write. There is no Trello CLI to sign in with.",
+      "authRung": "key",
+      "verified": {
+        "schema": 1,
+        "version": "0.1.0",
+        "checkedAt": "2026-09-06T16:38:21.311Z",
+        "checks": [
+          "manifest",
+          "auth",
+          "secrets",
+          "actions",
+          "dedupe",
+          "no-lifecycle-scripts",
+          "keywords",
+          "no-runtime-deps",
+          "launch",
+          "mock"
+        ]
+      },
+      "packUrl": "https://github.com/vorn-run/connectors/releases/download/trello-v0.1.0/trello-0.1.0.vorn.tgz",
+      "icon": {
+        "viewBox": "0 0 24 24",
+        "paths": [
+          "M5 2h14a3 3 0 0 1 3 3v14a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V5a3 3 0 0 1 3-3zm1.5 3.5a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-11a1 1 0 0 0-1-1h-3zm8 0a1 1 0 0 0-1 1V12a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1V6.5a1 1 0 0 0-1-1h-3z"
+        ]
+      },
+      "triggers": [
+        {
+          "type": "cardCreated",
+          "label": "A card is created",
+          "description": "Fires once for each card created on the board since the last poll, oldest first."
+        },
+        {
+          "type": "cardMoved",
+          "label": "A card moves to another list",
+          "description": "Fires once for each card moved between lists on the board, with the list before and after. Set a destination list to fire only on arrivals there."
+        },
+        {
+          "type": "commentAdded",
+          "label": "A comment is added",
+          "description": "Fires once for each comment added to a card on the board since the last poll."
+        },
+        {
+          "type": "cardDueSoon",
+          "label": "A card is due soon",
+          "description": "Fires once per due date for each open card on the board whose due date falls within the configured hours and is not marked complete. A changed due date fires again."
+        }
+      ],
+      "actions": [
+        {
+          "type": "createCard",
+          "label": "Create a card",
+          "description": "Add a card to a list."
+        },
+        {
+          "type": "updateCard",
+          "label": "Update a card",
+          "description": "Change the name, description, due date, due-complete flag or archived state of a card; only the inputs given are sent."
+        },
+        {
+          "type": "moveCard",
+          "label": "Move a card",
+          "description": "Move a card to a list, optionally at a position or onto another board."
+        },
+        {
+          "type": "addComment",
+          "label": "Add a comment",
+          "description": "Comment on a card."
+        },
+        {
+          "type": "addLabel",
+          "label": "Add a label to a card",
+          "description": "Put a label on a card. A label already on the card is reported as present rather than as a failure."
+        },
+        {
+          "type": "archiveCard",
+          "label": "Archive a card",
+          "description": "Archive a card. A second call leaves it archived."
+        },
+        {
+          "type": "getCard",
+          "label": "Get a card",
+          "description": "Read one card with its list and board."
+        },
+        {
+          "type": "listBoards",
+          "label": "List boards",
+          "description": "The boards the token’s member belongs to, open ones by default."
+        },
+        {
+          "type": "listLists",
+          "label": "List lists on a board",
+          "description": "The lists of a board, open ones by default."
+        },
+        {
+          "type": "listCards",
+          "label": "List cards in a list",
+          "description": "The open cards of a list."
+        },
+        {
+          "type": "searchCards",
+          "label": "Search cards",
+          "description": "Find cards matching a query across the member’s boards or the given ones."
+        }
+      ],
+      "env": [
+        {
+          "name": "TRELLO_API_KEY",
+          "required": true,
+          "description": "The Power-Up API key: create a Power-Up at https://trello.com/power-ups/admin, open its API Key tab and generate a key."
+        },
+        {
+          "name": "TRELLO_TOKEN",
+          "required": true,
+          "description": "The member token the API key’s Token link grants: approve read and write access with expiration never, then copy the token shown."
+        },
+        {
+          "name": "TRELLO_BOARD_ID",
+          "required": true,
+          "description": "The board the triggers watch, by id or by the short link from its URL (trello.com/b/<shortLink>/…)."
+        },
+        {
+          "name": "TRELLO_TO_LIST_ID",
+          "required": false,
+          "description": "For the card-moved trigger: only fire when a card lands in this list. Blank fires on every move."
+        },
+        {
+          "name": "TRELLO_WITHIN_HOURS",
+          "required": false,
+          "description": "For the card-due-soon trigger: how many hours ahead a due date must fall to fire."
         }
       ]
     }

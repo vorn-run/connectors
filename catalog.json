@@ -219,6 +219,115 @@
       ]
     },
     {
+      "id": "anthropic",
+      "name": "Anthropic",
+      "description": "Trigger workflows when a message batch finishes or a model becomes available, and create messages, count tokens, list models and run message batches from a step.",
+      "packageName": "@vornrun/connector-anthropic",
+      "version": "0.1.0",
+      "capabilities": [
+        "triggers",
+        "actions"
+      ],
+      "category": "AI",
+      "keywords": [
+        "anthropic",
+        "claude",
+        "messages",
+        "llm",
+        "batches",
+        "tokens",
+        "models"
+      ],
+      "auth": "Paste an Anthropic API key from console.anthropic.com/settings/keys for a single workspace. There is no CLI to sign in with.",
+      "authRung": "key",
+      "verified": {
+        "schema": 1,
+        "version": "0.1.0",
+        "checkedAt": "2026-09-06T16:27:27.634Z",
+        "checks": [
+          "manifest",
+          "auth",
+          "secrets",
+          "actions",
+          "dedupe",
+          "no-lifecycle-scripts",
+          "keywords",
+          "no-runtime-deps",
+          "launch",
+          "mock"
+        ]
+      },
+      "packUrl": "https://github.com/vorn-run/connectors/releases/download/anthropic-v0.1.0/anthropic-0.1.0.vorn.tgz",
+      "icon": {
+        "viewBox": "0 0 24 24",
+        "paths": [
+          "M9 3 15 3 22.5 21 16.5 21z",
+          "M1.5 21 7.5 21 12.5 8.5 9.5 3.8z"
+        ]
+      },
+      "triggers": [
+        {
+          "type": "batchEnded",
+          "label": "A message batch finished",
+          "description": "Fires once for each message batch whose processing has ended since the last poll, oldest first. Read the results with getBatchResults."
+        },
+        {
+          "type": "newModel",
+          "label": "A model became available",
+          "description": "Fires once for each model released since the last poll, oldest first. The first poll looks 30 days back."
+        }
+      ],
+      "actions": [
+        {
+          "type": "createMessage",
+          "label": "Create a message",
+          "description": "Send a conversation to a model and get its reply. Every call bills a generation."
+        },
+        {
+          "type": "countTokens",
+          "label": "Count tokens",
+          "description": "Count the tokens a conversation and system prompt would use, without creating a message."
+        },
+        {
+          "type": "listModels",
+          "label": "List models",
+          "description": "The models the key can use, newest release first."
+        },
+        {
+          "type": "getModel",
+          "label": "Get a model",
+          "description": "Read one model by id, or resolve an alias to its model id."
+        },
+        {
+          "type": "createMessageBatch",
+          "label": "Create a message batch",
+          "description": "Queue up to 100,000 message requests for asynchronous processing. Two calls queue two batches."
+        },
+        {
+          "type": "getMessageBatch",
+          "label": "Get a message batch",
+          "description": "Read a batch and its request counts; poll it until processingStatus is ended."
+        },
+        {
+          "type": "getBatchResults",
+          "label": "Get batch results",
+          "description": "Read the results of an ended batch, one entry per request, matched by custom_id rather than by order."
+        },
+        {
+          "type": "cancelMessageBatch",
+          "label": "Cancel a message batch",
+          "description": "Ask for a batch to stop; it enters canceling and requests already running may still finish."
+        }
+      ],
+      "env": [
+        {
+          "name": "ANTHROPIC_API_KEY",
+          "required": true,
+          "description": "An API key from console.anthropic.com/settings/keys, for a single workspace."
+        }
+      ]
+    },
+    {
       "id": "discord",
       "name": "Discord",
       "description": "Trigger workflows from new Discord messages, members and threads, and send messages, reply in threads, react, pin or read channels and members from a step.",
@@ -1641,6 +1750,158 @@
           "name": "TELEGRAM_LIMIT",
           "required": false,
           "description": "1 to 100. Anything left over is read by the next poll."
+        }
+      ]
+    },
+    {
+      "id": "trello",
+      "name": "Trello",
+      "description": "Trigger workflows from cards created, moved, commented on or due soon on a Trello board, and create, update, move, comment on, label, archive, read and search cards from a step.",
+      "packageName": "@vornrun/connector-trello",
+      "version": "0.1.0",
+      "capabilities": [
+        "triggers",
+        "actions"
+      ],
+      "category": "Productivity",
+      "keywords": [
+        "trello",
+        "cards",
+        "boards",
+        "lists",
+        "kanban",
+        "tasks"
+      ],
+      "auth": "Paste a Power-Up API key from trello.com/power-ups/admin and the member token its authorization page grants for read and write. There is no Trello CLI to sign in with.",
+      "authRung": "key",
+      "verified": {
+        "schema": 1,
+        "version": "0.1.0",
+        "checkedAt": "2026-09-06T16:38:21.311Z",
+        "checks": [
+          "manifest",
+          "auth",
+          "secrets",
+          "actions",
+          "dedupe",
+          "no-lifecycle-scripts",
+          "keywords",
+          "no-runtime-deps",
+          "launch",
+          "mock"
+        ]
+      },
+      "packUrl": "https://github.com/vorn-run/connectors/releases/download/trello-v0.1.0/trello-0.1.0.vorn.tgz",
+      "icon": {
+        "viewBox": "0 0 24 24",
+        "paths": [
+          "M5 2h14a3 3 0 0 1 3 3v14a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V5a3 3 0 0 1 3-3zm1.5 3.5a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-11a1 1 0 0 0-1-1h-3zm8 0a1 1 0 0 0-1 1V12a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1V6.5a1 1 0 0 0-1-1h-3z"
+        ]
+      },
+      "triggers": [
+        {
+          "type": "cardCreated",
+          "label": "A card is created",
+          "description": "Fires once for each card created on the board since the last poll, oldest first."
+        },
+        {
+          "type": "cardMoved",
+          "label": "A card moves to another list",
+          "description": "Fires once for each card moved between lists on the board, with the list before and after. Set a destination list to fire only on arrivals there."
+        },
+        {
+          "type": "commentAdded",
+          "label": "A comment is added",
+          "description": "Fires once for each comment added to a card on the board since the last poll."
+        },
+        {
+          "type": "cardDueSoon",
+          "label": "A card is due soon",
+          "description": "Fires once per due date for each open card on the board whose due date falls within the configured hours and is not marked complete. A changed due date fires again."
+        }
+      ],
+      "actions": [
+        {
+          "type": "createCard",
+          "label": "Create a card",
+          "description": "Add a card to a list."
+        },
+        {
+          "type": "updateCard",
+          "label": "Update a card",
+          "description": "Change the name, description, due date, due-complete flag or archived state of a card; only the inputs given are sent."
+        },
+        {
+          "type": "moveCard",
+          "label": "Move a card",
+          "description": "Move a card to a list, optionally at a position or onto another board."
+        },
+        {
+          "type": "addComment",
+          "label": "Add a comment",
+          "description": "Comment on a card."
+        },
+        {
+          "type": "addLabel",
+          "label": "Add a label to a card",
+          "description": "Put a label on a card. A label already on the card is reported as present rather than as a failure."
+        },
+        {
+          "type": "archiveCard",
+          "label": "Archive a card",
+          "description": "Archive a card. A second call leaves it archived."
+        },
+        {
+          "type": "getCard",
+          "label": "Get a card",
+          "description": "Read one card with its list and board."
+        },
+        {
+          "type": "listBoards",
+          "label": "List boards",
+          "description": "The boards the token’s member belongs to, open ones by default."
+        },
+        {
+          "type": "listLists",
+          "label": "List lists on a board",
+          "description": "The lists of a board, open ones by default."
+        },
+        {
+          "type": "listCards",
+          "label": "List cards in a list",
+          "description": "The open cards of a list."
+        },
+        {
+          "type": "searchCards",
+          "label": "Search cards",
+          "description": "Find cards matching a query across the member’s boards or the given ones."
+        }
+      ],
+      "env": [
+        {
+          "name": "TRELLO_API_KEY",
+          "required": true,
+          "description": "The Power-Up API key: create a Power-Up at https://trello.com/power-ups/admin, open its API Key tab and generate a key."
+        },
+        {
+          "name": "TRELLO_TOKEN",
+          "required": true,
+          "description": "The member token the API key’s Token link grants: approve read and write access with expiration never, then copy the token shown."
+        },
+        {
+          "name": "TRELLO_BOARD_ID",
+          "required": true,
+          "description": "The board the triggers watch, by id or by the short link from its URL (trello.com/b/<shortLink>/…)."
+        },
+        {
+          "name": "TRELLO_TO_LIST_ID",
+          "required": false,
+          "description": "For the card-moved trigger: only fire when a card lands in this list. Blank fires on every move."
+        },
+        {
+          "name": "TRELLO_WITHIN_HOURS",
+          "required": false,
+          "description": "For the card-due-soon trigger: how many hours ahead a due date must fall to fire."
         }
       ]
     }

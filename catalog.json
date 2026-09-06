@@ -673,6 +673,159 @@
       ]
     },
     {
+      "id": "hubspot",
+      "name": "HubSpot",
+      "description": "Trigger workflows from new HubSpot contacts, companies and deals or deal stage changes, and create, update, search, annotate or associate CRM records from a step.",
+      "packageName": "@vornrun/connector-hubspot",
+      "version": "0.1.0",
+      "capabilities": [
+        "triggers",
+        "actions"
+      ],
+      "category": "Productivity",
+      "keywords": [
+        "hubspot",
+        "crm",
+        "contacts",
+        "companies",
+        "deals",
+        "pipeline",
+        "sales"
+      ],
+      "auth": "Paste a HubSpot private app access token with the contacts, companies and deals read and write scopes, crm.objects.owners.read and crm.schemas.deals.read. There is no HubSpot CLI to borrow a CRM login from.",
+      "authRung": "key",
+      "verified": {
+        "schema": 1,
+        "version": "0.1.0",
+        "checkedAt": "2026-09-06T17:01:06.994Z",
+        "checks": [
+          "manifest",
+          "auth",
+          "secrets",
+          "actions",
+          "dedupe",
+          "no-lifecycle-scripts",
+          "keywords",
+          "no-runtime-deps",
+          "launch",
+          "mock"
+        ]
+      },
+      "packUrl": "https://github.com/vorn-run/connectors/releases/download/hubspot-v0.1.0/hubspot-0.1.0.vorn.tgz",
+      "icon": {
+        "viewBox": "0 0 24 24",
+        "paths": [
+          "M9.8 14a5.2 5.2 0 1 0 10.4 0a5.2 5.2 0 1 0 -10.4 0zM12.4 14a2.6 2.6 0 1 1 5.2 0a2.6 2.6 0 1 1 -5.2 0zM4.85 4.62L10.97 11.07L12.28 9.83L6.15 3.38zM3.9 4a1.6 1.6 0 1 0 3.2 0a1.6 1.6 0 1 0 -3.2 0zM7.59 21.68L11.91 17.9L10.72 16.55L6.41 20.32zM5.7 21a1.3 1.3 0 1 0 2.6 0a1.3 1.3 0 1 0 -2.6 0zM2.96 14.4L10.07 14.7L10.14 12.9L3.04 12.6zM1.7 13.5a1.3 1.3 0 1 0 2.6 0a1.3 1.3 0 1 0 -2.6 0z"
+        ]
+      },
+      "triggers": [
+        {
+          "type": "newContact",
+          "label": "A contact is created",
+          "description": "Fires once for each contact created since the last poll, oldest first."
+        },
+        {
+          "type": "newDeal",
+          "label": "A deal is created",
+          "description": "Fires once for each deal created since the last poll, oldest first, in the configured pipeline or in all of them."
+        },
+        {
+          "type": "newCompany",
+          "label": "A company is created",
+          "description": "Fires once for each company created since the last poll, oldest first."
+        },
+        {
+          "type": "dealStageChanged",
+          "label": "A deal moves to a stage",
+          "description": "Fires once per deal and stage when a deal is found at a stage it has not fired for; a deal edited without changing stage is dropped. Filter by pipeline and stage in the settings."
+        }
+      ],
+      "actions": [
+        {
+          "type": "createContact",
+          "label": "Create a contact",
+          "description": "Add a contact by email. An email that already exists answers 409 with the existing id in the message."
+        },
+        {
+          "type": "updateContact",
+          "label": "Update a contact",
+          "description": "Set the given properties of a contact and leave the rest as they were."
+        },
+        {
+          "type": "createDeal",
+          "label": "Create a deal",
+          "description": "Add a deal at a stage of a pipeline. Every call makes a new deal."
+        },
+        {
+          "type": "updateDeal",
+          "label": "Update a deal",
+          "description": "Set the given properties of a deal, such as {\"dealstage\":\"closedwon\"}, and leave the rest as they were."
+        },
+        {
+          "type": "createCompany",
+          "label": "Create a company",
+          "description": "Add a company by name, with its domain when known. Every call makes a new company."
+        },
+        {
+          "type": "createNote",
+          "label": "Add a note to a record",
+          "description": "Attach a note to a contact, company or deal, stamped with the current time."
+        },
+        {
+          "type": "associate",
+          "label": "Associate two records",
+          "description": "Link two records with the default association for their types, or with a labelled type id."
+        },
+        {
+          "type": "getContact",
+          "label": "Get a contact",
+          "description": "Read one contact by record id or by email address."
+        },
+        {
+          "type": "searchContacts",
+          "label": "Search contacts",
+          "description": "Find contacts by free text or by filter groups, one page at a time."
+        },
+        {
+          "type": "listDealPipelines",
+          "label": "List deal pipelines",
+          "description": "The deal pipelines of the account with their stages."
+        },
+        {
+          "type": "listOwners",
+          "label": "List owners",
+          "description": "The users who can own records, with the id to assign a record by."
+        }
+      ],
+      "env": [
+        {
+          "name": "HUBSPOT_ACCESS_TOKEN",
+          "required": true,
+          "description": "The access token of a private app from Settings, Integrations, Private Apps, with the crm.objects.contacts, crm.objects.companies and crm.objects.deals read and write scopes, crm.objects.owners.read and crm.schemas.deals.read."
+        },
+        {
+          "name": "HUBSPOT_PORTAL_ID",
+          "required": false,
+          "description": "The account number in the app.hubspot.com URL, used to give each item a link to open the record. Blank leaves items without a URL."
+        },
+        {
+          "name": "HUBSPOT_PROPERTIES",
+          "required": false,
+          "description": "Comma-separated internal property names every trigger fetches on top of the standard set."
+        },
+        {
+          "name": "HUBSPOT_PIPELINE",
+          "required": false,
+          "description": "A pipeline id from listDealPipelines; the deal triggers then watch only that pipeline. Blank watches every pipeline."
+        },
+        {
+          "name": "HUBSPOT_DEAL_STAGE",
+          "required": false,
+          "description": "A stage id such as closedwon or a numeric custom stage id; the stage-changed trigger then fires only for deals reaching it."
+        }
+      ]
+    },
+    {
       "id": "kusto",
       "name": "Azure Data Explorer",
       "description": "Trigger workflows from the rows a KQL query returns.",

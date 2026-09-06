@@ -88,8 +88,7 @@ export function createdToItem(record: CrmRecord, scope: ItemScope): ConnectorIte
   }
 }
 
-// A deal at a stage: the id carries the stage so the same deal fires once per stage it reaches.
-// No updatedAt on purpose: the SDK then remembers the id itself, so an edit that bumps the modified date is not a redelivery.
+// Keyed on deal and stage, with no updatedAt so the SDK remembers the id itself and an edit that bumps the modified date is not a redelivery.
 export function stageToItem(record: CrmRecord, portalId?: string): ConnectorItem {
   const stage = property(record, 'dealstage') ?? ''
   const url = recordUrl(portalId, 'deals', record.id)

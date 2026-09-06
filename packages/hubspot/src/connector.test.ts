@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createConnectorHarness, type ConnectorConfig } from '@vornrun/connector-sdk'
+import { createConnectorHarness, runConformance, type ConnectorConfig } from '@vornrun/connector-sdk'
 import {
   INDEXING_MARGIN_MS,
   STAGE_LOOKBACK_MS,
@@ -567,13 +567,24 @@ describe('declared actions', () => {
     expect(sent[0]).toMatchObject({ method: 'GET', url: `${API_ROOT}/crm/v3/pipelines/deals`, headers: { Authorization: 'Bearer pat-test' } })
   })
 
-  it('lists owners with the filters passed through as query parameters', async () => {
+})
+
+describe('listOwners', () => {
+  it('lists owners with the filters passed through as query parameters and the next cursor lifted out', async () => {
     const owners = [{ id: '910901', email: 'owner@example.com', userId: 12, teams: [] }]
     const { harness, sent } = harnessOver([{ when: /\/crm\/v3\/owners/, body: { results: owners, paging: { next: { after: '5' } }, extra: 1 } }])
-    expect(await harness.execute('listOwners', {})).toEqual({ owners, paging: { next: { after: '5' } } })
-    expect(sent[0]).toMatchObject({ method: 'GET', url: `${API_ROOT}/crm/v3/owners` })
-    await harness.execute('listOwners', { email: 'owner@example.com', limit: '5', after: '5', archived: 'true' })
+    expect(await harness.execute('listOwners', {})).toEqual({ owners, nextAfter: '5' })
+    expect(sent[0]).toMatchObject({ method: 'GET', url: `${API_ROOT}/crm/v3/owners`, headers: { Authorization: 'Bearer pat-test' } })
+    await harness.execute('listOwners', { email: 'owner@example.com', limit: '5', after: '5', archived: true })
     expect(sent[1].url).toBe(`${API_ROOT}/crm/v3/owners?email=owner%40example.com&limit=5&after=5&archived=true`)
+    await harness.execute('listOwners', { archived: false })
+    expect(sent[2].url).toBe(`${API_ROOT}/crm/v3/owners?archived=false`)
+  })
+
+  it('answers an empty list and no cursor from a bare reply, and refuses a bad limit', async () => {
+    const { harness } = harnessOver([{ when: /\/crm\/v3\/owners/, body: {} }])
+    expect(await harness.execute('listOwners', {})).toEqual({ owners: [], nextAfter: '' })
+    await expect(harness.execute('listOwners', { limit: '0' })).rejects.toThrow('limit must be a whole number of at least 1')
   })
 })
 
@@ -597,5 +608,11 @@ describe('the conformance run', () => {
     for (const [type, input] of Object.entries(args)) {
       await expect(harness.execute(type, input), type).resolves.toBeDefined()
     }
+  })
+
+  it('passes the SDK mock conformance run', async () => {
+    const run = await runConformance(packaged, { mock: true })
+    expect(run.findings.filter((item) => item.level === 'error')).toEqual([])
+    expect(run.passed).toEqual(expect.arrayContaining(['manifest', 'auth', 'secrets', 'actions', 'dedupe', 'mock']))
   })
 })

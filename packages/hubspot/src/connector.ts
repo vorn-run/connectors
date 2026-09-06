@@ -591,7 +591,7 @@ export function createHubSpotConnector(options: HubSpotConnectorOptions = {}) {
             label: 'Association type id',
             type: 'number',
             description: 'A labelled type id such as 1 for a contact’s primary company. Blank uses the default association for the two types.',
-            builderHint: 'When set the labelled form is used: PUT .../associations/{to}/{toId} with body [{ associationCategory: "HUBSPOT_DEFINED", associationTypeId }]; the defaults are contact→company 279, company→contact 280, contact→deal 4, deal→contact 3, deal→company 341, company→deal 342.'
+            builderHint: 'When set the labelled form is used: PUT .../associations/{to}/{toId} with body [{ associationCategory: "HUBSPOT_DEFINED", associationTypeId }]; the defaults are contact→company 279, company→contact 280, contact→deal 4, deal→contact 3, deal→company 341, company→deal 342, contact→note 201, company→note 189, deal→note 213.'
           }
         ],
         outputs: [
@@ -754,23 +754,24 @@ export function createHubSpotConnector(options: HubSpotConnectorOptions = {}) {
             key: 'owners',
             description: 'One entry per owner: id, email, firstName, lastName, userId, type, archived, createdAt, updatedAt, teams; assign records by id, never userId'
           },
-          { key: 'paging', description: 'Present when another page exists, as { next: { after } }' }
+          { key: 'nextAfter', description: 'Pass back as after to fetch the next page; empty on the last one' }
         ],
         sample: {},
-        request: {
-          url: `${API_ROOT}${CRM_PATH}/owners`,
-          headers: { Authorization: 'Bearer {{config.accessToken}}' },
-          query: {
-            email: '{{args.email}}',
-            limit: '{{args.limit}}',
-            after: '{{args.after}}',
-            archived: '{{args.archived}}'
+        async run(args, context) {
+          const page = await client(context).call<{ results?: unknown[]; paging?: { next?: { after?: string } } }>(`${CRM_PATH}/owners`, {
+            query: {
+              email: text(args.email),
+              limit: count(args.limit, 'limit'),
+              after: text(args.after),
+              ...(args.archived !== undefined && args.archived !== '' && { archived: String(args.archived) })
+            },
+            idempotent: true
+          })
+          return {
+            owners: Array.isArray(page.results) ? page.results : [],
+            nextAfter: page.paging?.next?.after ?? ''
           }
-        },
-        postReceive: [
-          { op: 'rename', from: 'results', to: 'owners' },
-          { op: 'pick', keys: ['owners', 'paging'] }
-        ]
+        }
       }
     ]
   })

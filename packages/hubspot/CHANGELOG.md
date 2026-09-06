@@ -26,8 +26,8 @@ out the window before the next call, a `429` is retried once after
 `Retry-After` in milliseconds or one second and never for the `DAILY` policy,
 a `5xx` is retried once on reads and idempotent writes only, and a failure is
 thrown as `<category>: <message> (<correlationId>)` with the HTTP status.
-`listDealPipelines` and `listOwners` are declared requests reshaped with
-`postReceive`; the SDK's own retry honours `Retry-After` on them.
+`listDealPipelines` is a declared request reshaped with `postReceive`; the
+SDK's own retry honours `Retry-After` on it.
 
 The three created-record triggers are declarative polls on the SDK's timestamp
 strategy, searching with `createdate GTE <watermark>` as epoch milliseconds so

@@ -130,19 +130,19 @@ one. Every create and update answers the full record: `id`, `properties`,
 | `getContact` | yes | `GET /crm/v3/objects/contacts/{contactId}`, or `?idProperty=email` when the input holds an `@`. Optional `properties` names what to return. |
 | `searchContacts` | yes | `POST /crm/v3/objects/contacts/search` with optional `query`, `filterGroups`, `properties`, `limit` (1 to 200) and `after`, one page. Returns `total`, `contacts`, `nextAfter`. |
 | `listDealPipelines` | yes | `GET /crm/v3/pipelines/deals`. Returns `pipelines` with their `stages`. |
-| `listOwners` | yes | `GET /crm/v3/owners` with optional `email`, `limit`, `after`, `archived`. Returns `owners` and `paging`; assign records by an owner's `id`, never its `userId`. |
+| `listOwners` | yes | `GET /crm/v3/owners` with optional `email`, `limit`, `after`, `archived`. Returns `owners` and `nextAfter`; assign records by an owner's `id`, never its `userId`. |
 
 The note association type ids are 202 to a contact, 190 to a company and 214
 to a deal. The default association labels are contact→company 279,
-company→contact 280, contact→deal 4, deal→contact 3, deal→company 341 and
-company→deal 342; pass 1 as `associationTypeId` for a contact's primary
+company→contact 280, contact→deal 4, deal→contact 3, deal→company 341,
+company→deal 342, contact→note 201, company→note 189 and deal→note 213; pass 1 as `associationTypeId` for a contact's primary
 company. `updateContact` and `updateDeal` are harmless to repeat with the same
 values but are declared not idempotent so the mock check's placeholders never
 reach a live account.
 
-`listDealPipelines` and `listOwners` are declared requests the SDK sends
-itself; a failure on those reads as `Request failed with <status>` followed by
-HubSpot's error body, and the SDK's own retry honours `Retry-After` on them.
+`listDealPipelines` is a declared request the SDK sends itself; a failure on
+it reads as `Request failed with <status>` followed by HubSpot's error body,
+and the SDK's own retry honours `Retry-After` on it.
 
 ## Checks
 

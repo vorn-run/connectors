@@ -1,0 +1,63 @@
+{
+  "name": "@vornrun/connector-jira",
+  "version": "0.1.0",
+  "description": "Trigger workflows from issues created, updated or transitioned in Jira Cloud, and create, edit, transition, comment on, assign or search issues from a step.",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vorn-run/connectors.git",
+    "directory": "packages/jira"
+  },
+  "keywords": [
+    "vorn",
+    "connector",
+    "jira",
+    "mcp"
+  ],
+  "bin": {
+    "vorn-connector-jira": "dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@vornrun/connector-sdk": "^0.7.0-beta.14"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@vitest/coverage-v8": "^4.1.10",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.10"
+  },
+  "vorn": {
+    "category": "Development",
+    "keywords": [
+      "jira",
+      "atlassian",
+      "issues",
+      "tickets",
+      "jql",
+      "sprints",
+      "bugs"
+    ],
+    "auth": "Paste your Atlassian site URL, account email and an API token from id.atlassian.com/manage-profile/security/api-tokens. There is no Jira CLI to sign in with.",
+    "packs": true
+  }
+}

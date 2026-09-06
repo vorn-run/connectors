@@ -19,20 +19,18 @@ batch.
   `x-api-key` with `anthropic-version: 2023-06-01`. There is no CLI to borrow
   a login from.
 
-Messages, token counting, the model list, batch creation and batch results go
-through one small client rather than declared SDK requests, because the
-documented rate-limit behaviour needs more than a declared request can
-express: a `429` is retried once after `retry-after` and reported at once
-when the header is missing, since that is the spend cap; a `529` or `5xx` is
-retried once; and a reply that says no requests remain makes the next call
-wait for `anthropic-ratelimit-requests-reset`. Every failure is reported as
-`<error.type>: <error.message>` with the status and request id. `getModel`,
-`getMessageBatch` and `cancelMessageBatch` are declared requests reshaped
-with `postReceive`; the SDK's own retry honours `retry-after` on them.
-Batch results are the JSONL stream parsed into an array.
+Every action and both polls go through one small client rather than declared
+SDK requests, because the documented rate-limit behaviour needs more than a
+declared request can express: a `429` is retried once after `retry-after` and
+reported at once when the header is missing, since that is the spend cap; a
+`529` or `5xx` is retried once; and a reply that says no requests remain makes
+the next call wait for `anthropic-ratelimit-requests-reset`. Every failure is
+reported as `<error.type>: <error.message>` with the status and request id,
+and every message, model and batch read returns the reply as `raw` beside the
+named fields. Batch results are the JSONL stream parsed into an array.
 
-Both triggers are declarative polls on the SDK's timestamp strategy, walking
-`after_id` pages newest first. Ended batches are stamped with `ended_at` and
+Both triggers poll on the SDK's timestamp dedupe strategy, walking `after_id`
+pages newest first. Ended batches are stamped with `ended_at` and
 the walk stops 24 hours before the cursor, the batch lifetime, so a batch
 created before one poll and ended after it still fires once. New models are
 stamped with `created_at`; the first poll looks 30 days back and an epoch

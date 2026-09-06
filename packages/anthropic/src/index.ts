@@ -28,6 +28,7 @@ export {
   listArg,
   messageOutput,
   messagesArg,
+  modelOutput,
   modelToItem,
   numberArg,
   stopSequencesArg

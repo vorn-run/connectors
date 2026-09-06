@@ -46,9 +46,8 @@ models. Beyond a limit the API answers `429 rate_limit_error` with a
   seconds) before the next call, so a poll that walks pages does not trip the
   limit by itself.
 
-Nothing else is retried. `getModel`, `getMessageBatch` and
-`cancelMessageBatch` are declared requests, so the SDK's own retry applies to
-them and a failure quotes the error body verbatim.
+Nothing else is retried. Every action goes through the same client, so the
+same waits, retries and error text apply to all of them.
 
 The connector does not stream, so `createMessage` defaults `maxTokens` to
 1024. A long generation or a large job belongs in a message batch.
@@ -91,17 +90,17 @@ a JSON array of `{ "role", "content" }` turns passed through as is.
 | `createMessage` | no | `POST messages` with `model`, `messages`, optional `system`, `maxTokens` (default 1024), `temperature`, `tools` and `stopSequences`. Returns `id`, `model`, `text` (the first text block, empty on a tool call alone), `stopReason`, `usage`, `raw`. Every call bills a generation. |
 | `countTokens` | yes | `POST messages/count_tokens` with `model`, `messages`, optional `system`. Returns `inputTokens`. |
 | `listModels` | yes | `GET models`, every page. Returns `models`, `count`. |
-| `getModel` | yes | `GET models/{modelId}`; resolves an alias to its id. Returns `id`, `displayName`, `createdAt`, `maxInputTokens`, `maxTokens`, `capabilities`. |
-| `createMessageBatch` | no | `POST messages/batches` with `requests`, an array of `{ "custom_id", "params" }` where `params` is a full message body; a single object is a batch of one. Returns `id`, `processingStatus`, `requestCounts`, `createdAt`, `endedAt`, `expiresAt`, `resultsUrl`, `raw`. |
-| `getMessageBatch` | yes | `GET messages/batches/{batchId}`; poll it until `processingStatus` is `ended`. Same outputs without `raw`. |
+| `getModel` | yes | `GET models/{modelId}`; resolves an alias to its id. Returns `id`, `displayName`, `createdAt`, `maxInputTokens`, `maxTokens`, `capabilities`, `raw`. |
+| `createMessageBatch` | no | `POST messages/batches` with `requests`, an array of `{ "custom_id", "params" }` where `params` is a full message body; a single object is a batch of one. Returns `id`, `processingStatus`, `requestCounts`, `createdAt`, `endedAt`, `expiresAt`, `cancelInitiatedAt`, `resultsUrl`, `raw`. |
+| `getMessageBatch` | yes | `GET messages/batches/{batchId}`; poll it until `processingStatus` is `ended`. Same outputs. |
 | `getBatchResults` | yes | `GET messages/batches/{batchId}/results`, the JSONL parsed into `results` (`{ custom_id, result }`, matched by `custom_id`, not by order) and `count`. Before processing ends the API's own error is reported. |
-| `cancelMessageBatch` | no | `POST messages/batches/{batchId}/cancel`. Returns `id`, `processingStatus`, `cancelInitiatedAt`, `requestCounts`. Requests already running may still finish. |
+| `cancelMessageBatch` | no | `POST messages/batches/{batchId}/cancel`. Same outputs, with `cancelInitiatedAt` set. Requests already running may still finish. |
 
 Models released after Claude Opus 4.6, the default included, accept only a
 `temperature` of 1.0 and reject other values with a `400`. `stopSequences`
-takes a comma-separated line or a JSON array; `tools` takes an array of
-`{ name, description, input_schema }`, and a tool call comes back as a
-`tool_use` block in `raw.content` with `stopReason` `tool_use`.
+takes a JSON array of strings, or one string as a single sequence; `tools`
+takes an array of `{ name, description, input_schema }`, and a tool call comes
+back as a `tool_use` block in `raw.content` with `stopReason` `tool_use`.
 
 ## Checks
 

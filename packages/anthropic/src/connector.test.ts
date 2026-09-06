@@ -321,7 +321,7 @@ describe('createMessage', () => {
       maxTokens: '50',
       temperature: '0.2',
       tools: [{ name: 'lookup', description: 'Find', input_schema: { type: 'object' } }],
-      stopSequences: 'END, STOP'
+      stopSequences: ['END', 'STOP']
     })
     expect(sent[0].body).toEqual({
       model: 'claude-opus-4-6',
@@ -387,15 +387,16 @@ describe('listModels and getModel', () => {
     expect(sent).toHaveLength(2)
   })
 
-  it('reads one model as a declared request and renames its fields', async () => {
-    const { harness, sent } = harnessOver([{ when: /\/models\/claude-sonnet-5$/, body: SAMPLE_MODEL }])
-    expect(await harness.execute('getModel', { modelId: 'claude-sonnet-5' })).toEqual({
+  it('reads one model, URL-encoding the id, and keeps the raw reply', async () => {
+    const { harness, sent } = harnessOver([{ when: /\/models\/claude-sonnet-5%20x$/, body: SAMPLE_MODEL }])
+    expect(await harness.execute('getModel', { modelId: 'claude-sonnet-5 x' })).toEqual({
       id: 'claude-opus-5',
       displayName: 'Claude Opus 5',
       createdAt: '2026-07-24T00:00:00Z',
       maxInputTokens: 1000000,
       maxTokens: 128000,
-      capabilities: SAMPLE_MODEL.capabilities
+      capabilities: SAMPLE_MODEL.capabilities,
+      raw: SAMPLE_MODEL
     })
     expect(sent[0].headers).toMatchObject({ 'x-api-key': 'test-key', 'anthropic-version': ANTHROPIC_VERSION })
   })
@@ -418,7 +419,7 @@ describe('message batches', () => {
     expect(sent[1].body).toEqual({ requests: [request] })
   })
 
-  it('reads a batch as a declared request', async () => {
+  it('reads a batch and keeps the raw reply', async () => {
     const { harness } = harnessOver([{ when: /\/messages\/batches\/msgbatch_1$/, body: SAMPLE_BATCH }])
     expect(await harness.execute('getMessageBatch', { batchId: 'msgbatch_1' })).toEqual({
       id: SAMPLE_BATCH.id,
@@ -427,8 +428,23 @@ describe('message batches', () => {
       createdAt: SAMPLE_BATCH.created_at,
       endedAt: SAMPLE_BATCH.ended_at,
       expiresAt: SAMPLE_BATCH.expires_at,
-      resultsUrl: SAMPLE_BATCH.results_url
+      cancelInitiatedAt: null,
+      resultsUrl: SAMPLE_BATCH.results_url,
+      raw: SAMPLE_BATCH
     })
+  })
+
+  it('reports a batch read failure with the API error type and request id', async () => {
+    const { harness } = harnessOver([
+      {
+        when: /\/messages\/batches\/msgbatch_missing$/,
+        status: 404,
+        body: { type: 'error', error: { type: 'not_found_error', message: 'Not found' }, request_id: 'req_1' }
+      }
+    ])
+    await expect(harness.execute('getMessageBatch', { batchId: 'msgbatch_missing' })).rejects.toThrow(
+      'not_found_error: Not found (HTTP 404, request req_1)'
+    )
   })
 
   it('parses batch results from JSONL', async () => {
@@ -446,15 +462,17 @@ describe('message batches', () => {
     ])
   })
 
-  it('cancels a batch as a declared request', async () => {
+  it('cancels a batch with a bodiless POST', async () => {
     const canceling = { ...SAMPLE_BATCH, processing_status: 'canceling', cancel_initiated_at: '2026-09-05T11:59:00Z' }
     const { harness, sent } = harnessOver([{ when: /\/cancel$/, body: canceling }])
-    expect(await harness.execute('cancelMessageBatch', { batchId: 'msgbatch_1' })).toEqual({
+    expect(await harness.execute('cancelMessageBatch', { batchId: 'msgbatch_1' })).toMatchObject({
       id: SAMPLE_BATCH.id,
       processingStatus: 'canceling',
       cancelInitiatedAt: '2026-09-05T11:59:00Z',
-      requestCounts: SAMPLE_BATCH.request_counts
+      requestCounts: SAMPLE_BATCH.request_counts,
+      raw: canceling
     })
+    expect(sent[0].body).toBeUndefined()
     expect(sent[0]).toMatchObject({ method: 'POST', url: `${API_ROOT}/messages/batches/msgbatch_1/cancel` })
   })
 })

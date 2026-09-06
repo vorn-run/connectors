@@ -4,14 +4,7 @@ import {
   type ConnectorItem,
   type FetchContext
 } from '@vornrun/connector-sdk'
-import {
-  ANTHROPIC_VERSION,
-  API_ROOT,
-  createAnthropicClient,
-  createRateGate,
-  type AnthropicModel,
-  type MessageBatch
-} from './client'
+import { createAnthropicClient, createRateGate, type AnthropicModel, type MessageBatch } from './client'
 import {
   DEFAULT_MAX_TOKENS,
   DEFAULT_MODEL,
@@ -23,6 +16,7 @@ import {
   listArg,
   messageOutput,
   messagesArg,
+  modelOutput,
   modelToItem,
   numberArg,
   stopSequencesArg
@@ -48,11 +42,6 @@ export const BATCH_LOOKBACK_MS = 24 * 60 * 60_000
 export const MODEL_LOOKBACK_MS = 30 * 24 * 60 * 60_000
 
 const PLACEHOLDER_BATCH_ID = 'msgbatch_placeholder'
-
-const HEADERS = {
-  'x-api-key': '{{config.apiKey}}',
-  'anthropic-version': ANTHROPIC_VERSION
-}
 
 function text(value: unknown): string | undefined {
   const trimmed = String(value ?? '').trim()
@@ -109,7 +98,9 @@ const BATCH_OUTPUTS = [
   { key: 'createdAt', description: 'When the batch was created, RFC 3339' },
   { key: 'endedAt', description: 'When processing ended; null until then' },
   { key: 'expiresAt', description: '24 hours after creation, when unfinished requests expire' },
-  { key: 'resultsUrl', description: 'Where the results stream from once processing has ended; null until then' }
+  { key: 'cancelInitiatedAt', description: 'When cancellation was asked for, RFC 3339; null when it never was' },
+  { key: 'resultsUrl', description: 'Where the results stream from once processing has ended; null until then' },
+  { key: 'raw', description: 'The whole batch as the API returned it' }
 ]
 
 export function createAnthropicConnector(options: AnthropicConnectorOptions = {}) {
@@ -239,8 +230,10 @@ export function createAnthropicConnector(options: AnthropicConnectorOptions = {}
           {
             key: 'stopSequences',
             label: 'Stop sequences',
-            description: 'Strings that end generation when the model emits one, comma-separated or as a JSON array.',
-            builderHint: 'Sent as stop_sequences; a hit sets stopReason to stop_sequence and raw.stop_sequence names it.'
+            type: 'json',
+            description: 'A JSON array of strings that end generation when the model emits one.',
+            builderHint:
+              'Sent as stop_sequences; one JSON string such as "END" is taken as a single sequence. A hit sets stopReason to stop_sequence and raw.stop_sequence names it.'
           }
         ],
         outputs: [
@@ -322,17 +315,13 @@ export function createAnthropicConnector(options: AnthropicConnectorOptions = {}
           { key: 'createdAt', description: 'Release time, RFC 3339; an epoch when unknown' },
           { key: 'maxInputTokens', type: 'number', description: 'Context window in tokens' },
           { key: 'maxTokens', type: 'number', description: 'Most output tokens per message' },
-          { key: 'capabilities', description: 'What the model supports, such as batch and thinking' }
+          { key: 'capabilities', description: 'What the model supports, such as batch and thinking' },
+          { key: 'raw', description: 'The whole model as the API returned it' }
         ],
         sample: { modelId: DEFAULT_MODEL },
-        request: { url: `${API_ROOT}/models/{{args.modelId}}`, headers: HEADERS },
-        postReceive: [
-          { op: 'rename', from: 'display_name', to: 'displayName' },
-          { op: 'rename', from: 'created_at', to: 'createdAt' },
-          { op: 'rename', from: 'max_input_tokens', to: 'maxInputTokens' },
-          { op: 'rename', from: 'max_tokens', to: 'maxTokens' },
-          { op: 'pick', keys: ['id', 'displayName', 'createdAt', 'maxInputTokens', 'maxTokens', 'capabilities'] }
-        ]
+        async run(args, context) {
+          return modelOutput(await client(context).getModel(String(args.modelId)))
+        }
       },
       {
         type: 'createMessageBatch',
@@ -365,16 +354,9 @@ export function createAnthropicConnector(options: AnthropicConnectorOptions = {}
         inputs: [BATCH_ID_INPUT],
         outputs: BATCH_OUTPUTS,
         sample: { batchId },
-        request: { url: `${API_ROOT}/messages/batches/{{args.batchId}}`, headers: HEADERS },
-        postReceive: [
-          { op: 'rename', from: 'processing_status', to: 'processingStatus' },
-          { op: 'rename', from: 'request_counts', to: 'requestCounts' },
-          { op: 'rename', from: 'created_at', to: 'createdAt' },
-          { op: 'rename', from: 'ended_at', to: 'endedAt' },
-          { op: 'rename', from: 'expires_at', to: 'expiresAt' },
-          { op: 'rename', from: 'results_url', to: 'resultsUrl' },
-          { op: 'pick', keys: BATCH_OUTPUTS.map((output) => output.key) }
-        ]
+        async run(args, context) {
+          return batchOutput(await client(context).getBatch(String(args.batchId)))
+        }
       },
       {
         type: 'getBatchResults',
@@ -402,19 +384,10 @@ export function createAnthropicConnector(options: AnthropicConnectorOptions = {}
         description: 'Ask for a batch to stop; it enters canceling and requests already running may still finish.',
         idempotent: false,
         inputs: [BATCH_ID_INPUT],
-        outputs: [
-          { key: 'id', description: 'Batch id' },
-          { key: 'processingStatus', description: 'canceling, or ended when it already had' },
-          { key: 'cancelInitiatedAt', description: 'When cancellation was asked for, RFC 3339' },
-          { key: 'requestCounts', description: '{ processing, succeeded, errored, canceled, expired }' }
-        ],
-        request: { method: 'POST', url: `${API_ROOT}/messages/batches/{{args.batchId}}/cancel`, headers: HEADERS },
-        postReceive: [
-          { op: 'rename', from: 'processing_status', to: 'processingStatus' },
-          { op: 'rename', from: 'cancel_initiated_at', to: 'cancelInitiatedAt' },
-          { op: 'rename', from: 'request_counts', to: 'requestCounts' },
-          { op: 'pick', keys: ['id', 'processingStatus', 'cancelInitiatedAt', 'requestCounts'] }
-        ]
+        outputs: BATCH_OUTPUTS,
+        async run(args, context) {
+          return batchOutput(await client(context).cancelBatch(String(args.batchId)))
+        }
       }
     ]
   })

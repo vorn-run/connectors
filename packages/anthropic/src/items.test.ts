@@ -8,6 +8,7 @@ import {
   firstText,
   listArg,
   messageOutput,
+  modelOutput,
   messagesArg,
   modelToItem,
   numberArg,
@@ -42,12 +43,13 @@ describe('argument helpers', () => {
     expect(() => listArg('{', 'tools')).toThrow('tools must be JSON')
   })
 
-  it('reads stop sequences from a line or a JSON array', () => {
+  it('reads stop sequences from a JSON array, and one string as one sequence', () => {
     expect(stopSequencesArg(undefined)).toBeUndefined()
-    expect(stopSequencesArg('END, STOP ,')).toEqual(['END', 'STOP'])
     expect(stopSequencesArg('["END","STOP"]')).toEqual(['END', 'STOP'])
-    expect(stopSequencesArg(['a, b'])).toEqual(['a, b'])
-    expect(stopSequencesArg(' , ')).toBeUndefined()
+    expect(stopSequencesArg('END, STOP')).toEqual(['END, STOP'])
+    expect(stopSequencesArg(['\n\nHuman:', ''])).toEqual(['\n\nHuman:'])
+    expect(stopSequencesArg('[]')).toBeUndefined()
+    expect(stopSequencesArg({})).toBeUndefined()
     expect(() => stopSequencesArg('[1]')).toThrow('stopSequences must be strings')
   })
 
@@ -61,6 +63,27 @@ describe('argument helpers', () => {
 })
 
 describe('outputs', () => {
+  it('reshapes a model and keeps the raw reply', () => {
+    expect(modelOutput(SAMPLE_MODEL)).toEqual({
+      id: 'claude-opus-5',
+      displayName: 'Claude Opus 5',
+      createdAt: '2026-07-24T00:00:00Z',
+      maxInputTokens: 1000000,
+      maxTokens: 128000,
+      capabilities: SAMPLE_MODEL.capabilities,
+      raw: SAMPLE_MODEL
+    })
+    expect(modelOutput({} as never)).toEqual({
+      id: '',
+      displayName: '',
+      createdAt: '',
+      maxInputTokens: null,
+      maxTokens: null,
+      capabilities: {},
+      raw: {}
+    })
+  })
+
   it('takes the first text block and leaves text empty for a tool call alone', () => {
     expect(firstText([{ type: 'tool_use', id: 't' }, { type: 'text', text: 'hi' }, { type: 'text', text: 'later' }])).toBe('hi')
     expect(firstText([{ type: 'tool_use', id: 't' }])).toBe('')

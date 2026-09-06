@@ -80,13 +80,14 @@ export function listArg(value: unknown, key: string): unknown[] | undefined {
   return Array.isArray(raw) ? raw : [raw]
 }
 
-// Stop sequences as a JSON array or one comma-separated line, whichever the step found easier to write.
+// A JSON array of strings, or one string as a single sequence; anything else names no sequence.
 export function stopSequencesArg(value: unknown): string[] | undefined {
   if (value === undefined || value === null || value === '') return undefined
   const raw = typeof value === 'string' && value.trimStart().startsWith('[') ? parsed(value, 'stopSequences') : value
-  const list = Array.isArray(raw) ? raw : String(raw).split(',')
-  if (list.some((entry) => typeof entry !== 'string')) throw new Error('stopSequences must be strings')
-  const sequences = (list as string[]).map((entry) => entry.trim()).filter((entry) => entry !== '')
+  if (typeof raw === 'string') return [raw]
+  if (!Array.isArray(raw)) return undefined
+  if (raw.some((entry) => typeof entry !== 'string')) throw new Error('stopSequences must be strings')
+  const sequences = (raw as string[]).filter((entry) => entry !== '')
   return sequences.length > 0 ? sequences : undefined
 }
 
@@ -113,6 +114,18 @@ export function messageOutput(message: Params): Record<string, unknown> {
     stopReason: message.stop_reason ?? '',
     usage: message.usage ?? {},
     raw: message
+  }
+}
+
+export function modelOutput(model: AnthropicModel): Record<string, unknown> {
+  return {
+    id: model.id ?? '',
+    displayName: model.display_name ?? '',
+    createdAt: model.created_at ?? '',
+    maxInputTokens: model.max_input_tokens ?? null,
+    maxTokens: model.max_tokens ?? null,
+    capabilities: model.capabilities ?? {},
+    raw: model
   }
 }
 

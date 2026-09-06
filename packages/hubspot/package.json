@@ -1,0 +1,63 @@
+{
+  "name": "@vornrun/connector-hubspot",
+  "version": "0.1.0",
+  "description": "Trigger workflows from new HubSpot contacts, companies and deals or deal stage changes, and create, update, search, annotate or associate CRM records from a step.",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vorn-run/connectors.git",
+    "directory": "packages/hubspot"
+  },
+  "keywords": [
+    "vorn",
+    "connector",
+    "hubspot",
+    "mcp"
+  ],
+  "bin": {
+    "vorn-connector-hubspot": "dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@vornrun/connector-sdk": "^0.7.0-beta.14"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@vitest/coverage-v8": "^4.1.10",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.10"
+  },
+  "vorn": {
+    "category": "Productivity",
+    "keywords": [
+      "hubspot",
+      "crm",
+      "contacts",
+      "companies",
+      "deals",
+      "pipeline",
+      "sales"
+    ],
+    "auth": "Paste a HubSpot private app access token with the contacts, companies and deals read and write scopes, crm.objects.owners.read and crm.schemas.deals.read. There is no HubSpot CLI to borrow a CRM login from.",
+    "packs": true
+  }
+}

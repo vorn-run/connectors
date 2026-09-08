@@ -1166,6 +1166,163 @@
       ]
     },
     {
+      "id": "mysql",
+      "name": "MySQL",
+      "description": "Trigger workflows from new or updated rows in a MySQL or MariaDB database, and query or write to it from a step.",
+      "packageName": "@vornrun/connector-mysql",
+      "version": "0.1.0",
+      "capabilities": [
+        "triggers",
+        "actions"
+      ],
+      "category": "Data & observability",
+      "keywords": [
+        "mysql",
+        "mariadb",
+        "database",
+        "sql",
+        "rows",
+        "tables"
+      ],
+      "auth": "Paste the database's connection URL (mysql://user:password@host:3306/database) from your provider's dashboard or your DBA; SELECT, INSERT, UPDATE or DELETE on the tables the workflow touches, as the steps demand, is enough.",
+      "authRung": "key",
+      "verified": {
+        "schema": 1,
+        "version": "0.1.0",
+        "checkedAt": "2026-09-06T17:31:04.823Z",
+        "checks": [
+          "manifest",
+          "auth",
+          "secrets",
+          "actions",
+          "no-lifecycle-scripts",
+          "keywords",
+          "no-runtime-deps",
+          "launch"
+        ]
+      },
+      "packUrl": "https://github.com/vorn-run/connectors/releases/download/mysql-v0.1.0/mysql-0.1.0.vorn.tgz",
+      "icon": {
+        "viewBox": "0 0 24 24",
+        "paths": [
+          "M12 3c-4.97 0-9 1.34-9 3s4.03 3 9 3 9-1.34 9-3-4.03-3-9-3z",
+          "M3 8v9c0 1.66 4.03 3 9 3s9-1.34 9-3V8h-2v9c0 .35-2.6 1-7 1s-7-.65-7-1V8z",
+          "M7.5 16.5v-6h1.6l2.9 3.6 2.9-3.6h1.6v6h-1.6v-3.6L12 15.6l-2.9-2.7v3.6z"
+        ]
+      },
+      "triggers": [
+        {
+          "type": "newRows",
+          "label": "New rows in a table",
+          "description": "Fires once per row inserted after the last seen value of the ordering column."
+        },
+        {
+          "type": "updatedRows",
+          "label": "Updated rows in a table",
+          "description": "Fires once per change to a row, tracked by its updated_at column and primary key."
+        }
+      ],
+      "actions": [
+        {
+          "type": "runQuery",
+          "label": "Run a query",
+          "description": "Run one SQL statement with positional parameters; returns rows for a read and the counts for a write."
+        },
+        {
+          "type": "selectRows",
+          "label": "Select rows",
+          "description": "Read rows from a table, with an optional parameterised WHERE."
+        },
+        {
+          "type": "insertRow",
+          "label": "Insert a row",
+          "description": "Insert one row and return its AUTO_INCREMENT id."
+        },
+        {
+          "type": "updateRows",
+          "label": "Update rows",
+          "description": "Set columns on the rows a WHERE matches and return how many matched."
+        },
+        {
+          "type": "deleteRows",
+          "label": "Delete rows",
+          "description": "Delete the rows a WHERE matches and return how many went."
+        },
+        {
+          "type": "listTables",
+          "label": "List tables",
+          "description": "List the tables and views in a database that the user can see."
+        },
+        {
+          "type": "describeTable",
+          "label": "Describe a table",
+          "description": "List the columns of a table with their types, nullability, keys and defaults."
+        },
+        {
+          "type": "countRows",
+          "label": "Count rows",
+          "description": "Count the rows in a table, optionally those a WHERE matches."
+        }
+      ],
+      "env": [
+        {
+          "name": "MYSQL_URL",
+          "required": true,
+          "description": "mysql://user:password@host:3306/database. Your provider shows it on the database page; otherwise ask your DBA. The user needs SELECT, INSERT, UPDATE or DELETE on the tables the workflow touches, as the steps demand."
+        },
+        {
+          "name": "MYSQL_SSL",
+          "required": false,
+          "description": "One of disabled, required, verify-full. Default disabled. \"required\" encrypts without checking the certificate, which the driver strongly discourages; \"verify-full\" checks the chain and host name."
+        },
+        {
+          "name": "MYSQL_SSL_CA",
+          "required": false,
+          "description": "Path to a PEM CA bundle for verify-full against a private CA. Blank uses Node's roots."
+        },
+        {
+          "name": "MYSQL_TABLE",
+          "required": false,
+          "description": "For both triggers: table or db.table to watch."
+        },
+        {
+          "name": "MYSQL_ORDERING_COLUMN",
+          "required": false,
+          "description": "For \"new rows\": a column that only grows, such as an AUTO_INCREMENT id or created_at."
+        },
+        {
+          "name": "MYSQL_KEY_COLUMN",
+          "required": false,
+          "description": "The primary key column. Defaults to the ordering column for \"new rows\"; required for \"updated rows\"."
+        },
+        {
+          "name": "MYSQL_UPDATED_AT_COLUMN",
+          "required": false,
+          "description": "For \"updated rows\": a DATETIME or TIMESTAMP column, ideally ON UPDATE CURRENT_TIMESTAMP."
+        },
+        {
+          "name": "MYSQL_WHERE",
+          "required": false,
+          "description": "Optional SQL placed after WHERE to narrow the rows a trigger watches, e.g. status = 'open'. No placeholders."
+        },
+        {
+          "name": "MYSQL_START_FROM",
+          "required": false,
+          "description": "Value of the ordering column to start after (\"new rows\") or of updated_at to start at (\"updated rows\"). Blank means the newest page."
+        },
+        {
+          "name": "MYSQL_TITLE_COLUMN",
+          "required": false,
+          "description": "Column to use as the item title. Blank uses the table and key."
+        },
+        {
+          "name": "MYSQL_LIMIT",
+          "required": false,
+          "description": "Default 100, at most 1000."
+        }
+      ]
+    },
+    {
       "id": "notion",
       "name": "Notion",
       "description": "Trigger workflows from Notion database pages, and create or update them.",

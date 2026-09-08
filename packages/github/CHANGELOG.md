@@ -2,6 +2,10 @@
 
 All notable changes to `@vornrun/connector-github`.
 
+## 0.2.0
+
+Add the **Open a pull request** action: head branch, base (default `main`), title, description and draft; returns the number and URL.
+
 ## 0.1.2
 
 Read the version from the bundle instead of a package.json the packed connector does not carry.

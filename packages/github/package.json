@@ -1,6 +1,6 @@
 {
   "name": "@vornrun/connector-github",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Trigger workflows from GitHub issues and pull requests.",
   "type": "module",
   "license": "MIT",

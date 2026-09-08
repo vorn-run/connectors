@@ -56,6 +56,7 @@ advancing past it would lose those items for good.
 | Create an issue | no | Two identical calls make two issues; GitHub offers no idempotency key |
 | Close an issue | yes | Closing a closed issue leaves it closed |
 | Comment on an issue | no | Two identical calls make two comments |
+| Open a pull request | no | From a pushed branch into `main` unless told otherwise; a second call for the same branches is refused by GitHub |
 
 Issue numbers arrive as text from workflow templates and are validated before
 being sent, so a `{{...}}` that resolved to nothing names itself rather than

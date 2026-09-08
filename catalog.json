@@ -471,7 +471,7 @@
       "name": "GitHub",
       "description": "Trigger workflows from GitHub issues and pull requests, and open, close or comment on them from a step.",
       "packageName": "@vornrun/connector-github",
-      "version": "0.1.2",
+      "version": "0.2.0",
       "capabilities": [
         "triggers",
         "actions"
@@ -488,8 +488,8 @@
       "authRung": "cli",
       "verified": {
         "schema": 1,
-        "version": "0.1.2",
-        "checkedAt": "2026-09-05T00:34:11.663Z",
+        "version": "0.2.0",
+        "checkedAt": "2026-09-08T16:52:58.768Z",
         "checks": [
           "auth",
           "secrets",
@@ -500,7 +500,7 @@
           "launch"
         ]
       },
-      "packUrl": "https://github.com/vorn-run/connectors/releases/download/github-v0.1.2/github-0.1.2.vorn.tgz",
+      "packUrl": "https://github.com/vorn-run/connectors/releases/download/github-v0.2.0/github-0.2.0.vorn.tgz",
       "icon": {
         "viewBox": "0 0 24 24",
         "paths": [
@@ -534,6 +534,11 @@
           "type": "commentOnIssue",
           "label": "Comment on an issue",
           "description": "Post a comment on an issue or pull request."
+        },
+        {
+          "type": "createPullRequest",
+          "label": "Open a pull request",
+          "description": "Open a pull request from a pushed branch into the base branch."
         }
       ],
       "env": [

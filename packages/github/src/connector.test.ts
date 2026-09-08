@@ -32,6 +32,7 @@ function fakeClient(handlers: Record<string, unknown> = {}) {
   const created: Array<Record<string, unknown>> = []
   const updated: Array<Record<string, unknown>> = []
   const comments: Array<Record<string, unknown>> = []
+  const pulls: Array<Record<string, unknown>> = []
 
   const api = {
     rest: {
@@ -58,12 +59,18 @@ function fakeClient(handlers: Record<string, unknown> = {}) {
             data: { html_url: 'https://github.com/vorn-run/vorn/issues/7#issuecomment-1' }
           }
         }
+      },
+      pulls: {
+        create: async (params: Record<string, unknown>) => {
+          pulls.push(params)
+          return { data: { number: 42, html_url: 'https://github.com/vorn-run/vorn/pull/42' } }
+        }
       }
     }
   } as unknown as GitHubApi
 
   const client: GitHubClient = { run: (call) => call(api) }
-  return { client, searches, created, updated, comments }
+  return { client, searches, created, updated, comments, pulls }
 }
 
 function connector(over: { client: GitHubClient }) {
@@ -222,6 +229,29 @@ describe('actions', () => {
     const result = await run(client, 'commentOnIssue', { number: '7', body: 'Looking at it' })
     expect(comments[0]).toMatchObject({ issue_number: 7, body: 'Looking at it' })
     expect(result.url).toContain('#issuecomment-')
+  })
+
+  it('opens a pull request into main unless told otherwise', async () => {
+    const { client, pulls } = fakeClient()
+    const result = await run(client, 'createPullRequest', {
+      head: 'connector/s3',
+      title: 'Add the s3 connector',
+      body: 'Built by the factory.'
+    })
+    expect(pulls[0]).toEqual({
+      owner: 'vorn-run',
+      repo: 'vorn',
+      head: 'connector/s3',
+      base: 'main',
+      title: 'Add the s3 connector',
+      body: 'Built by the factory.',
+      draft: false
+    })
+    expect(result).toEqual({ number: 42, url: 'https://github.com/vorn-run/vorn/pull/42' })
+
+    await run(client, 'createPullRequest', { head: 'x', base: 'release', title: 'T', draft: 'true' })
+    expect(pulls[1]).toMatchObject({ base: 'release', draft: true })
+    expect(pulls[1]).not.toHaveProperty('body')
   })
 
   it('names a missing required argument', async () => {

@@ -255,6 +255,42 @@ export function createGitHubConnector(options: GitHubConnectorOptions = {}) {
           )
           return { url: comment.data.html_url }
         }
+      },
+      {
+        type: 'createPullRequest',
+        label: 'Open a pull request',
+        description: 'Open a pull request from a pushed branch into the base branch.',
+        // Two identical calls fail on the second: GitHub refuses a duplicate head-to-base pair.
+        idempotent: false,
+        inputs: [
+          { key: 'head', label: 'Branch', required: true, description: 'The pushed branch' },
+          { key: 'base', label: 'Into', description: 'Defaults to main' },
+          { key: 'title', label: 'Title', required: true },
+          { key: 'body', label: 'Description' },
+          { key: 'draft', label: 'Draft', description: 'true to open it as a draft' }
+        ],
+        outputs: [
+          { key: 'number', type: 'number', description: 'The new pull request number' },
+          { key: 'url', description: 'Where to read it' }
+        ],
+        async run(args, { config }) {
+          const cfg = config as Record<string, unknown>
+          const owner = required(cfg, 'owner', 'GITHUB_OWNER')
+          const repo = required(cfg, 'repo', 'GITHUB_REPO')
+          const body = text(args.body)
+          const pull = await client().run(async (api) =>
+            api.rest.pulls.create({
+              owner,
+              repo,
+              head: requiredArg(args.head, 'head'),
+              base: text(args.base) ?? 'main',
+              title: requiredArg(args.title, 'title'),
+              ...(body && { body }),
+              draft: String(args.draft ?? '').trim() === 'true'
+            })
+          )
+          return { number: pull.data.number, url: pull.data.html_url }
+        }
       }
     ]
   })

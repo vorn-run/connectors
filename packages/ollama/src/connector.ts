@@ -173,11 +173,19 @@ export function createOllamaConnector(options: OllamaConnectorOptions = {}) {
     version: options.version ?? pkg.version,
     description:
       'Trigger workflows when a local Ollama model is added, updated or loaded into memory, and chat, generate, embed, and list, show, pull, copy or delete models from a step.',
-    // The llama's face: two upright ears over a rounded head, the eyes punched through by reversed winding.
+    // The llama's face as the spec draws it: a rounded head, two tall ears, and the eyes and muzzle
+    // punched through by reversed winding, since the icon carries path data only and no fill-rule.
     icon: {
       viewBox: '0 0 24 24',
       paths: [
-        'M8 7.2 7 1.5 10.2 6.4h3.6L17 1.5 16 7.2Q19 8.8 19 12.2V18.6Q19 22 15.6 22H8.4Q5 22 5 18.6V12.2Q5 8.8 8 7.2ZM9.4 11.3a1.3 1.3 0 0 0 0 2.6 1.3 1.3 0 0 0 0-2.6ZM14.6 11.3a1.3 1.3 0 0 0 0 2.6 1.3 1.3 0 0 0 0-2.6ZM12 15.6l-1.6 1.6h3.2Z'
+        [
+          'M9 8H15A5 5 0 0 1 20 13V17A5 5 0 0 1 15 22H9A5 5 0 0 1 4 17V13A5 5 0 0 1 9 8Z',
+          'M6 3.5A1.5 1.5 0 0 1 7.5 2A1.5 1.5 0 0 1 9 3.5V10H6Z',
+          'M15 3.5A1.5 1.5 0 0 1 16.5 2A1.5 1.5 0 0 1 18 3.5V10H15Z',
+          'M8.3 14A1.2 1.2 0 0 0 10.7 14A1.2 1.2 0 0 0 8.3 14Z',
+          'M13.3 14A1.2 1.2 0 0 0 15.7 14A1.2 1.2 0 0 0 13.3 14Z',
+          'M11.25 17.5A1.25 1.25 0 0 0 10 18.75A1.25 1.25 0 0 0 11.25 20H12.75A1.25 1.25 0 0 0 14 18.75A1.25 1.25 0 0 0 12.75 17.5Z'
+        ].join('')
       ]
     },
     auth: { rung: 'none' },

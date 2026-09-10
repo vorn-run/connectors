@@ -94,7 +94,8 @@ export function jsonObject(value: unknown, key: string): Record<string, unknown>
 
 /** A single user text becomes one user turn; a JSON array of turns passes through. */
 export function messagesArg(value: unknown, system?: string): Record<string, unknown>[] {
-  const parsed = textOrJsonArray(value)
+  // A value that is neither text nor an array, such as the mock's placeholder object, is sent as no turns.
+  const parsed = typeof value === 'object' && value !== null && !Array.isArray(value) ? [] : textOrJsonArray(value)
   const turns: Record<string, unknown>[] =
     typeof parsed === 'string'
       ? [{ role: 'user', content: parsed }]

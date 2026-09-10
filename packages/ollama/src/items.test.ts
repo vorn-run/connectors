@@ -50,6 +50,8 @@ describe('argument readers', () => {
       { role: 'user', content: 'u' }
     ])
     expect(messagesArg('[{"role":"user","content":"u"}, 3, null]')).toEqual([{ role: 'user', content: 'u' }])
+    expect(messagesArg({ role: 'user', content: 'u' })).toEqual([])
+    expect(messagesArg({}, 'be brief')).toEqual([{ role: 'system', content: 'be brief' }])
   })
 
   it('reads format as the word json, a schema object, or text', () => {

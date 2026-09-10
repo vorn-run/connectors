@@ -111,19 +111,21 @@ against the built package. Nothing is generated, pulled, deleted or copied.
 
 ## Built from
 
-The API reference was the only source.
+The API reference was the only source. Two of its pages have moved; the new
+address is listed beside the old one.
 
 - API introduction: https://docs.ollama.com/api
 - Generate a completion: https://docs.ollama.com/api/generate
 - Generate a chat message: https://docs.ollama.com/api/chat
 - Generate embeddings: https://docs.ollama.com/api/embed
 - List models: https://docs.ollama.com/api/tags
-- Show a model: https://docs.ollama.com/api/show
+- Show a model: https://docs.ollama.com/api/show (moved to https://docs.ollama.com/api-reference/show-model-details)
 - List running models: https://docs.ollama.com/api/ps
 - Pull a model: https://docs.ollama.com/api/pull
 - Delete a model: https://docs.ollama.com/api/delete
 - Copy a model: https://docs.ollama.com/api/copy
-- Version: https://docs.ollama.com/api/version
+- Version: https://docs.ollama.com/api/version (moved to https://docs.ollama.com/api-reference/get-version)
 - Structured outputs: https://docs.ollama.com/capabilities/structured-outputs
 - Markdown source of the reference: https://github.com/ollama/ollama/blob/main/docs/api.md
-- FAQ, `OLLAMA_HOST` and the API key: https://docs.ollama.com/faq
+- FAQ, `OLLAMA_HOST`, `keep_alive`, queueing and the 503: https://docs.ollama.com/faq
+- Cloud, `OLLAMA_API_KEY` and `Authorization: Bearer`: https://docs.ollama.com/cloud

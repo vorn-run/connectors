@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { makeNonce, parameterString, percentEncode, sign, signatureBaseString } from './oauth'
+import { byteOrder, makeNonce, parameterString, percentEncode, sign, signatureBaseString } from './oauth'
 
 // The signing guide's worked request with stand-ins of the same shape for its four credentials.
 const CREDENTIALS = {
@@ -102,6 +102,11 @@ describe('the building blocks', () => {
   it('drops the query from the base URL', () => {
     const base = signatureBaseString('get', new URL('https://api.x.com/2/users/me?x=1'), [['x', '1']])
     expect(base).toBe('GET&https%3A%2F%2Fapi.x.com%2F2%2Fusers%2Fme&x%3D1')
+  })
+
+  it('orders keys by byte value', () => {
+    expect(['b', 'a', 'B', 'a'].sort(byteOrder)).toEqual(['B', 'a', 'a', 'b'])
+    expect(byteOrder('a', 'a')).toBe(0)
   })
 
   it('strips non-word characters from the nonce', () => {

@@ -49,11 +49,17 @@ export function makeNonce(random: (size: number) => Buffer = randomBytes): strin
   return random(32).toString('base64').replace(/\W/g, '')
 }
 
+/** Byte order on the encoded keys, which is what the guide's "sort alphabetically" comes to. */
+export function byteOrder(a: string, b: string): number {
+  if (a === b) return 0
+  return a < b ? -1 : 1
+}
+
 /** The parameter string: every key and value encoded, sorted by encoded key, joined as `k=v` with `&`. */
 export function parameterString(params: Array<[string, string]>): string {
   return params
     .map(([key, value]) => [percentEncode(key), percentEncode(value)] as const)
-    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .sort(([a], [b]) => byteOrder(a, b))
     .map(([key, value]) => `${key}=${value}`)
     .join('&')
 }
@@ -80,7 +86,7 @@ export function sign(credentials: OAuthCredentials, input: SignedRequestInput): 
   const header =
     'OAuth ' +
     Object.entries({ ...oauth, oauth_signature: signature })
-      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+      .sort(([a], [b]) => byteOrder(a, b))
       .map(([key, value]) => `${percentEncode(key)}="${percentEncode(value)}"`)
       .join(', ')
   return { header, baseString, signature }

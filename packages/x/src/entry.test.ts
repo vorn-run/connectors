@@ -31,11 +31,25 @@ describe('serveIfEntryPoint', () => {
     expect(await serveIfEntryPoint(HERE, serve)).toBe(false)
     expect(serve).not.toHaveBeenCalled()
   })
+
+  it('serves the connector when the process was started on this module', async () => {
+    const serve = vi.fn(async () => {})
+    const argv = process.argv
+    process.argv = ['node', fileURLToPath(HERE)]
+    try {
+      expect(await serveIfEntryPoint(HERE, serve)).toBe(true)
+    } finally {
+      process.argv = argv
+    }
+    expect(serve).toHaveBeenCalledWith(connector)
+  })
 })
 
 describe('the packaged connector', () => {
   it('is the same connector under both exports', () => {
     expect(connector).toBe(named)
+    expect(connector.id).toBe('x')
+    expect(connector.name).toBe('X')
     expect(connector.version).toMatch(/^\d+\.\d+\.\d+/)
   })
 })

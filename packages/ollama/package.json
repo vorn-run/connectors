@@ -1,0 +1,67 @@
+{
+  "name": "@vornrun/connector-ollama",
+  "version": "0.1.0",
+  "description": "Trigger workflows when a local Ollama model is added, updated or loaded into memory, and chat, generate, embed, and list, show, pull, copy or delete models from a step.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Javier Canizalez <javier-canizalez@outlook.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vorn-run/connectors.git",
+    "directory": "packages/ollama"
+  },
+  "keywords": [
+    "vorn",
+    "connector",
+    "ollama",
+    "llm",
+    "mcp"
+  ],
+  "bin": {
+    "vorn-connector-ollama": "dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@vornrun/connector-sdk": "^0.7.0-beta.14"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@vitest/coverage-v8": "^4.1.10",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.10"
+  },
+  "vorn": {
+    "category": "AI",
+    "keywords": [
+      "ollama",
+      "llm",
+      "local models",
+      "chat",
+      "generate",
+      "embeddings",
+      "qwen",
+      "llama",
+      "gemma"
+    ],
+    "auth": "Nothing to sign in with: Ollama serves http://localhost:11434 without credentials. Set OLLAMA_HOST for another server and OLLAMA_API_KEY for a hosted one.",
+    "packs": true
+  }
+}

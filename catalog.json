@@ -1427,6 +1427,126 @@
       ]
     },
     {
+      "id": "ollama",
+      "name": "Ollama",
+      "description": "Trigger workflows when a local Ollama model is added, updated or loaded into memory, and chat, generate, embed, and list, show, pull, copy or delete models from a step.",
+      "packageName": "@vornrun/connector-ollama",
+      "version": "0.1.0",
+      "capabilities": [
+        "triggers",
+        "actions"
+      ],
+      "category": "AI",
+      "keywords": [
+        "ollama",
+        "llm",
+        "local models",
+        "chat",
+        "generate",
+        "embeddings",
+        "qwen",
+        "llama",
+        "gemma"
+      ],
+      "auth": "Nothing to sign in with: Ollama serves http://localhost:11434 without credentials. Set OLLAMA_HOST for another server and OLLAMA_API_KEY for a hosted one.",
+      "authRung": "none",
+      "verified": {
+        "schema": 1,
+        "version": "0.1.0",
+        "checkedAt": "2026-09-10T13:43:23.101Z",
+        "checks": [
+          "manifest",
+          "auth",
+          "secrets",
+          "actions",
+          "dedupe",
+          "no-lifecycle-scripts",
+          "keywords",
+          "no-runtime-deps",
+          "launch",
+          "mock"
+        ]
+      },
+      "packUrl": "https://github.com/vorn-run/connectors/releases/download/ollama-v0.1.0/ollama-0.1.0.vorn.tgz",
+      "icon": {
+        "viewBox": "0 0 24 24",
+        "paths": [
+          "M9 8H15A5 5 0 0 1 20 13V17A5 5 0 0 1 15 22H9A5 5 0 0 1 4 17V13A5 5 0 0 1 9 8ZM6 3.5A1.5 1.5 0 0 1 7.5 2A1.5 1.5 0 0 1 9 3.5V10H6ZM15 3.5A1.5 1.5 0 0 1 16.5 2A1.5 1.5 0 0 1 18 3.5V10H15ZM8.3 14A1.2 1.2 0 0 0 10.7 14A1.2 1.2 0 0 0 8.3 14ZM13.3 14A1.2 1.2 0 0 0 15.7 14A1.2 1.2 0 0 0 13.3 14ZM11.25 17.5A1.25 1.25 0 0 0 10 18.75A1.25 1.25 0 0 0 11.25 20H12.75A1.25 1.25 0 0 0 14 18.75A1.25 1.25 0 0 0 12.75 17.5Z"
+        ]
+      },
+      "triggers": [
+        {
+          "type": "modelChanged",
+          "label": "A model was added or updated",
+          "description": "Fires once per model build from GET /api/tags: a new name, or a pull that changed a digest. The first poll delivers every model present."
+        },
+        {
+          "type": "modelLoaded",
+          "label": "A model was loaded into memory",
+          "description": "Fires when a model appears in GET /api/ps with an expiry not yet seen. Every request extends the expiry, so a busy model fires again on each poll; poll slowly."
+        }
+      ],
+      "actions": [
+        {
+          "type": "chat",
+          "label": "Chat",
+          "description": "Generate the next assistant message of a conversation with POST /api/chat. Every call runs a generation."
+        },
+        {
+          "type": "generate",
+          "label": "Generate a completion",
+          "description": "Generate a response for a prompt with POST /api/generate. Every call runs a generation."
+        },
+        {
+          "type": "embed",
+          "label": "Generate embeddings",
+          "description": "Turn text into embedding vectors with POST /api/embed. The same input and model give the same vectors."
+        },
+        {
+          "type": "listModels",
+          "label": "List models",
+          "description": "List the models on the server with GET /api/tags."
+        },
+        {
+          "type": "showModel",
+          "label": "Show a model",
+          "description": "Read a model’s details, capabilities, parameters, template and license with POST /api/show."
+        },
+        {
+          "type": "listRunningModels",
+          "label": "List running models",
+          "description": "List the models loaded into memory with GET /api/ps."
+        },
+        {
+          "type": "version",
+          "label": "Get the server version",
+          "description": "Read the server version with GET /api/version. The live check probes this."
+        },
+        {
+          "type": "pullModel",
+          "label": "Pull a model",
+          "description": "Download a model from the library with POST /api/pull. Downloads, so it is slow and not repeatable in a live check."
+        },
+        {
+          "type": "deleteModel",
+          "label": "Delete a model",
+          "description": "Delete a model and its data with DELETE /api/delete. A second call answers 404."
+        },
+        {
+          "type": "copyModel",
+          "label": "Copy a model",
+          "description": "Create a new name for an existing model with POST /api/copy. Creates a tag, so it is not repeatable."
+        }
+      ],
+      "env": [
+        {
+          "name": "OLLAMA_HOST",
+          "required": false,
+          "description": "The server origin, http://localhost:11434 by default. A trailing / or /api is stripped and a bare host:port gets http://."
+        }
+      ]
+    },
+    {
       "id": "openai",
       "name": "OpenAI",
       "description": "Trigger workflows when an OpenAI batch or fine-tuning job finishes or a file is uploaded, and create responses, chat completions, embeddings, moderations and batches from a step.",

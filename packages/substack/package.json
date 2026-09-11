@@ -1,25 +1,24 @@
 {
-  "name": "@vornrun/connector-kusto",
-  "version": "0.6.2",
-  "description": "Trigger Vorn workflows from an Azure Data Explorer (Kusto) query",
+  "name": "@vornrun/connector-substack",
+  "version": "0.1.0",
+  "description": "Trigger workflows from new posts on a Substack publication, and read, search and comment on posts or save a draft from a step.",
   "type": "module",
   "license": "MIT",
   "author": "Javier Canizalez <javier-canizalez@outlook.com>",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/vorn-run/connectors.git",
-    "directory": "packages/kusto"
+    "directory": "packages/substack"
   },
   "keywords": [
     "vorn",
     "connector",
-    "kusto",
-    "azure-data-explorer",
-    "kql",
+    "substack",
+    "newsletter",
     "mcp"
   ],
   "bin": {
-    "vorn-connector-kusto": "dist/index.js"
+    "vorn-connector-substack": "dist/index.js"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -40,29 +39,27 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@azure/identity": "^4.13.1",
-    "@vornrun/connector-sdk": "^0.7.0-beta.18",
-    "azure-kusto-data": "7.2.0"
+    "@vornrun/connector-sdk": "^0.7.0-beta.18"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
     "@vitest/coverage-v8": "^4.1.10",
+    "marked": "^18.0.11",
     "tsup": "^8.5.1",
     "typescript": "^6.0.3",
     "vitest": "^4.1.10"
   },
   "vorn": {
-    "category": "Data & observability",
+    "category": "Social",
     "keywords": [
-      "kusto",
-      "adx",
-      "azure",
-      "kql",
-      "query",
-      "logs",
-      "telemetry"
+      "substack",
+      "newsletter",
+      "posts",
+      "comments",
+      "drafts",
+      "writing"
     ],
-    "auth": "Signs in with your Azure identity — `az login` is usually all it needs.",
+    "auth": "Sign in to Substack in the window Vorn opens; reading a publication's feed and searching posts need no sign-in.",
     "packs": true
   }
 }

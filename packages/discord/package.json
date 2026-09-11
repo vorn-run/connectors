@@ -38,7 +38,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@vornrun/connector-sdk": "^0.7.0-beta.14"
+    "@vornrun/connector-sdk": "^0.7.0-beta.18"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

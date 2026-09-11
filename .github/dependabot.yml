@@ -1,0 +1,27 @@
+version: 2
+updates:
+  # The workspace root carries yarn.lock, so this one entry covers every package under packages/.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    groups:
+      # One SDK bump moves every connector at once, as the conformance check and the catalog expect.
+      connector-sdk:
+        patterns: ['@vornrun/connector-sdk']
+      tooling:
+        dependency-type: development
+        update-types: [minor, patch]
+      runtime:
+        dependency-type: production
+        update-types: [minor, patch]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        patterns: ['*']

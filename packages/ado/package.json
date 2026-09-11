@@ -24,7 +24,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@azure/identity": "^4.13.1",
+    "@azure/identity": "^4.13.2",
     "@vornrun/connector-sdk": "^0.7.0-beta.18",
     "azure-devops-node-api": "15.1.2"
   },

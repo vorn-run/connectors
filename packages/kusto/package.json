@@ -40,7 +40,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@azure/identity": "^4.13.1",
+    "@azure/identity": "^4.13.2",
     "@vornrun/connector-sdk": "^0.7.0-beta.18",
     "azure-kusto-data": "7.2.0"
   },

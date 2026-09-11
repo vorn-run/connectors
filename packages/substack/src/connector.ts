@@ -17,7 +17,7 @@ const REACTION = '❤'
 const SLUG = /^[a-z0-9][a-z0-9-]*$/i
 
 /** Paths this connector must never reach: publishing or scheduling emails every subscriber. */
-const NEVER = /\/(publish|schedule)(\/|$)/i
+const NEVER = /publish|schedul/i
 
 interface Profile {
   id?: unknown
@@ -49,8 +49,6 @@ export async function call<T>(
 ): Promise<T> {
   const method = init.method ?? 'GET'
   const { pathname } = new URL(url)
-  if (NEVER.test(pathname))
-    throw new Error(`Refused ${method} ${pathname}: this connector never publishes or schedules`)
   const res = await fetchImpl(url, {
     method,
     headers: {
@@ -69,10 +67,34 @@ export async function call<T>(
   }
 }
 
+/** A signed-in fetch that refuses any publishing or scheduling address before the request leaves. */
+export function neverPublishing(fetchImpl: typeof fetch): typeof fetch {
+  return ((input: string | URL | Request, init?: RequestInit) => {
+    const { pathname } = new URL(input instanceof Request ? input.url : String(input))
+    if (NEVER.test(pathname)) {
+      return Promise.reject(new Error(`Refused ${pathname}: this connector never publishes or schedules`))
+    }
+    return fetchImpl(input, init)
+  }) as typeof fetch
+}
+
 function signedIn(session: SessionContext | undefined): SessionContext {
   if (!session)
     throw new Error('This action acts as you on Substack, so it runs from Vorn once the connection is signed in')
-  return session
+  return { fetch: neverPublishing(session.fetch) }
+}
+
+function publicationsOf(me: Profile): Array<{ subdomain: string; name: string; primary: boolean }> {
+  return (me.publicationUsers ?? []).flatMap((user) => {
+    const subdomain = text(user.publication?.subdomain)
+    if (subdomain === undefined) return []
+    return [{ subdomain, name: text(user.publication?.name) ?? subdomain, primary: user.is_primary === true }]
+  })
+}
+
+/** What a step names, else the connection's publication. */
+function stepPublication(value: unknown, config: ConnectorConfig): unknown {
+  return text(value) ?? config.publication
 }
 
 async function readPosts(fetchImpl: typeof fetch, host: string): Promise<FeedPost[]> {
@@ -105,17 +127,21 @@ function namedPublication(value: unknown, config: ConnectorConfig): string | und
 }
 
 function primaryPublication(me: Profile): string {
-  const users = me.publicationUsers ?? []
-  const primary = users.find((user) => user.is_primary === true) ?? users[0]
-  const subdomain = text(primary?.publication?.subdomain)
-  if (subdomain === undefined)
-    throw new Error('This account has no publication; name one in the step or the connection')
-  return substackHost(subdomain)
+  const publications = publicationsOf(me)
+  const primary = publications.find((publication) => publication.primary) ?? publications[0]
+  if (primary === undefined) throw new Error('This account has no publication; name one in the step or the connection')
+  return substackHost(primary.subdomain)
 }
 
 /** The publication a step names, the connection's, or else the signed-in account's primary one. */
 async function ownPublication(value: unknown, config: ConnectorConfig, session: SessionContext): Promise<string> {
   return namedPublication(value, config) ?? primaryPublication(await call<Profile>(session.fetch, PROFILE_URL))
+}
+
+/** Where a post lives: its address's host, else the publication's. */
+export function postHost(post: unknown, publication: unknown): string {
+  const raw = text(post)
+  return raw?.includes('/') ? postRef(raw).host : publicationHost(publication)
 }
 
 /** A post by its id, its address, or its slug on the publication; an id saves looking the post up. */
@@ -127,7 +153,7 @@ export async function resolvePost(
 ): Promise<{ host: string; id: number }> {
   const raw = text(post)
   const ref = raw?.includes('/') ? postRef(raw) : undefined
-  const host = ref?.host ?? publicationHost(publication)
+  const host = postHost(post, publication)
   if (text(postId) !== undefined) return { host, id: wholeId(postId, 'postId') }
   if (raw === undefined) throw new Error("Give the post's address, its slug, or its id")
   if (/^\d+$/.test(raw)) return { host, id: Number(raw) }
@@ -224,6 +250,12 @@ const PUBLICATION_INPUT = {
   description: "Its substack.com subdomain or address; the connection's publication when empty."
 }
 
+/** For a write, which falls back to the account's own publication when nothing names one. */
+const OWN_PUBLICATION_INPUT = {
+  ...PUBLICATION_INPUT,
+  description: "Its substack.com subdomain; the connection's publication when empty, else the account's primary one."
+}
+
 const POST_INPUTS = [
   {
     key: 'post',
@@ -240,7 +272,7 @@ const POST_INPUTS = [
 
 const COMMENT_PUBLICATION_INPUT = {
   ...PUBLICATION_INPUT,
-  description: "The publication the comment's post is on; the connection's when empty."
+  description: "The publication the comment's post is on; the connection's when empty, else the account's primary one."
 }
 
 export const connector = defineConnector({
@@ -276,11 +308,8 @@ export const connector = defineConnector({
   options: {
     publications: async (ctx) => {
       if (!ctx.session) return []
-      const me = await call<Profile>(ctx.session.fetch, PROFILE_URL)
-      return (me.publicationUsers ?? []).flatMap((user) => {
-        const subdomain = text(user.publication?.subdomain)
-        return subdomain === undefined ? [] : [{ value: subdomain, label: text(user.publication?.name) ?? subdomain }]
-      })
+      const me = await call<Profile>(signedIn(ctx.session).fetch, PROFILE_URL)
+      return publicationsOf(me).map(({ subdomain, name }) => ({ value: subdomain, label: name }))
     }
   },
   triggers: [
@@ -314,7 +343,7 @@ export const connector = defineConnector({
         { key: 'count', type: 'number', description: 'How many posts came back, in `posts`' }
       ],
       run: async (args, ctx) => {
-        const host = publicationHost(text(args.publication) ?? ctx.config.publication)
+        const host = publicationHost(stepPublication(args.publication, ctx.config))
         const posts = (await readPosts(ctx.fetch, host)).slice(0, feedLimit(args.limit))
         return { publication: host, count: posts.length, posts }
       }
@@ -373,7 +402,7 @@ export const connector = defineConnector({
         { key: 'count', type: 'number', description: 'How many comments came back, in `comments`' }
       ],
       run: async (args, ctx) => {
-        const publication = text(args.publication) ?? ctx.config.publication
+        const publication = stepPublication(args.publication, ctx.config)
         const { host, id } = await resolvePost(ctx.fetch, args.post, args.postId, publication)
         const found = await call<{ comments?: RawComment[] }>(
           ctx.fetch,
@@ -398,7 +427,7 @@ export const connector = defineConnector({
           required: true,
           description: 'The post in markdown: headings, lists, quotes, code, links and emphasis carry over.'
         },
-        { ...PUBLICATION_INPUT, type: 'select', loadOptions: 'publications' }
+        { ...OWN_PUBLICATION_INPUT, type: 'select', loadOptions: 'publications' }
       ],
       outputs: [
         { key: 'id', type: 'number', description: "The draft's id" },
@@ -443,7 +472,7 @@ export const connector = defineConnector({
           required: true,
           description: 'The id Save draft returned.'
         },
-        PUBLICATION_INPUT
+        OWN_PUBLICATION_INPUT
       ],
       outputs: [{ key: 'deleted', type: 'boolean', description: 'Whether the draft was deleted' }],
       run: async (args, ctx) => {
@@ -476,13 +505,14 @@ export const connector = defineConnector({
         const session = signedIn(ctx.session)
         const body = text(args.body)
         if (body === undefined) throw new Error('body is required')
-        const publication = text(args.publication) ?? ctx.config.publication
-        const { host, id } = await resolvePost(ctx.fetch, args.post, args.postId, publication)
-        const comment = await call<{ id?: unknown }>(
-          session.fetch,
-          `https://${substackHost(host)}/api/v1/post/${id}/comment`,
-          { method: 'POST', body: { body } }
-        )
+        const publication = stepPublication(args.publication, ctx.config)
+        // Checked before the lookup: a custom domain is outside the window, whatever the post.
+        const host = substackHost(postHost(args.post, publication))
+        const { id } = await resolvePost(ctx.fetch, args.post, args.postId, publication)
+        const comment = await call<{ id?: unknown }>(session.fetch, `https://${host}/api/v1/post/${id}/comment`, {
+          method: 'POST',
+          body: { body }
+        })
         return { postId: id, ...(typeof comment.id === 'number' && { id: comment.id }) }
       }
     },
@@ -513,7 +543,7 @@ export const connector = defineConnector({
       run: async (args, ctx) => {
         const session = signedIn(ctx.session)
         const id = wholeId(args.commentId, 'commentId')
-        const liked = args.liked === true || args.liked === 'true'
+        const liked = args.liked === true
         const host = await ownPublication(args.publication, ctx.config, session)
         await call(session.fetch, `https://${host}/api/v1/comment/${id}/reaction`, {
           method: liked ? 'POST' : 'DELETE',

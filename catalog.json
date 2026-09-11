@@ -2118,7 +2118,7 @@
       "verified": {
         "schema": 1,
         "version": "0.1.0",
-        "checkedAt": "2026-09-11T00:22:38.788Z",
+        "checkedAt": "2026-09-11T00:28:36.817Z",
         "checks": [
           "manifest",
           "auth",

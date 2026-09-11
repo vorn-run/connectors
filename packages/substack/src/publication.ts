@@ -31,15 +31,16 @@ export interface PostRef {
 /** Where a post lives and its slug, read from the address a feed or a search gave for it. */
 export function postRef(value: unknown): PostRef {
   const raw = String(value ?? '').trim()
+  const notAPost = new Error(
+    `post must be a post's address, such as https://novumai.substack.com/p/its-slug; got "${raw}"`
+  )
   let url: URL
   try {
     url = new URL(raw)
   } catch {
-    throw new Error(`post must be a post's address, such as https://novumai.substack.com/p/its-slug; got "${raw}"`)
+    throw notAPost
   }
   const slug = /^\/p\/([^/]+)\/?/.exec(url.pathname)?.[1]
-  if (url.protocol !== 'https:' || !slug) {
-    throw new Error(`post must be a post's address, such as https://novumai.substack.com/p/its-slug; got "${raw}"`)
-  }
+  if (url.protocol !== 'https:' || !slug) throw notAPost
   return { host: url.hostname.toLowerCase(), slug: decodeURIComponent(slug) }
 }

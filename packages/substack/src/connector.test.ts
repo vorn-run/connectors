@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createConnectorHarness, runConformance, type ConnectorConfig } from '@vornrun/connector-sdk'
-import { DEFAULT_FEED_POSTS, MAX_FEED_POSTS, call, connector, feedLimit, flattenComments } from './connector'
+import { DEFAULT_FEED_POSTS, MAX_FEED_POSTS, connector, feedLimit, flattenComments, neverPublishing } from './connector'
 
 const NOW = '2026-09-10T12:00:00.000Z'
 
@@ -429,12 +429,14 @@ describe('publishing', () => {
     expect(sent.filter((s) => /publish|schedule/i.test(s.url.pathname))).toEqual([])
   })
 
-  it('is refused before any request leaves', async () => {
+  it('is refused before a signed-in request leaves', async () => {
     const fetchImpl = vi.fn()
+    const guarded = neverPublishing(fetchImpl as unknown as typeof fetch)
+    await expect(guarded('https://novumai.substack.com/api/v1/drafts/1/publish', { method: 'POST' })).rejects.toThrow(
+      /never publishes/
+    )
     await expect(
-      call(fetchImpl as unknown as typeof fetch, 'https://novumai.substack.com/api/v1/drafts/1/publish', {
-        method: 'POST'
-      })
+      guarded(new Request('https://novumai.substack.com/api/v1/drafts/1/scheduled_release'))
     ).rejects.toThrow(/never publishes/)
     expect(fetchImpl).not.toHaveBeenCalled()
   })

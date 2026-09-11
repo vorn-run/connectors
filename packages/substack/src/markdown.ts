@@ -34,6 +34,11 @@ function withMark(marks: DocMark[], mark: DocMark): DocMark[] {
   return marks.some((existing) => existing.type === mark.type) ? marks : [...marks, mark]
 }
 
+/** A script or data address keeps its words but never becomes something to click. */
+function withLink(marks: DocMark[], href: string): DocMark[] {
+  return SAFE_LINK.test(href) ? withMark(marks, { type: 'link', attrs: { href } }) : marks
+}
+
 function inline(tokens: Token[], marks: DocMark[] = []): DocNode[] {
   return tokens.flatMap((token): DocNode[] => {
     switch (token.type) {
@@ -47,17 +52,12 @@ function inline(tokens: Token[], marks: DocMark[] = []): DocNode[] {
         return text((token as Tokens.Codespan).text, withMark(marks, { type: 'code' }))
       case 'link': {
         const link = token as Tokens.Link
-        // A script or data address is kept as its words, never as something to click.
-        const linked = SAFE_LINK.test(link.href) ? withMark(marks, { type: 'link', attrs: { href: link.href } }) : marks
-        return inline(link.tokens, linked)
+        return inline(link.tokens, withLink(marks, link.href))
       }
       case 'image': {
         // A picture needs an upload the editor does itself; the draft keeps a link to it instead.
         const image = token as Tokens.Image
-        const linked = SAFE_LINK.test(image.href)
-          ? withMark(marks, { type: 'link', attrs: { href: image.href } })
-          : marks
-        return text(image.text || image.href, linked)
+        return text(image.text || image.href, withLink(marks, image.href))
       }
       case 'br':
         return [{ type: 'hard_break' }]
@@ -81,7 +81,7 @@ function blocks(tokens: Token[]): DocNode[] {
         const heading = token as Tokens.Heading
         return [
           node('heading', inline(heading.tokens), {
-            level: Math.min(Math.max(heading.depth, 1), 6)
+            level: heading.depth
           })
         ]
       }

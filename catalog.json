@@ -2095,6 +2095,108 @@
       ]
     },
     {
+      "id": "substack",
+      "name": "Substack",
+      "description": "Trigger workflows from new posts on a Substack publication, and read, search and comment on posts or save a draft from a step.",
+      "packageName": "@vornrun/connector-substack",
+      "version": "0.1.0",
+      "capabilities": [
+        "triggers",
+        "actions"
+      ],
+      "category": "Social",
+      "keywords": [
+        "substack",
+        "newsletter",
+        "posts",
+        "comments",
+        "drafts",
+        "writing"
+      ],
+      "auth": "Sign in to Substack in the window Vorn opens; reading a publication's feed and searching posts need no sign-in.",
+      "authRung": "browser",
+      "verified": {
+        "schema": 1,
+        "version": "0.1.0",
+        "checkedAt": "2026-09-11T00:22:38.788Z",
+        "checks": [
+          "manifest",
+          "auth",
+          "secrets",
+          "actions",
+          "dedupe",
+          "no-lifecycle-scripts",
+          "keywords",
+          "no-runtime-deps",
+          "launch",
+          "mock"
+        ]
+      },
+      "packUrl": "https://github.com/vorn-run/connectors/releases/download/substack-v0.1.0/substack-0.1.0.vorn.tgz",
+      "icon": {
+        "viewBox": "0 0 24 24",
+        "paths": [
+          "M22.539 8.242H1.46V5.406h21.08v2.836zM1.46 10.812V24L12 18.11 22.54 24V10.812H1.46zM22.54 0H1.46v2.836h21.08V0z"
+        ]
+      },
+      "triggers": [
+        {
+          "type": "newPost",
+          "label": "New post",
+          "description": "A post appears in the publication's RSS feed. Reading the feed needs no sign-in; it holds about the last twenty posts, so a burst larger than that between polls loses the oldest."
+        }
+      ],
+      "actions": [
+        {
+          "type": "readFeed",
+          "label": "Read feed",
+          "description": "The newest posts of any publication from its RSS feed, up to 20, with each body as text and HTML. Needs no sign-in."
+        },
+        {
+          "type": "searchPosts",
+          "label": "Search posts",
+          "description": "Posts across Substack matching a query, a page at a time, as Substack search ranks them. Needs no sign-in."
+        },
+        {
+          "type": "readComments",
+          "label": "Read comments",
+          "description": "Every comment on a post, newest first, with replies after the comment they answer. Needs no sign-in for a public post."
+        },
+        {
+          "type": "createDraft",
+          "label": "Save draft",
+          "description": "Save a new draft on your publication from a title and markdown, for you to review and publish in Substack. It never publishes, since publishing emails every subscriber."
+        },
+        {
+          "type": "deleteDraft",
+          "label": "Delete draft",
+          "description": "Delete a draft on your publication. A published post is refused, so this never removes one."
+        },
+        {
+          "type": "commentOnPost",
+          "label": "Comment on post",
+          "description": "Post a comment on a post as the signed-in account."
+        },
+        {
+          "type": "setCommentLike",
+          "label": "Like or unlike comment",
+          "description": "Like a comment as the signed-in account, or take the like back. Setting the same state twice changes nothing."
+        },
+        {
+          "type": "deleteComment",
+          "label": "Delete comment",
+          "description": "Delete one of the signed-in account's comments, or one on its own publication."
+        }
+      ],
+      "env": [
+        {
+          "name": "SUBSTACK_PUBLICATION",
+          "required": false,
+          "description": "Your publication's substack.com subdomain, such as novumai. The new-post trigger reads its feed, and a step that names no publication uses it."
+        }
+      ]
+    },
+    {
       "id": "telegram",
       "name": "Telegram",
       "description": "Trigger workflows from Telegram messages, and send, reply or edit from a step.",

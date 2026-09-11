@@ -1531,6 +1531,22 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@vornrun/connector-substack@workspace:packages/substack":
+  version: 0.0.0-use.local
+  resolution: "@vornrun/connector-substack@workspace:packages/substack"
+  dependencies:
+    "@types/node": "npm:^22.10.2"
+    "@vitest/coverage-v8": "npm:^4.1.10"
+    "@vornrun/connector-sdk": "npm:^0.7.0-beta.14"
+    marked: "npm:^18.0.11"
+    tsup: "npm:^8.5.1"
+    typescript: "npm:^6.0.3"
+    vitest: "npm:^4.1.10"
+  bin:
+    vorn-connector-substack: dist/index.js
+  languageName: unknown
+  linkType: soft
+
 "@vornrun/connector-telegram@workspace:packages/telegram":
   version: 0.0.0-use.local
   resolution: "@vornrun/connector-telegram@workspace:packages/telegram"
@@ -3084,6 +3100,15 @@ __metadata:
   dependencies:
     semver: "npm:^7.5.3"
   checksum: 10c0/69b98a6c0b8e5c4fe9acb61608a9fbcfca1756d910f51e5dbe7a9e5cfb74fca9b8a0c8a0ffdf1294a740826c1ab4871d5bf3f62f72a3049e5eac6541ddffed68
+  languageName: node
+  linkType: hard
+
+"marked@npm:^18.0.11":
+  version: 18.0.11
+  resolution: "marked@npm:18.0.11"
+  bin:
+    marked: bin/marked.js
+  checksum: 10c0/6c2a2bea05974f08f869d591a8eb6aa7fe68e56edbfe74c2d15eea3b85d45aabfea9dada6914d6f4a7917d612059b64eb8b9e5fd190c74ad8ab79c1f48a249b3
   languageName: node
   linkType: hard
 

@@ -13,7 +13,7 @@ import { pathToFileURL } from 'node:url'
 import { resolve } from 'node:path'
 
 const REQUIRED_SCRIPTS = ['build', 'test', 'typecheck']
-const AUTH_RUNGS = ['none', 'cli', 'key', 'oauth']
+const AUTH_RUNGS = ['none', 'cli', 'key', 'browser', 'oauth']
 const problems = []
 
 /** The connector a built package exports, or undefined if it exports none. */

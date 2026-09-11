@@ -1,0 +1,65 @@
+{
+  "name": "@vornrun/connector-substack",
+  "version": "0.1.0",
+  "description": "Trigger workflows from new posts on a Substack publication, and read, search and comment on posts or save a draft from a step.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Javier Canizalez <javier-canizalez@outlook.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vorn-run/connectors.git",
+    "directory": "packages/substack"
+  },
+  "keywords": [
+    "vorn",
+    "connector",
+    "substack",
+    "newsletter",
+    "mcp"
+  ],
+  "bin": {
+    "vorn-connector-substack": "dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@vornrun/connector-sdk": "^0.7.0-beta.14"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@vitest/coverage-v8": "^4.1.10",
+    "marked": "^18.0.11",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.10"
+  },
+  "vorn": {
+    "category": "Social",
+    "keywords": [
+      "substack",
+      "newsletter",
+      "posts",
+      "comments",
+      "drafts",
+      "writing"
+    ],
+    "auth": "Sign in to Substack in the window Vorn opens; reading a publication's feed and searching posts need no sign-in.",
+    "packs": true
+  }
+}

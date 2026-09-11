@@ -1260,7 +1260,7 @@ __metadata:
     "@types/node": "npm:^22.10.2"
     "@vitest/coverage-v8": "npm:^4.1.10"
     "@vornrun/connector-sdk": "npm:^0.7.0-beta.18"
-    azure-devops-node-api: "npm:15.1.2"
+    azure-devops-node-api: "npm:17.0.0"
     tsup: "npm:^8.5.1"
     typescript: "npm:^6.0.3"
     vitest: "npm:^4.1.10"
@@ -1725,13 +1725,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"azure-devops-node-api@npm:15.1.2":
-  version: 15.1.2
-  resolution: "azure-devops-node-api@npm:15.1.2"
+"azure-devops-node-api@npm:17.0.0":
+  version: 17.0.0
+  resolution: "azure-devops-node-api@npm:17.0.0"
   dependencies:
     tunnel: "npm:0.0.6"
-    typed-rest-client: "npm:2.1.0"
-  checksum: 10c0/82cbce9eb45d191ac658eacb1a8117d848832975a4e6693cecf6467384b66bc320d7bdc59e629421a84779fcdb54c435327c8ca9a545137fe89560a35a8e84d6
+    typed-rest-client: "npm:3.1.0"
+  checksum: 10c0/4ae3ecef18abd3761101c0da17a7c18f52d1c6162b917d29f79026208b3741ef6af819ed1429ab0d35a1b6a8715474cb1b2c1e566fcc7a2f5305039bd0adc016
   languageName: node
   linkType: hard
 
@@ -3474,7 +3474,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"qs@npm:^6.10.3, qs@npm:^6.14.0, qs@npm:^6.15.2":
+"qs@npm:6.15.3, qs@npm:^6.14.0, qs@npm:^6.15.2":
   version: 6.15.3
   resolution: "qs@npm:6.15.3"
   dependencies:
@@ -4084,16 +4084,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typed-rest-client@npm:2.1.0":
-  version: 2.1.0
-  resolution: "typed-rest-client@npm:2.1.0"
+"typed-rest-client@npm:3.1.0":
+  version: 3.1.0
+  resolution: "typed-rest-client@npm:3.1.0"
   dependencies:
     des.js: "npm:^1.1.0"
     js-md4: "npm:^0.3.2"
-    qs: "npm:^6.10.3"
+    qs: "npm:6.15.3"
     tunnel: "npm:0.0.6"
-    underscore: "npm:^1.12.1"
-  checksum: 10c0/b9d29db5217b6d3d0ae9aa68e87e84be8c2d885e7a932f4df3eca070bb615ded5f390035f26857996911803830d28ba2296d6cb748072dbc6d8657916107132d
+    underscore: "npm:^1.13.8"
+  checksum: 10c0/b3f03a5bbb0c7474c4eb5c0743a584846915fdfc41252e887677914f753364b992f30c1aace0c207af42ea0a38cda7fef25a48f6cc089040e3c8da80e76d34e4
   languageName: node
   linkType: hard
 
@@ -4124,7 +4124,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"underscore@npm:^1.12.1":
+"underscore@npm:^1.13.8":
   version: 1.13.8
   resolution: "underscore@npm:1.13.8"
   checksum: 10c0/6677688daeda30484823e77c0b89ce4dcf29964a77d5a06f37299c007ab4bb1c66a0ff75e0d274620b62a1fe2a6ba29879f8214533ca611d71a1ae504f2bfc9b

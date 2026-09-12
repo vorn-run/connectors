@@ -2186,9 +2186,9 @@
     {
       "id": "substack",
       "name": "Substack",
-      "description": "Trigger workflows from new posts on a Substack publication, and read, search and comment on posts or save a draft from a step.",
+      "description": "Trigger workflows from new posts on a Substack publication, and read, search, like, restack and comment on posts, post and read Notes, or save and update a draft from a step.",
       "packageName": "@vornrun/connector-substack",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "capabilities": [
         "triggers",
         "actions"
@@ -2200,14 +2200,15 @@
         "posts",
         "comments",
         "drafts",
+        "notes",
         "writing"
       ],
       "auth": "Sign in to Substack in the window Vorn opens; reading a publication's feed and searching posts need no sign-in.",
       "authRung": "browser",
       "verified": {
         "schema": 1,
-        "version": "0.1.0",
-        "checkedAt": "2026-09-11T00:28:36.817Z",
+        "version": "0.2.0",
+        "checkedAt": "2026-09-12T23:37:13.626Z",
         "checks": [
           "manifest",
           "auth",
@@ -2221,7 +2222,7 @@
           "mock"
         ]
       },
-      "packUrl": "https://github.com/vorn-run/connectors/releases/download/substack-v0.1.0/substack-0.1.0.vorn.tgz",
+      "packUrl": "https://github.com/vorn-run/connectors/releases/download/substack-v0.2.0/substack-0.2.0.vorn.tgz",
       "icon": {
         "viewBox": "0 0 24 24",
         "paths": [
@@ -2252,9 +2253,24 @@
           "description": "Every comment on a post, newest first, with replies after the comment they answer. Needs no sign-in for a public post."
         },
         {
+          "type": "listPosts",
+          "label": "List posts",
+          "description": "A publication's archive, newest first, up to 500 posts, where the feed holds only the last twenty. Needs no sign-in."
+        },
+        {
+          "type": "getPost",
+          "label": "Get post",
+          "description": "One post with its whole body as HTML and as text, and its likes and restacks. Needs no sign-in for a public post."
+        },
+        {
           "type": "createDraft",
           "label": "Save draft",
           "description": "Save a new draft on your publication from a title and markdown, for you to review and publish in Substack. It never publishes, since publishing emails every subscriber."
+        },
+        {
+          "type": "updateDraft",
+          "label": "Update draft",
+          "description": "Replace a draft's title, subtitle and body with new markdown. A published post is refused, and it never publishes."
         },
         {
           "type": "deleteDraft",
@@ -2275,13 +2291,43 @@
           "type": "deleteComment",
           "label": "Delete comment",
           "description": "Delete one of the signed-in account's comments, or one on its own publication."
+        },
+        {
+          "type": "setPostLike",
+          "label": "Like or unlike post",
+          "description": "Like a post as the signed-in account, or take the like back."
+        },
+        {
+          "type": "setPostRestack",
+          "label": "Restack or undo restack post",
+          "description": "Restack a post to the signed-in account's followers, or take the restack back. Posts only, not Notes."
+        },
+        {
+          "type": "postNote",
+          "label": "Post a note",
+          "description": "Post a Note as the signed-in account. Followers see it in their feeds as soon as it posts; Delete note takes it down."
+        },
+        {
+          "type": "readNotes",
+          "label": "Read notes",
+          "description": "A profile's Notes, newest first, up to 100, from its activity feed as the signed-in account sees it."
+        },
+        {
+          "type": "deleteNote",
+          "label": "Delete note",
+          "description": "Delete one of the signed-in account's Notes."
+        },
+        {
+          "type": "readSubscriberCount",
+          "label": "Read subscriber count",
+          "description": "Your publication's subscriber, email and view figures, as its dashboard shows them. Needs the signed-in account to run the publication."
         }
       ],
       "env": [
         {
           "name": "SUBSTACK_PUBLICATION",
           "required": false,
-          "description": "Your publication's substack.com subdomain, such as novumai. The new-post trigger reads its feed, and a step that names no publication uses it."
+          "description": "Your publication's substack.com subdomain, such as exampleletter. The new-post trigger reads its feed, and a step that names no publication uses it."
         }
       ]
     },

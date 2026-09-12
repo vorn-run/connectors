@@ -2,6 +2,31 @@
 
 All notable changes to `@vornrun/connector-substack`.
 
+## 0.2.0
+
+Adds the whole archive and a single post's body, so a workflow can check what
+a publication already said, plus Notes, likes and restacks on posts, updating
+a draft, and the subscriber count.
+
+- **Actions:** `listPosts` (the archive, newest first, up to 500), `getPost`
+  (one post's full body as HTML and text), `updateDraft` (replace a draft's
+  title, subtitle and body; a published post is refused), `postNote`,
+  `readNotes`, `deleteNote`, `setPostLike`, `setPostRestack` (posts only) and
+  `readSubscriberCount`.
+- **The publishing guard** still refuses every request path containing
+  `publish` or `schedule`, with one exception: a `GET` to
+  `/api/v1/publish-dashboard/`, the dashboard's read-only figures. Nothing
+  here publishes or schedules.
+
+Each new request was made from a signed-in browser on 2026-09-12 against the
+author's own publication, and then every new action ran live through the built
+package against it, with every write undone: a draft saved, updated and
+deleted, a Note posted and deleted, a like and a restack each made and taken
+back. `updateDraft` changed the draft's title, subtitle and body as sent.
+`readSubscriberCount` reports the dashboard's total as `subscribers`, from the
+summary's `totalEmail`, and the summary's own `subscribers`, which counts paid
+subscribers only, as `paidSubscribers`.
+
 ## 0.1.0
 
 First release.

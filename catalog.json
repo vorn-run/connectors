@@ -1834,6 +1834,95 @@
       ]
     },
     {
+      "id": "rss",
+      "name": "RSS",
+      "description": "Trigger workflows from new items in RSS, Atom and JSON Feed feeds, and read feeds or find the feeds a web page declares from a step.",
+      "packageName": "@vornrun/connector-rss",
+      "version": "0.1.0",
+      "capabilities": [
+        "triggers",
+        "actions"
+      ],
+      "category": "Social",
+      "keywords": [
+        "rss",
+        "atom",
+        "json feed",
+        "feeds",
+        "news",
+        "blogs",
+        "syndication"
+      ],
+      "auth": "Nothing to sign in to: feeds are public, so installing the connector is the whole setup.",
+      "authRung": "none",
+      "verified": {
+        "schema": 1,
+        "version": "0.1.0",
+        "checkedAt": "2026-09-12T23:26:47.619Z",
+        "checks": [
+          "manifest",
+          "auth",
+          "secrets",
+          "actions",
+          "no-lifecycle-scripts",
+          "keywords",
+          "no-runtime-deps",
+          "launch",
+          "mock"
+        ]
+      },
+      "packUrl": "https://github.com/vorn-run/connectors/releases/download/rss-v0.1.0/rss-0.1.0.vorn.tgz",
+      "icon": {
+        "viewBox": "0 0 24 24",
+        "paths": [
+          "M5.5 16a2.5 2.5 0 1 1 0 5a2.5 2.5 0 1 1 0-5z",
+          "M3 13a8 8 0 0 1 8 8h3A11 11 0 0 0 3 10z",
+          "M3 6a15 15 0 0 1 15 15h3A18 18 0 0 0 3 3z"
+        ]
+      },
+      "triggers": [
+        {
+          "type": "newItem",
+          "label": "New item",
+          "description": "An item appears in any of the connection's feeds. The first poll of a feed fires only for items inside the look-back, an item with no date fires once, and an item dated before the newest one already seen never fires."
+        }
+      ],
+      "actions": [
+        {
+          "type": "readFeed",
+          "label": "Read a feed",
+          "description": "The newest items of one RSS, Atom or JSON Feed feed, up to 100, newest first with dateless items last."
+        },
+        {
+          "type": "readFeeds",
+          "label": "Read feeds",
+          "description": "Items from several feeds at once, filtered by age and keywords, one copy per address, newest first. A feed that fails is listed with its reason and never loses the others' items."
+        },
+        {
+          "type": "findFeeds",
+          "label": "Find feeds",
+          "description": "The RSS, Atom and JSON Feed feeds a web page declares in its link rel=\"alternate\" tags, as absolute addresses with their titles; the address itself when it already is a feed."
+        }
+      ],
+      "env": [
+        {
+          "name": "RSS_FEEDS",
+          "required": false,
+          "description": "Feed addresses, one per line or comma separated. The new-item trigger polls them, and Read feeds uses them when it is given none."
+        },
+        {
+          "name": "RSS_LOOKBACK_HOURS",
+          "required": false,
+          "description": "How far back the first poll of a feed reaches, a whole number of hours from 1 to 8760, so a new connection does not fire for the whole backlog."
+        },
+        {
+          "name": "RSS_USER_AGENT",
+          "required": false,
+          "description": "Sent with every request; some hosts refuse requests without one."
+        }
+      ]
+    },
+    {
       "id": "slack",
       "name": "Slack",
       "description": "Trigger workflows from Slack messages, thread replies and channel members, and post, reply or react from a step.",

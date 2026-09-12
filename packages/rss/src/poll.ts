@@ -52,12 +52,7 @@ export function writeCursor(states: Map<string, FeedState>): string {
   return JSON.stringify({ v: 1, feeds: Object.fromEntries(states) })
 }
 
-/**
- * The items of one feed worth firing, and the state to keep. A feed seen for
- * the first time fires only dated items from `floorMs` on; after that an item
- * fires when it is newer than the newest date seen, or on that date with an
- * id not yet seen, and a dateless item fires once.
- */
+/** The items of one feed to fire and the state to keep: newer than `t`, or on `t` with an unseen id; dateless ones once. */
 export function selectNew(
   items: FeedItem[],
   previous: FeedState | undefined,

@@ -35,11 +35,7 @@ function attributesOf(tag: string): Map<string, string> {
   return found
 }
 
-/**
- * The feeds a page's `<link rel="alternate">` tags declare, as absolute
- * addresses in document order; `application/json` counts only when no
- * `application/feed+json` link is there.
- */
+/** The feeds a page's `<link rel="alternate">` tags declare, absolute and in document order; plain JSON only without a feed+json link. */
 export function discoverFeeds(html: string, pageUrl: string): DiscoveredFeed[] {
   const page = html.replace(/<!--[\s\S]*?-->/g, '')
   const baseHref = attributesOf(/<base\b([^>]*)>/i.exec(page)?.[1] ?? '').get('href') ?? ''

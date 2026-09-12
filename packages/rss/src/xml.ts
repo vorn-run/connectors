@@ -114,11 +114,7 @@ function attributes(raw: string): Array<[string, string]> {
   return [...raw.matchAll(ATTRIBUTE)].map((m) => [m[1]!, decodeEntities(m[2] ?? m[3] ?? m[4] ?? '')])
 }
 
-/**
- * The document's root element as a light tree, read tolerantly: an unclosed
- * element ends at its parent's end tag, a stray `<` or `&` is text, and
- * declarations, comments and processing instructions are skipped unread.
- */
+/** The root element as a light tree: an unclosed element ends at its parent's end tag, and declarations are skipped unread. */
 export function parseXml(source: string, baseUrl = ''): XmlElement | undefined {
   const stack: Array<{ el: XmlElement; scope: Map<string, string> }> = []
   let root: XmlElement | undefined
@@ -222,11 +218,7 @@ export function innerXml(el: XmlElement): string {
   return el.source.slice(el.start, el.end).trim()
 }
 
-/**
- * An element's text: character data as written, decoded once more when it
- * holds only escaped markup, the rest with entities decoded. Markup inside is
- * returned as written.
- */
+/** An element's text: CDATA as written (decoded once more when it holds only escaped markup), markup inside kept as written. */
 export function textOf(el: XmlElement | undefined): string {
   if (!el) return ''
   if (el.children.some(isElement)) return innerXml(el)

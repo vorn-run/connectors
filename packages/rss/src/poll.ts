@@ -140,7 +140,12 @@ export async function pollFeeds(ctx: PollContext): Promise<PollOutcome> {
       const { fire, state } = selectNew(parseFetched(url, got).items, before, floorMs)
       return {
         url,
-        state: { ...state, ...(got.etag && { etag: got.etag }), ...(got.lastModified && { lm: got.lastModified }) },
+        state: {
+          t: state.t,
+          ...(got.etag && { etag: got.etag }),
+          ...(got.lastModified && { lm: got.lastModified }),
+          seen: state.seen
+        },
         fire
       }
     } catch (error) {

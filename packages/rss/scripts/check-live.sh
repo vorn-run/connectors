@@ -64,7 +64,7 @@ fi
 
 if [ -f packages/rss/dist/index.js ]; then
   CLI="$(node -p "require('fs').realpathSync('node_modules/@vornrun/connector-sdk/dist/cli.js')")"
-  RSS_FEEDS="${RSS_FEEDS:-$(printf '%s\n' "${FEEDS[@]}")}" RSS_LOOKBACK_HOURS="${RSS_LOOKBACK_HOURS:-168}" \
+  RSS_FEEDS="${RSS_FEEDS:-$(printf '%s\n' "${FEEDS[@]}")}" RSS_LOOKBACK_HOURS="${RSS_LOOKBACK_HOURS:-168}" RSS_USER_AGENT="$UA" \
     node "$CLI" check ./packages/rss/dist/index.js --live || failed=1
 else
   echo "packages/rss/dist/index.js is not built; skipping vorn-connector check --live"

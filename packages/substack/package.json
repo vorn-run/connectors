@@ -1,7 +1,7 @@
 {
   "name": "@vornrun/connector-substack",
-  "version": "0.1.0",
-  "description": "Trigger workflows from new posts on a Substack publication, and read, search and comment on posts or save a draft from a step.",
+  "version": "0.2.0",
+  "description": "Trigger workflows from new posts on a Substack publication, and read, search, like, restack and comment on posts, post and read Notes, or save and update a draft from a step.",
   "type": "module",
   "license": "MIT",
   "author": "Javier Canizalez <javier-canizalez@outlook.com>",
@@ -57,6 +57,7 @@
       "posts",
       "comments",
       "drafts",
+      "notes",
       "writing"
     ],
     "auth": "Sign in to Substack in the window Vorn opens; reading a publication's feed and searching posts need no sign-in.",

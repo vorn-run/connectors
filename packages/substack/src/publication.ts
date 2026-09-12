@@ -3,7 +3,7 @@ const SUBDOMAIN = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i
 /** The host a publication answers on: a bare name is its substack.com subdomain, an address is taken as given. */
 export function publicationHost(value: unknown): string {
   const raw = String(value ?? '').trim()
-  if (raw === '') throw new Error('publication is required: its substack.com subdomain, such as "novumai"')
+  if (raw === '') throw new Error('publication is required: its substack.com subdomain, such as "exampleletter"')
   if (SUBDOMAIN.test(raw)) return `${raw.toLowerCase()}.substack.com`
   try {
     return new URL(raw.includes('://') ? raw : `https://${raw}`).hostname.toLowerCase()
@@ -17,7 +17,7 @@ export function substackHost(value: unknown): string {
   const host = publicationHost(value)
   if (!host.endsWith('.substack.com')) {
     throw new Error(
-      `${host} is a custom domain; use the publication's substack.com address instead, such as novumai.substack.com`
+      `${host} is a custom domain; use the publication's substack.com address instead, such as exampleletter.substack.com`
     )
   }
   return host
@@ -32,7 +32,7 @@ export interface PostRef {
 export function postRef(value: unknown): PostRef {
   const raw = String(value ?? '').trim()
   const notAPost = new Error(
-    `post must be a post's address, such as https://novumai.substack.com/p/its-slug; got "${raw}"`
+    `post must be a post's address, such as https://exampleletter.substack.com/p/its-slug; got "${raw}"`
   )
   let url: URL
   try {

@@ -8,7 +8,7 @@ const answering = (status: number, body: string) =>
 
 function harness(
   route: (url: URL, method: string) => { status?: number; text?: string },
-  config: ConnectorConfig = { publication: 'novumai' }
+  config: ConnectorConfig = { publication: 'exampleletter' }
 ) {
   const serve = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
     const reply = route(new URL(String(input)), init?.method ?? 'GET')
@@ -19,7 +19,7 @@ function harness(
 
 describe('what a failed call says', () => {
   it('quotes the first validation error, or the plain error, or only the status', async () => {
-    const url = 'https://novumai.substack.com/api/v1/drafts'
+    const url = 'https://exampleletter.substack.com/api/v1/drafts'
     await expect(
       call(answering(400, '{"errors":[{"param":"draft_bylines","msg":"Invalid value"}]}'), url)
     ).rejects.toThrow('GET /api/v1/drafts answered 400: draft_bylines Invalid value')
@@ -29,14 +29,14 @@ describe('what a failed call says', () => {
   })
 
   it('reads an empty answer as nothing and refuses one that is not JSON', async () => {
-    const url = 'https://novumai.substack.com/api/v1/comment/1'
+    const url = 'https://exampleletter.substack.com/api/v1/comment/1'
     await expect(call(answering(200, ''), url, { method: 'DELETE' })).resolves.toEqual({})
     await expect(call(answering(200, '<html></html>'), url)).rejects.toThrow(/not JSON/)
   })
 
   it('says so when a feed cannot be read', async () => {
     const h = harness(() => ({ status: 404, text: 'gone' }))
-    await expect(h.execute('readFeed', {})).rejects.toThrow('GET /feed on novumai.substack.com answered 404')
+    await expect(h.execute('readFeed', {})).rejects.toThrow('GET /feed on exampleletter.substack.com answered 404')
   })
 })
 
@@ -57,28 +57,55 @@ describe('arguments a step can get wrong', () => {
     await expect(h.execute('commentOnPost', { postId: '1', body: ' ' })).rejects.toThrow(/body is required/)
   })
 
+  it('refuses a limit, an id or a handle the archive, Notes and drafts cannot take', async () => {
+    await expect(h.execute('listPosts', { limit: '501' })).rejects.toThrow(/1 to 500/)
+    await expect(h.execute('readNotes', { limit: '0' })).rejects.toThrow(/1 to 100/)
+    await expect(h.execute('readNotes', { profile: 'two words' })).rejects.toThrow(/not a Substack handle/)
+    await expect(h.execute('readNotes', { profile: '@' })).rejects.toThrow(/not a Substack handle/)
+    await expect(h.execute('deleteNote', { noteId: '-4' })).rejects.toThrow(/noteId must be/)
+    await expect(h.execute('updateDraft', { draftId: '0', title: 't', body: 'b' })).rejects.toThrow(/draftId must be/)
+    await expect(h.execute('getPost', { post: ' ' })).rejects.toThrow(/post is required/)
+    await expect(h.execute('getPost', { post: 'not a slug!' })).rejects.toThrow(/not a post slug/)
+  })
+
+  it('asks for a draft title and body, and a Note, that are more than spaces', async () => {
+    await expect(h.execute('updateDraft', { draftId: '1', title: ' ', body: 'b' })).rejects.toThrow(/title is required/)
+    await expect(h.execute('updateDraft', { draftId: '1', title: 't', body: ' ' })).rejects.toThrow(/body is required/)
+    await expect(h.execute('postNote', { body: ' ' })).rejects.toThrow(/body is required/)
+  })
+
+  it("updates a draft on the account's primary publication when nothing names one", async () => {
+    const seen: string[] = []
+    const primary = harness((url, method) => {
+      seen.push(`${method} ${url.host}${url.pathname}`)
+      return { text: url.pathname.endsWith('/profile/self') ? JSON.stringify({ publicationUsers: [{ is_primary: true, publication: { subdomain: 'exampleletter' } }] }) : '{}' }
+    }, {})
+    await primary.execute('updateDraft', { draftId: '4', title: 't', body: 'b' })
+    expect(seen).toContain('PUT exampleletter.substack.com/api/v1/drafts/4')
+  })
+
   it('finds a post by id, by number, by slug or by address, and refuses anything else', async () => {
     const lookup = answering(200, '{"id":42}')
-    await expect(resolvePost(lookup, undefined, '9', 'novumai')).resolves.toEqual({
-      host: 'novumai.substack.com',
+    await expect(resolvePost(lookup, undefined, '9', 'exampleletter')).resolves.toEqual({
+      host: 'exampleletter.substack.com',
       id: 9
     })
-    await expect(resolvePost(lookup, '12', undefined, 'novumai')).resolves.toEqual({
-      host: 'novumai.substack.com',
+    await expect(resolvePost(lookup, '12', undefined, 'exampleletter')).resolves.toEqual({
+      host: 'exampleletter.substack.com',
       id: 12
     })
-    await expect(resolvePost(lookup, 'a-post', undefined, 'novumai')).resolves.toEqual({
-      host: 'novumai.substack.com',
+    await expect(resolvePost(lookup, 'a-post', undefined, 'exampleletter')).resolves.toEqual({
+      host: 'exampleletter.substack.com',
       id: 42
     })
-    await expect(resolvePost(lookup, 'https://x.substack.com/p/a-post', '5', 'novumai')).resolves.toEqual({
+    await expect(resolvePost(lookup, 'https://x.substack.com/p/a-post', '5', 'exampleletter')).resolves.toEqual({
       host: 'x.substack.com',
       id: 5
     })
-    await expect(resolvePost(lookup, undefined, undefined, 'novumai')).rejects.toThrow(/Give the post's address/)
-    await expect(resolvePost(lookup, 'not a slug!', undefined, 'novumai')).rejects.toThrow(/not a post slug/)
-    await expect(resolvePost(answering(200, '{}'), 'a-post', undefined, 'novumai')).rejects.toThrow(
-      'No post "a-post" on novumai.substack.com'
+    await expect(resolvePost(lookup, undefined, undefined, 'exampleletter')).rejects.toThrow(/Give the post's address/)
+    await expect(resolvePost(lookup, 'not a slug!', undefined, 'exampleletter')).rejects.toThrow(/not a post slug/)
+    await expect(resolvePost(answering(200, '{}'), 'a-post', undefined, 'exampleletter')).rejects.toThrow(
+      'No post "a-post" on exampleletter.substack.com'
     )
   })
 
@@ -122,10 +149,10 @@ describe('the signed-in window', () => {
     const load = connector.options!.publications!
     const signed = answering(
       200,
-      '{"publicationUsers":[{"publication":{"name":"Novum AI","subdomain":"novumai"}},{"publication":{"subdomain":"notes"}},{"publication":{}}]}'
+      '{"publicationUsers":[{"publication":{"name":"Example Letter","subdomain":"exampleletter"}},{"publication":{"subdomain":"notes"}},{"publication":{}}]}'
     )
     await expect(load({ config: {}, now: () => '', fetch, session: { fetch: signed } })).resolves.toEqual([
-      { value: 'novumai', label: 'Novum AI' },
+      { value: 'exampleletter', label: 'Example Letter' },
       { value: 'notes', label: 'notes' }
     ])
     await expect(load({ config: {}, now: () => '', fetch })).resolves.toEqual([])

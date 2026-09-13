@@ -1927,7 +1927,7 @@
       "name": "Slack",
       "description": "Trigger workflows from Slack messages, thread replies and channel members, and post, reply or react from a step.",
       "packageName": "@vornrun/connector-slack",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "capabilities": [
         "triggers",
         "actions"
@@ -1946,8 +1946,8 @@
       "authRung": "key",
       "verified": {
         "schema": 1,
-        "version": "0.1.0",
-        "checkedAt": "2026-09-13T19:25:05.685Z",
+        "version": "0.1.2",
+        "checkedAt": "2026-09-13T21:32:24.658Z",
         "checks": [
           "manifest",
           "auth",
@@ -1961,7 +1961,7 @@
           "mock"
         ]
       },
-      "packUrl": "https://github.com/vorn-run/connectors/releases/download/slack-v0.1.1/slack-0.1.1.vorn.tgz",
+      "packUrl": "https://github.com/vorn-run/connectors/releases/download/slack-v0.1.2/slack-0.1.2.vorn.tgz",
       "icon": {
         "viewBox": "0 0 24 24",
         "paths": [

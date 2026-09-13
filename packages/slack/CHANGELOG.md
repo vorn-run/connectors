@@ -2,6 +2,10 @@
 
 All notable changes to `@vornrun/connector-slack`.
 
+## 0.1.2
+
+Report the version the package carries, so the pack, its receipt and the catalog name the same release.
+
 ## 0.1.1
 
 Speaks Vorn's own connector protocol instead of MCP, so it needs Vorn 0.7.1-beta.3 or later. Action arguments arrive as typed values.

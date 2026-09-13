@@ -6,6 +6,7 @@ import {
   type FetchContext
 } from '@vornrun/connector-sdk'
 import { slackGet, slackPages, slackPost, type SlackCallOptions, type SlackEnvelope } from './client'
+import pkg from '../package.json'
 
 const DEFAULT_LIMIT = 100
 /** conversations.history refuses a larger page. */
@@ -221,7 +222,7 @@ export const connector = defineConnector({
   name: 'Slack',
   description:
     'Trigger workflows from Slack messages, thread replies and channel members, and post, reply or react from a step.',
-  version: '0.1.0',
+  version: pkg.version,
   // Slack's own mark.
   icon: {
     viewBox: '0 0 24 24',

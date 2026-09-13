@@ -1,6 +1,6 @@
 {
   "name": "@vornrun/connector-ollama",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Trigger workflows when a local Ollama model is added, updated or loaded into memory, and chat, generate, embed, and list, show, pull, copy or delete models from a step.",
   "type": "module",
   "license": "MIT",
@@ -14,8 +14,7 @@
     "vorn",
     "connector",
     "ollama",
-    "llm",
-    "mcp"
+    "llm"
   ],
   "bin": {
     "vorn-connector-ollama": "dist/index.js"
@@ -39,7 +38,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@vornrun/connector-sdk": "^0.7.0-beta.18"
+    "@vornrun/connector-sdk": "^0.7.1-beta.3"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

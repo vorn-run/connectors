@@ -909,7 +909,7 @@ describe('the manifest', () => {
     expect(trigger.dedupe).toBeUndefined()
   })
 
-  it('sends advisories to stderr, because stdout carries the MCP protocol', async () => {
+  it('sends advisories to stderr, because stdout carries replies to Vorn', async () => {
     // The SDK gives a trigger no channel for a warning, and anything written
     // to stdout would be parsed as a protocol frame.
     const stderr = vi.spyOn(console, 'warn').mockImplementation(() => {})

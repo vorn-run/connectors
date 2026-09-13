@@ -55,7 +55,7 @@ export interface TelegramConnectorOptions {
   fetchImpl?: FetchLike
   /** Injected in tests, so no test spends real time asleep. */
   sleep?: (ms: number) => Promise<void>
-  /** Advisories go to stderr: stdout carries the MCP protocol, and a trigger has no channel for a warning. */
+  /** Advisories go to stderr: stdout carries replies to Vorn, and a trigger has no channel for a warning. */
   warn?: (message: string) => void
 }
 

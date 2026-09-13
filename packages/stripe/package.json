@@ -1,6 +1,6 @@
 {
   "name": "@vornrun/connector-stripe",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Trigger workflows from Stripe customers, payments and invoices, and create customers or refunds from a step.",
   "type": "module",
   "license": "MIT",
@@ -12,8 +12,7 @@
   "keywords": [
     "vorn",
     "connector",
-    "stripe",
-    "mcp"
+    "stripe"
   ],
   "bin": {
     "vorn-connector-stripe": "dist/index.js"
@@ -37,7 +36,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@vornrun/connector-sdk": "^0.7.0-beta.18"
+    "@vornrun/connector-sdk": "^0.7.1-beta.3"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

@@ -2,17 +2,13 @@
 
 Trigger Vorn workflows from the rows an Azure Data Explorer (Kusto) query returns.
 
-Point a Vorn MCP connection at this package, give it a KQL query, and every new
-row the query produces becomes a workflow trigger.
+Add this package as a Vorn connection, give it a KQL query, and every new row the
+query produces becomes a workflow trigger.
 
 ## Install
 
-Nothing to install by hand. In Vorn, create an **MCP** connection with:
-
-| Field   | Value                                |
-| ------- | ------------------------------------ |
-| Command | `npx`                                |
-| Args    | `["-y", "@vornrun/connector-kusto"]` |
+In Vorn, open **Settings → Connectors**, add a connection **From a package** and type
+`@vornrun/connector-kusto`.
 
 ## Authentication
 

@@ -13,7 +13,7 @@ export function isEntryPoint(moduleUrl: string, entry = process.argv[1]): boolea
   }
 }
 
-/** Start the MCP server, but only when run directly; importing must start nothing. */
+/** Start the connector, but only when run directly; importing must start nothing. */
 export function serveIfEntryPoint(
   connector: Connector,
   moduleUrl: string,

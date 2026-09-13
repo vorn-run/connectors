@@ -162,7 +162,7 @@ export interface DiscordClientOptions {
   fetchImpl?: FetchLike
   /** Injected in tests, so no test spends real time asleep. */
   sleep?: Sleep
-  /** Advisories go to stderr: stdout carries the MCP protocol. */
+  /** Advisories go to stderr: stdout carries replies to Vorn. */
   warn?: Warn
   now?: () => number
 }

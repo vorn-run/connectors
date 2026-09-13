@@ -1,6 +1,6 @@
 {
   "name": "@vornrun/connector-kusto",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "description": "Trigger Vorn workflows from an Azure Data Explorer (Kusto) query",
   "type": "module",
   "license": "MIT",
@@ -15,8 +15,7 @@
     "connector",
     "kusto",
     "azure-data-explorer",
-    "kql",
-    "mcp"
+    "kql"
   ],
   "bin": {
     "vorn-connector-kusto": "dist/index.js"
@@ -41,7 +40,7 @@
   },
   "dependencies": {
     "@azure/identity": "^4.13.1",
-    "@vornrun/connector-sdk": "^0.7.0-beta.18",
+    "@vornrun/connector-sdk": "^0.7.1-beta.3",
     "azure-kusto-data": "7.2.0"
   },
   "devDependencies": {

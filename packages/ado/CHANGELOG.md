@@ -2,6 +2,10 @@
 
 All notable changes to `@vornrun/connector-ado`.
 
+## 0.2.4
+
+Speaks Vorn's own connector protocol instead of MCP, so it needs Vorn 0.7.1-beta.3 or later. Action arguments arrive as typed values.
+
 ## 0.2.3
 
 Start as a pack: the bundle now carries the require its CommonJS dependencies were built against.

@@ -1,6 +1,6 @@
 {
   "name": "@vornrun/connector-mysql",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Trigger workflows from new or updated rows in a MySQL or MariaDB database, and query or write to it from a step.",
   "type": "module",
   "license": "MIT",
@@ -14,8 +14,7 @@
     "vorn",
     "connector",
     "mysql",
-    "mariadb",
-    "mcp"
+    "mariadb"
   ],
   "bin": {
     "vorn-connector-mysql": "dist/index.js"
@@ -35,7 +34,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@vornrun/connector-sdk": "^0.7.0-beta.18"
+    "@vornrun/connector-sdk": "^0.7.1-beta.3"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

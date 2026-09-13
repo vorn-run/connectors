@@ -107,7 +107,7 @@ open. A pooled connection the server drops after its `wait_timeout` removes
 itself from the pool on its `end` or `error` event, so the next statement
 gets a fresh one. The SDK has no stop hook, so the connector module registers
 `closePools()` — `pool.end()` on every pool, tolerant of errors — on
-`process.stdin` `end` and `close` (how the MCP server learns Vorn has gone),
+`process.stdin` `end` and `close` (how the connector learns Vorn has gone),
 and on `SIGTERM` and `SIGINT`; a signal listener replaces Node's default of
 exiting, so those two exit the process themselves (143 and 130) once the
 pools are closed. So that an idle pooled socket does not keep a one-shot

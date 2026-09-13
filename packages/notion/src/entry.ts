@@ -22,7 +22,7 @@ export function isEntryPoint(moduleUrl: string, entry = process.argv[1]): boolea
 }
 
 /**
- * Start the MCP server, but only when run directly.
+ * Start the connector, but only when run directly.
  *
  * Importing the module — tests, `vorn-connector check` — must start nothing.
  * Lives here rather than in index.ts so both halves are reachable from a test

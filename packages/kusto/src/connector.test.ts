@@ -477,7 +477,6 @@ describe('kusto connector', () => {
       const names = setup.env.map((entry) => entry.name)
       expect(names).toContain('KUSTO_CLUSTER')
       expect(names).toContain('KUSTO_QUERY')
-      expect(setup.filters.pollTool).toBe('poll_queryResult')
     })
   })
 
@@ -526,7 +525,7 @@ describe('kusto connector', () => {
 })
 
 describe('kusto connector icon', () => {
-  it('ships a glyph so the connection is not just another MCP row', () => {
+  it('ships a glyph so the connection is not just another generic row', () => {
     const icon = createKustoConnector().icon
     expect(icon?.paths.length).toBeGreaterThan(0)
     expect(icon?.viewBox).toBe('0 0 24 24')

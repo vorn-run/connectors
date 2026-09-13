@@ -1,6 +1,6 @@
 {
   "name": "@vornrun/connector-substack",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Trigger workflows from new posts on a Substack publication, and read, search, like, restack and comment on posts, post and read Notes, or save and update a draft from a step.",
   "type": "module",
   "license": "MIT",
@@ -14,8 +14,7 @@
     "vorn",
     "connector",
     "substack",
-    "newsletter",
-    "mcp"
+    "newsletter"
   ],
   "bin": {
     "vorn-connector-substack": "dist/index.js"
@@ -39,7 +38,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@vornrun/connector-sdk": "^0.7.0-beta.18"
+    "@vornrun/connector-sdk": "^0.7.1-beta.3"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

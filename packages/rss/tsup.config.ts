@@ -8,5 +8,5 @@ export default defineConfig({
   clean: true,
   banner: { js: '#!/usr/bin/env node' },
   // Installed alongside the connector rather than inlined, so the SDK is not duplicated in every package.
-  external: ['@modelcontextprotocol/sdk', '@vornrun/connector-sdk', 'zod']
+  external: ['@vornrun/connector-sdk']
 })

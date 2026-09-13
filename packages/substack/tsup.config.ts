@@ -9,5 +9,5 @@ export default defineConfig({
   banner: { js: '#!/usr/bin/env node' },
   // The markdown parser travels inside the bundle, so the packed connector carries no runtime dependency.
   noExternal: ['marked'],
-  external: ['@modelcontextprotocol/sdk', '@vornrun/connector-sdk', 'zod']
+  external: ['@vornrun/connector-sdk']
 })

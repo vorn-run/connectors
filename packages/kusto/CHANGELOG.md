@@ -2,6 +2,10 @@
 
 All notable changes to `@vornrun/connector-kusto`.
 
+## 0.6.3
+
+Speaks Vorn's own connector protocol instead of MCP, so it needs Vorn 0.7.1-beta.3 or later. Action arguments arrive as typed values.
+
 ## 0.6.2
 
 Read the version from the bundle instead of a package.json the packed connector does not carry.

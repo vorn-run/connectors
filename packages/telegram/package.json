@@ -1,6 +1,6 @@
 {
   "name": "@vornrun/connector-telegram",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Trigger Vorn workflows from Telegram messages.",
   "type": "module",
   "license": "MIT",
@@ -13,8 +13,7 @@
   "keywords": [
     "vorn",
     "connector",
-    "telegram",
-    "mcp"
+    "telegram"
   ],
   "bin": {
     "vorn-connector-telegram": "dist/index.js"
@@ -38,7 +37,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@vornrun/connector-sdk": "^0.7.0-beta.18"
+    "@vornrun/connector-sdk": "^0.7.1-beta.3"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

@@ -1,6 +1,6 @@
 {
   "name": "@vornrun/connector-rss",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Trigger workflows from new items in RSS, Atom and JSON Feed feeds, and read feeds or find the feeds a web page declares from a step.",
   "type": "module",
   "license": "MIT",
@@ -40,7 +40,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@vornrun/connector-sdk": "^0.7.0-beta.18"
+    "@vornrun/connector-sdk": "^0.7.1-beta.2"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

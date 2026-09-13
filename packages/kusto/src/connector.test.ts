@@ -429,13 +429,10 @@ describe('kusto connector', () => {
       )
     })
 
-    it('refuses a query that is not text at all', async () => {
-      // The SDK rejects a missing required input on our behalf, but a number
-      // reaches the action, and `String(123)` would be sent as KQL.
-      const { client } = respondWith(['Name'], [])
-      await expect(harness(client).execute('runQuery', { query: 123 })).rejects.toThrow(
-        /query is required/
-      )
+    it('reads a number handed to the query as its text, as the SDK reads every text input', async () => {
+      const { client, calls } = respondWith(['Name'], [])
+      await harness(client).execute('runQuery', { query: 123 })
+      expect(calls[0].query).toBe('123')
     })
   })
 

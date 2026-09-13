@@ -1493,7 +1493,7 @@ __metadata:
   dependencies:
     "@types/node": "npm:^22.10.2"
     "@vitest/coverage-v8": "npm:^4.1.10"
-    "@vornrun/connector-sdk": "npm:^0.7.0-beta.18"
+    "@vornrun/connector-sdk": "npm:^0.7.1-beta.2"
     tsup: "npm:^8.5.1"
     typescript: "npm:^6.0.3"
     vitest: "npm:^4.1.10"
@@ -1513,6 +1513,20 @@ __metadata:
   bin:
     vorn-connector: dist/cli.js
   checksum: 10c0/aec0eb9defa3e47ac4a4dfd2af76e5781090d3c1f4a1ef020ac338c3df188d80691e25272d33a2bf0c931c2e8a0b47f4427d57b1cbe2e9b55dfd1ea51bedfdd0
+  languageName: node
+  linkType: hard
+
+"@vornrun/connector-sdk@npm:^0.7.1-beta.2":
+  version: 0.7.1-beta.2
+  resolution: "@vornrun/connector-sdk@npm:0.7.1-beta.2"
+  dependencies:
+    "@modelcontextprotocol/sdk": "npm:^1.29.0"
+    esbuild: "npm:^0.28.2"
+    tar: "npm:^7.5.21"
+    zod: "npm:^4.5.4"
+  bin:
+    vorn-connector: dist/cli.js
+  checksum: 10c0/b0a8ab238d07a42bc359e5fa38a76eb348d506d609b0307a2fa1624218d573d018227ed1d917e37d5ed4ec63b1e412fef78aabdcacb10546e98da183962d42c2
   languageName: node
   linkType: hard
 

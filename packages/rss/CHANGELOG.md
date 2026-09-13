@@ -2,6 +2,10 @@
 
 All notable changes to `@vornrun/connector-rss`.
 
+## 0.1.1
+
+- Read a feed, Read feeds and Find feeds return their lists and objects through Vorn: rebuilt against `@vornrun/connector-sdk` 0.7.1-beta.2, whose outputs accept lists, objects and null.
+
 ## 0.1.0
 
 First release.

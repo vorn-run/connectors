@@ -1838,7 +1838,7 @@
       "name": "RSS",
       "description": "Trigger workflows from new items in RSS, Atom and JSON Feed feeds, and read feeds or find the feeds a web page declares from a step.",
       "packageName": "@vornrun/connector-rss",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "capabilities": [
         "triggers",
         "actions"
@@ -1857,8 +1857,8 @@
       "authRung": "none",
       "verified": {
         "schema": 1,
-        "version": "0.1.0",
-        "checkedAt": "2026-09-12T23:26:47.619Z",
+        "version": "0.1.1",
+        "checkedAt": "2026-09-13T15:57:59.034Z",
         "checks": [
           "manifest",
           "auth",
@@ -1871,7 +1871,7 @@
           "mock"
         ]
       },
-      "packUrl": "https://github.com/vorn-run/connectors/releases/download/rss-v0.1.0/rss-0.1.0.vorn.tgz",
+      "packUrl": "https://github.com/vorn-run/connectors/releases/download/rss-v0.1.1/rss-0.1.1.vorn.tgz",
       "icon": {
         "viewBox": "0 0 24 24",
         "paths": [

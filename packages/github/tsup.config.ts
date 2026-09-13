@@ -7,8 +7,6 @@ export default defineConfig({
   dts: true,
   clean: true,
   banner: { js: '#!/usr/bin/env node' },
-  // Installed alongside the connector rather than inlined: `@azure/identity`
-  // reads ambient credential state and must be a single instance, and the SDK
-  // and MCP runtime would otherwise be duplicated in every connector package.
-  external: ['@azure/identity', '@modelcontextprotocol/sdk', '@vornrun/connector-sdk', 'zod']
+  // Installed alongside the connector rather than inlined: `@azure/identity` must stay one instance, and the SDK is not duplicated in every package.
+  external: ['@azure/identity', '@vornrun/connector-sdk']
 })

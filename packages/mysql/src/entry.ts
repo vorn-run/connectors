@@ -30,7 +30,7 @@ export function closeOnExit(close: () => Promise<void>, proc: ProcessLike = proc
   proc.on('SIGINT', stop(130))
 }
 
-/** Start the MCP server, but only when run directly; importing must start nothing. */
+/** Start the connector, but only when run directly; importing must start nothing. */
 export function serveIfEntryPoint(
   connector: Connector & { closePools(): Promise<void> },
   moduleUrl: string,

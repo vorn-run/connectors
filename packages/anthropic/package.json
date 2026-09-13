@@ -1,6 +1,6 @@
 {
   "name": "@vornrun/connector-anthropic",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Trigger workflows when an Anthropic message batch finishes or a model becomes available, and create messages, count tokens, list models and run message batches from a step.",
   "type": "module",
   "license": "MIT",
@@ -13,8 +13,7 @@
     "vorn",
     "connector",
     "anthropic",
-    "claude",
-    "mcp"
+    "claude"
   ],
   "bin": {
     "vorn-connector-anthropic": "dist/index.js"
@@ -38,7 +37,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@vornrun/connector-sdk": "^0.7.0-beta.18"
+    "@vornrun/connector-sdk": "^0.7.1-beta.3"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

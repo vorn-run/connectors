@@ -7,7 +7,6 @@ export default defineConfig({
   dts: true,
   clean: true,
   banner: { js: '#!/usr/bin/env node' },
-  // Installed alongside the connector rather than inlined: the SDK and MCP
-  // runtime would otherwise be duplicated in every connector package.
-  external: ['@modelcontextprotocol/sdk', '@vornrun/connector-sdk', 'zod']
+  // Installed alongside the connector rather than inlined, so the SDK is not duplicated in every package.
+  external: ['@vornrun/connector-sdk']
 })

@@ -1,6 +1,6 @@
 {
   "name": "@vornrun/connector-hubspot",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Trigger workflows from new HubSpot contacts, companies and deals or deal stage changes, and create, update, search, annotate or associate CRM records from a step.",
   "type": "module",
   "license": "MIT",
@@ -12,8 +12,7 @@
   "keywords": [
     "vorn",
     "connector",
-    "hubspot",
-    "mcp"
+    "hubspot"
   ],
   "bin": {
     "vorn-connector-hubspot": "dist/index.js"
@@ -37,7 +36,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@vornrun/connector-sdk": "^0.7.0-beta.18"
+    "@vornrun/connector-sdk": "^0.7.1-beta.3"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

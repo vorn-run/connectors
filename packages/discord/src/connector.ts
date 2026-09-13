@@ -68,7 +68,7 @@ export interface DiscordConnectorOptions {
   fetchImpl?: FetchLike
   /** Injected in tests, so no test spends real time asleep. */
   sleep?: Sleep
-  /** Advisories go to stderr: stdout carries the MCP protocol. */
+  /** Advisories go to stderr: stdout carries replies to Vorn. */
   warn?: Warn
   /** Where preflight and `$NAME` samples read from; defaults to the process environment. */
   env?: NodeJS.ProcessEnv

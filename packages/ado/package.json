@@ -1,6 +1,6 @@
 {
   "name": "@vornrun/connector-ado",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Azure DevOps connector for Vorn — trigger workflows from work items a WIQL query returns.",
   "type": "module",
   "license": "MIT",
@@ -25,7 +25,7 @@
   },
   "dependencies": {
     "@azure/identity": "^4.13.1",
-    "@vornrun/connector-sdk": "^0.7.0-beta.18",
+    "@vornrun/connector-sdk": "^0.7.1-beta.3",
     "azure-devops-node-api": "15.1.2"
   },
   "devDependencies": {

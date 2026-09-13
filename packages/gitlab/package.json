@@ -1,6 +1,6 @@
 {
   "name": "@vornrun/connector-gitlab",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Trigger workflows from GitLab issues, merge requests and pipelines.",
   "type": "module",
   "license": "MIT",
@@ -24,7 +24,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@vornrun/connector-sdk": "^0.7.0-beta.18"
+    "@vornrun/connector-sdk": "^0.7.1-beta.3"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

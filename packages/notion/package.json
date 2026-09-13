@@ -1,6 +1,6 @@
 {
   "name": "@vornrun/connector-notion",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Trigger Vorn workflows from Notion database pages.",
   "type": "module",
   "license": "MIT",
@@ -13,8 +13,7 @@
   "keywords": [
     "vorn",
     "connector",
-    "notion",
-    "mcp"
+    "notion"
   ],
   "bin": {
     "vorn-connector-notion": "dist/index.js"
@@ -39,7 +38,7 @@
   },
   "dependencies": {
     "@notionhq/client": "^5.24.0",
-    "@vornrun/connector-sdk": "^0.7.0-beta.18"
+    "@vornrun/connector-sdk": "^0.7.1-beta.3"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

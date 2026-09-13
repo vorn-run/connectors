@@ -97,7 +97,7 @@ function text(value: unknown): string | undefined {
 export interface KustoConnectorOptions {
   /** Injected by tests, so a query never needs a real cluster. */
   connectImpl?: (clusterUrl: string) => Promise<KustoClientLike>
-  /** Reported in the MCP handshake; supplied by the entry point. */
+  /** Reported in the hello to Vorn; supplied by the entry point. */
   version?: string
 }
 

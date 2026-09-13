@@ -429,13 +429,10 @@ describe('kusto connector', () => {
       )
     })
 
-    it('refuses a query that is not text at all', async () => {
-      // The SDK rejects a missing required input on our behalf, but a number
-      // reaches the action, and `String(123)` would be sent as KQL.
-      const { client } = respondWith(['Name'], [])
-      await expect(harness(client).execute('runQuery', { query: 123 })).rejects.toThrow(
-        /query is required/
-      )
+    it('reads a number handed to the query as its text, as the SDK reads every text input', async () => {
+      const { client, calls } = respondWith(['Name'], [])
+      await harness(client).execute('runQuery', { query: 123 })
+      expect(calls[0].query).toBe('123')
     })
   })
 
@@ -477,7 +474,6 @@ describe('kusto connector', () => {
       const names = setup.env.map((entry) => entry.name)
       expect(names).toContain('KUSTO_CLUSTER')
       expect(names).toContain('KUSTO_QUERY')
-      expect(setup.filters.pollTool).toBe('poll_queryResult')
     })
   })
 
@@ -526,7 +522,7 @@ describe('kusto connector', () => {
 })
 
 describe('kusto connector icon', () => {
-  it('ships a glyph so the connection is not just another MCP row', () => {
+  it('ships a glyph so the connection is not just another generic row', () => {
     const icon = createKustoConnector().icon
     expect(icon?.paths.length).toBeGreaterThan(0)
     expect(icon?.viewBox).toBe('0 0 24 24')

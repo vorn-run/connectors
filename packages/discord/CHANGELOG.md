@@ -2,6 +2,10 @@
 
 All notable changes to `@vornrun/connector-discord`.
 
+## 0.1.1
+
+Speaks Vorn's own connector protocol instead of MCP, so it needs Vorn 0.7.1-beta.3 or later. Action arguments arrive as typed values.
+
 ## 0.1.0
 
 First release.

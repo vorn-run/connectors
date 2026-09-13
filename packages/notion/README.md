@@ -5,12 +5,8 @@ pages from a workflow step.
 
 ## Install
 
-Nothing to install by hand. In Vorn, create an **MCP** connection with:
-
-| Field   | Value                                 |
-| ------- | ------------------------------------- |
-| Command | `npx`                                 |
-| Args    | `["-y", "@vornrun/connector-notion"]` |
+In Vorn, open **Settings → Connectors**, add a connection **From a package** and type
+`@vornrun/connector-notion`.
 
 ## Authentication
 

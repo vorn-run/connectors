@@ -1,6 +1,6 @@
 {
   "name": "@vornrun/connector-x",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Trigger workflows from new mentions or posts matching a search on X, and create, reply to, delete, read and search posts from a step.",
   "type": "module",
   "license": "MIT",
@@ -14,8 +14,7 @@
     "vorn",
     "connector",
     "x",
-    "twitter",
-    "mcp"
+    "twitter"
   ],
   "bin": {
     "vorn-connector-x": "dist/index.js"
@@ -39,7 +38,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@vornrun/connector-sdk": "^0.7.0-beta.18"
+    "@vornrun/connector-sdk": "^0.7.1-beta.3"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

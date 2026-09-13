@@ -245,10 +245,9 @@ describe('ado connector', () => {
       const names = setup.env.map((entry) => entry.name)
       expect(names).toContain('ADO_ORGANIZATION')
       expect(names).toContain('ADO_QUERY')
-      expect(setup.filters.pollTool).toBe('poll_workItem')
     })
 
-    it('ships a glyph so the connection is not just another MCP row', () => {
+    it('ships a glyph so the connection is not just another generic row', () => {
       const icon = createAdoConnector({ getToken }).icon
       expect(icon?.paths.length).toBeGreaterThan(0)
       expect(icon?.viewBox).toBe('0 0 24 24')

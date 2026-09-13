@@ -2,6 +2,10 @@
 
 All notable changes to `@vornrun/connector-github`.
 
+## 0.2.1
+
+Speaks Vorn's own connector protocol instead of MCP, so it needs Vorn 0.7.1-beta.3 or later. Action arguments arrive as typed values.
+
 ## 0.2.0
 
 Add the **Open a pull request** action: head branch, base (default `main`), title, description and draft; returns the number and URL.

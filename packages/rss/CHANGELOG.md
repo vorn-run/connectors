@@ -2,6 +2,10 @@
 
 All notable changes to `@vornrun/connector-rss`.
 
+## 0.1.2
+
+Speaks Vorn's own connector protocol instead of MCP, so it needs Vorn 0.7.1-beta.3 or later. Action arguments arrive as typed values.
+
 ## 0.1.1
 
 - Read a feed, Read feeds and Find feeds return their lists and objects through Vorn: rebuilt against `@vornrun/connector-sdk` 0.7.1-beta.2, whose outputs accept lists, objects and null.

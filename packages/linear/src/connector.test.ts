@@ -260,19 +260,12 @@ describe('connection setup', () => {
 
     expect(names).toContain('LINEAR_API_KEY')
     expect(names).toContain('LINEAR_TEAM_KEY')
-    expect(setup.filters.pollTool).toBe('poll_issueCreated')
   })
 
   it('marks the API key secret so it is never printed', () => {
     const setup = connectionSetup(createLinearConnector(), 'issueCreated')
     const apiKey = setup.env.find((entry) => entry.name === 'LINEAR_API_KEY')
     expect(apiKey).toMatchObject({ required: true, secret: true })
-  })
-
-  it('dedupes on the timestamp field the issues actually carry', () => {
-    const setup = connectionSetup(createLinearConnector(), 'issueCreated')
-    expect(setup.filters.timestampField).toBe('updatedAt')
-    expect(setup.filters.idField).toBe('externalId')
   })
 
   it('suggests a local status for every Linear state type', () => {
@@ -306,7 +299,7 @@ describe('connection setup', () => {
     expect(trigger?.defaultWorkflow?.defaultCronFromMinutes).toBe(5)
   })
 
-  it('ships a glyph so the connection is not just another MCP row', () => {
+  it('ships a glyph so the connection is not just another generic row', () => {
     const icon = createLinearConnector().icon
     expect(icon?.paths.length).toBeGreaterThan(0)
     expect(icon?.viewBox).toBe('0 0 24 24')

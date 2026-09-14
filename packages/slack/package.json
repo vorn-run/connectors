@@ -1,6 +1,6 @@
 {
   "name": "@vornrun/connector-slack",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Trigger workflows from Slack messages, thread replies and channel members, and post, reply or react from a step.",
   "type": "module",
   "license": "MIT",

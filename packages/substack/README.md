@@ -35,10 +35,11 @@ the comments on a public post need no sign-in.
 ## It never publishes
 
 Publishing a post emails every subscriber, so nothing here publishes or
-schedules. `createDraft` saves a draft and returns the address to open it in
-the editor, where you publish it yourself. Any request path containing
+schedules. `createDraft` and `saveDraft` save a draft and return the address
+to open it in the editor, where you publish it yourself. Any request path containing
 `publish` or `schedule` is refused before it leaves, and `deleteDraft` and
-`updateDraft` read the draft first and refuse a published post. The one
+`updateDraft` read the draft first and refuse a published post; `saveDraft`
+saves a new draft instead of touching one. The one
 exception to the guard is a `GET` to `/api/v1/publish-dashboard/`, the
 dashboard's read-only figures that `readSubscriberCount` reads.
 
@@ -71,7 +72,9 @@ for templates.
 | `getPost` | yes | no | `GET /api/v1/posts/<slug>` for the post given by address, or by slug on the publication. Returns the fields `listPosts` gives plus `wordcount`, `html`, `text`, `likes` and `restacks`. |
 | `createDraft` | no | yes | `GET substack.com/api/v1/user/profile/self` for the byline, then `POST /api/v1/drafts` on the publication with the markdown body converted to the editor's document. Returns `id`, `title` and `editUrl`. |
 | `updateDraft` | no | yes | `GET substack.com/api/v1/user/profile/self` for the byline, `GET /api/v1/drafts/<id>` to refuse a published post, then `PUT /api/v1/drafts/<id>` with the new title, subtitle and markdown body. Returns `updated`, `id`, `title` and `editUrl`. |
+| `saveDraft` | no | yes | `GET substack.com/api/v1/user/profile/self` for the byline. With a `draftId` that is not empty or 0, `GET /api/v1/drafts/<id>`: when it is still an unpublished draft, `PUT /api/v1/drafts/<id>` with the new title, subtitle and markdown body. Otherwise, a 404 or a published post included, `POST /api/v1/drafts` saves a new one. `coverImage`, when given, is sent as the draft's `cover_image`; when empty the cover is left as it is. Returns `id`, `title`, `editUrl` and `created`. |
 | `deleteDraft` | no | yes | `GET`, then `DELETE /api/v1/drafts/<id>`; a published post is refused. Returns `deleted`. |
+| `uploadImage` | no | yes | Reads `file` (a JPEG or PNG, absolute or starting `~/`), then `POST /api/v1/image` on the publication with `{ image: "data:<type>;base64,…" }`. A file whose body would pass 1,000,000 bytes, about 730 KB, is refused before it is read, since the signed-in window carries at most 1 MiB. Returns `url`, `width`, `height`, `bytes` and `contentType`. |
 | `commentOnPost` | no | yes | `POST /api/v1/post/<id>/comment` with `{ body }`. Returns `id` and `postId`. |
 | `setCommentLike` | yes | yes | `POST` to like or `DELETE` to unlike `/api/v1/comment/<id>/reaction`, with `{ reaction: "❤" }`. Returns `liked`. |
 | `deleteComment` | no | yes | `DELETE /api/v1/comment/<id>`. Returns `deleted`. |
@@ -91,8 +94,11 @@ at its substack.com address instead.
 Headings, paragraphs, bullet and numbered lists, quotes, code blocks, rules,
 line breaks, bold, italic, inline code, strikethrough and links carry over,
 under the node and mark names Substack's editor saved when each was pasted
-into a draft. A picture becomes a link to it, because uploading one is the
-editor's job. A table becomes one line per row, and a script or data link
+into a draft. A paragraph holding nothing but a picture on
+`substack-post-media.s3.amazonaws.com` or `substackcdn.com`, which is where
+`uploadImage` puts one, becomes the editor's picture block (`captionedImage`
+holding `image2`), its width and height read from the size Substack writes
+into the file name. Any other picture becomes a link to it. A table becomes one line per row, and a script or data link
 keeps its words without being clickable.
 
 ## Checks
@@ -104,7 +110,9 @@ packages/substack/scripts/check.sh   # typecheck, tests, build, conformance rece
 Tests make no network calls. Plain and signed-in fetches are separate stubs,
 so each test also says which calls went through the window. There is no live
 check: every signed-in action needs the Vorn window, which the SDK's live
-check skips.
+check skips. The receipt leaves out `mock`, because the check hands every
+input a placeholder and `uploadImage` refuses a placeholder `file` that is not
+absolute before it reads anything; its tests upload from a scratch folder.
 
 ## Built from
 

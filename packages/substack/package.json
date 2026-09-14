@@ -1,7 +1,7 @@
 {
   "name": "@vornrun/connector-substack",
-  "version": "0.2.1",
-  "description": "Trigger workflows from new posts on a Substack publication, and read, search, like, restack and comment on posts, post and read Notes, or save and update a draft from a step.",
+  "version": "0.2.2",
+  "description": "Trigger workflows from new posts on a Substack publication, and read, search, like, restack and comment on posts, post and read Notes, or save and update a draft with pictures from a step.",
   "type": "module",
   "license": "MIT",
   "author": "Javier Canizalez <javier-canizalez@outlook.com>",

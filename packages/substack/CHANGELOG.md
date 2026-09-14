@@ -2,6 +2,16 @@
 
 All notable changes to `@vornrun/connector-substack`.
 
+## 0.2.2
+
+Pictures in drafts, and one action a workflow can run every week against the same draft.
+
+- **`uploadImage`** uploads a JPEG or PNG from this computer with `POST /api/v1/image` and returns its `url`, `width`, `height`, `bytes` and `contentType`. The file is sent as a data address inside the request, so one whose body would pass 1,000,000 bytes (about 730 KB) is refused before it is read: the signed-in window carries at most 1 MiB.
+- **`saveDraft`** updates the draft its `draftId` names, or saves a new one when the id is empty or 0 (what the SDK reads an empty template as), or names a draft since deleted or published. `coverImage` sets the draft's cover. It returns `id`, `title`, `editUrl` and `created`.
+- **Markdown:** a paragraph holding nothing but a picture on Substack's own storage becomes the editor's picture block; any other picture still becomes a link.
+
+The upload route and its answer, the picture block and the `cover_image` field were read from Substack's own editor and from a published post's body on 2026-09-14, then checked on a throwaway draft on the author's publication, which was deleted.
+
 ## 0.2.1
 
 Speaks Vorn's own connector protocol instead of MCP, so it needs Vorn 0.7.1-beta.3 or later. Action arguments arrive as typed values.

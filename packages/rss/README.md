@@ -102,6 +102,7 @@ summary), `assignee` (the author), `labels` (the categories) and `updatedAt`
 | --- | --- | --- |
 | `readFeed` | yes | Reads `url`, keeps items within `sinceHours` when given (dateless ones are left out then), and returns the newest `limit` (1 to 100, default 20), dateless last. Returns `feed` (`{ title, url, siteUrl, format }`, `format` one of `rss2`, `rss1`, `atom`, `json`), `items` and `count`. A failure throws `<url>: <reason>`. |
 | `readFeeds` | yes | Reads `urls` (one per line or comma separated; the connection's `feeds` when empty), six at a time. For each feed it keeps items within `sinceHours`, then those matching any of the comma-separated `keywords` as a whole word or phrase in the title or summary, ignoring case, then the newest `perFeed` (default 20). One copy per address is kept, the newest, and the result is sorted newest first. Returns `items`, `count`, `feedsOk` and `feedsFailed` (`[{ url, error }]`); fails naming every failed feed when fewer than `minFeedsOk` (default 1) answer. |
+| `saveFeeds` | yes | Reads feeds exactly as `readFeeds` does, with the same inputs, then writes `{ generatedAt, feedsOk, feedsFailed, count, items }` as JSON to `path` (absolute or starting `~/`; a relative path is refused, the folder is created when missing, an existing file is replaced). The file is written beside itself and renamed into place. Returns `path`, `count`, `feedsOk` and `feedsFailed`, never the items. |
 | `findFeeds` | yes | Fetches `url` asking for HTML first. When the body is itself a feed, returns that address alone. Otherwise returns every `<link rel="alternate">` whose type is `application/rss+xml`, `application/atom+xml` or `application/feed+json`, resolved against `<base href>` or the page. `application/json` counts only when no `application/feed+json` link exists. Returns `feeds` (`[{ url, title, type, format }]`), `count` and `isFeed`. |
 
 ## Checks
@@ -119,7 +120,9 @@ calls: every request is answered from recorded fixtures in
 DOCTYPE declares external entities, and a page with autodiscovery links. The
 receipt leaves out `dedupe`, because the check cannot replay the sample of a
 trigger that keeps its own cursor. The trigger tests poll twice with the
-returned cursor instead.
+returned cursor instead. It leaves out `mock` too: the check hands every input
+a placeholder, and `saveFeeds` refuses a placeholder `path` that is not
+absolute before it reads anything. Its tests write to a scratch folder instead.
 
 `packages/rss/scripts/check-live.sh` needs no credentials, so it always runs
 for real, and exits 0 with a note only when the machine is offline. It reads

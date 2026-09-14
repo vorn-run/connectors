@@ -1,4 +1,13 @@
-import { defineConnector, type ConnectorConfig, type ConnectorItem, type SessionContext } from '@vornrun/connector-sdk'
+import { readFile, stat } from 'node:fs/promises'
+import os from 'node:os'
+import path from 'node:path'
+import {
+  ActionArgumentError,
+  defineConnector,
+  type ConnectorConfig,
+  type ConnectorItem,
+  type SessionContext
+} from '@vornrun/connector-sdk'
 import { parseFeed, plainText, type FeedPost } from './feed'
 import { markdownToDoc } from './markdown'
 import { postRef, publicationHost, substackHost } from './publication'
@@ -26,6 +35,15 @@ const NOTE_PAGES = 10
 const REACTION = '❤'
 const SLUG = /^[a-z0-9][a-z0-9-]*$/i
 const HANDLE = /^[\w.-]+$/
+
+/** The signed-in window carries at most 1 MiB a request; this leaves room for what wraps the body. */
+export const MAX_UPLOAD_BODY = 1_000_000
+const IMAGE_TYPES = [
+  { type: 'image/png', magic: [0x89, 0x50, 0x4e, 0x47] },
+  { type: 'image/jpeg', magic: [0xff, 0xd8, 0xff] }
+]
+/** What a draft Save draft makes starts as: a newsletter for everyone, in no section. */
+const NEW_DRAFT = { type: 'newsletter', audience: 'everyone', section_chosen: false, draft_section_id: null }
 
 /** Paths this connector must never reach: publishing or scheduling emails every subscriber. */
 const NEVER = /publish|schedul/i
@@ -55,6 +73,16 @@ function detail(body: string): string {
   return ''
 }
 
+/** An answer outside 2xx, its status kept for the caller that reads a 404 as news. */
+export class StatusError extends Error {
+  constructor(
+    message: string,
+    readonly status: number
+  ) {
+    super(message)
+  }
+}
+
 /** JSON from a Substack endpoint, or an error naming the call and how it was answered. */
 export async function call<T>(
   fetchImpl: typeof fetch,
@@ -72,7 +100,7 @@ export async function call<T>(
     ...(init.body !== undefined && { body: JSON.stringify(init.body) })
   })
   const body = await res.text()
-  if (!res.ok) throw new Error(`${method} ${pathname} answered ${res.status}${detail(body)}`)
+  if (!res.ok) throw new StatusError(`${method} ${pathname} answered ${res.status}${detail(body)}`, res.status)
   if (body.trim() === '') return {} as T
   try {
     return JSON.parse(body) as T
@@ -326,6 +354,58 @@ async function unpublishedDraft(session: SessionContext, host: string, id: numbe
   }
 }
 
+/** Whether an id still names an unpublished draft; one deleted or published since gets a new draft instead. */
+async function stillADraft(session: SessionContext, host: string, id: number): Promise<boolean> {
+  try {
+    const draft = await call<{ is_published?: unknown }>(session.fetch, `https://${host}/api/v1/drafts/${id}`)
+    return draft.is_published !== true
+  } catch (error) {
+    if (error instanceof StatusError && error.status === 404) return false
+    throw error
+  }
+}
+
+/** A draft id, or nothing when a template left it empty, which the SDK reads as 0. */
+function optionalDraftId(value: unknown): number | undefined {
+  if (text(value) === undefined) return undefined
+  const parsed = Number(value)
+  if (!Number.isSafeInteger(parsed) || parsed < 0) {
+    throw new ActionArgumentError('draftId', 'draftId must be a Substack draft id, a whole number, or empty')
+  }
+  return parsed === 0 ? undefined : parsed
+}
+
+const editUrl = (host: string, id: number) => `https://${host}/publish/post/${id}`
+
+/** A file on this computer: absolute, or starting `~/`; a connector runs from its pack's folder, so a relative path would land there. */
+function localFile(value: unknown): string {
+  const raw = text(value)
+  if (raw === undefined) throw new ActionArgumentError('file', 'file is required')
+  if (raw.startsWith('~/')) return path.join(os.homedir(), raw.slice(2))
+  if (raw.startsWith('~') || !path.isAbsolute(raw)) {
+    throw new ActionArgumentError('file', 'file must be an absolute path or start with ~/')
+  }
+  return path.resolve(raw)
+}
+
+/** A picture as the data address Substack's upload takes, refused before it is read when the body would not fit the window. */
+export async function imageBody(file: string): Promise<{ image: string }> {
+  const found = await stat(file).catch(() => undefined)
+  if (!found?.isFile()) throw new ActionArgumentError('file', `No file at ${file}`)
+  const wrapper = JSON.stringify({ image: 'data:image/jpeg;base64,' }).length
+  const largest = Math.floor((MAX_UPLOAD_BODY - wrapper) / 4) * 3
+  if (found.size > largest) {
+    throw new ActionArgumentError(
+      'file',
+      `${path.basename(file)} is ${found.size} bytes; the upload takes at most ${largest}, so make it smaller first`
+    )
+  }
+  const bytes = await readFile(file)
+  const type = IMAGE_TYPES.find(({ magic }) => magic.every((byte, i) => bytes[i] === byte))?.type
+  if (type === undefined) throw new ActionArgumentError('file', `${path.basename(file)} is not a JPEG or PNG`)
+  return { image: `data:${type};base64,${bytes.toString('base64')}` }
+}
+
 /** A draft's title, subtitle, body and byline, as Save draft and Update draft both send them. */
 function draftFields(me: Profile, title: string, subtitle: unknown, body: string): Record<string, unknown> {
   return {
@@ -384,7 +464,7 @@ export const connector = defineConnector({
   name: 'Substack',
   version: pkg.version,
   description:
-    'Trigger workflows from new posts on a Substack publication, and read, search, like, restack and comment on posts, post and read Notes, or save and update a draft from a step.',
+    'Trigger workflows from new posts on a Substack publication, and read, search, like, restack and comment on posts, post and read Notes, or save and update a draft with pictures from a step.',
   icon: {
     viewBox: '0 0 24 24',
     paths: [
@@ -620,16 +700,10 @@ export const connector = defineConnector({
         const host = namedPublication(args.publication, ctx.config) ?? primaryPublication(me)
         const draft = await call<{ id?: unknown }>(session.fetch, `https://${host}/api/v1/drafts`, {
           method: 'POST',
-          body: {
-            ...draftFields(me, title, args.subtitle, body),
-            type: 'newsletter',
-            audience: 'everyone',
-            section_chosen: false,
-            draft_section_id: null
-          }
+          body: { ...draftFields(me, title, args.subtitle, body), ...NEW_DRAFT }
         })
         const id = typeof draft.id === 'number' ? draft.id : undefined
-        return { title, ...(id !== undefined && { id, editUrl: `https://${host}/publish/post/${id}` }) }
+        return { title, ...(id !== undefined && { id, editUrl: editUrl(host, id) }) }
       }
     },
     {
@@ -675,7 +749,67 @@ export const connector = defineConnector({
           method: 'PUT',
           body: draftFields(me, title, args.subtitle, body)
         })
-        return { updated: true, id, title, editUrl: `https://${host}/publish/post/${id}` }
+        return { updated: true, id, title, editUrl: editUrl(host, id) }
+      }
+    },
+    {
+      type: 'saveDraft',
+      label: 'Save or update draft',
+      description:
+        'Update the draft a step names, or save a new one when it names none or that draft has since been deleted or published, from a title and markdown with an optional cover picture. Run again with the id it returned, it updates the same draft. It never publishes.',
+      idempotent: false,
+      inputs: [
+        {
+          key: 'draftId',
+          label: 'Draft id',
+          type: 'number',
+          description: 'The id this action returned before; empty or 0 saves a new draft.',
+          builderHint: 'Keep the id from the first run somewhere a later run can read it, so reruns update one draft.'
+        },
+        { key: 'title', label: 'Title', required: true, description: "The draft's title." },
+        { key: 'subtitle', label: 'Subtitle', description: 'The line under the title; empty leaves the draft without one.' },
+        {
+          key: 'body',
+          label: 'Body',
+          required: true,
+          description:
+            'The whole post in markdown. A line holding only a picture Upload image returned, as ![alt](address), becomes a picture in the post.'
+        },
+        {
+          key: 'coverImage',
+          label: 'Cover picture',
+          description:
+            "A picture's address, as Upload image returns it: the post's cover, shown in previews and on social sites. Empty leaves the cover as it is."
+        },
+        { ...OWN_PUBLICATION_INPUT, type: 'select', loadOptions: 'publications' }
+      ],
+      outputs: [
+        { key: 'id', type: 'number', description: "The draft's id, to hand the next run" },
+        { key: 'title', type: 'string', description: "The draft's title" },
+        { key: 'editUrl', type: 'string', description: 'Where to open the draft in the Substack editor' },
+        { key: 'created', type: 'boolean', description: 'Whether a new draft was saved rather than one updated' }
+      ],
+      run: async (args, ctx) => {
+        const session = signedIn(ctx.session)
+        const draftId = optionalDraftId(args.draftId)
+        const title = text(args.title)
+        const body = text(args.body)
+        if (title === undefined) throw new Error('title is required')
+        if (body === undefined) throw new Error('body is required')
+        const cover = text(args.coverImage)
+        const me = await call<Profile>(session.fetch, PROFILE_URL)
+        const host = namedPublication(args.publication, ctx.config) ?? primaryPublication(me)
+        const fields = { ...draftFields(me, title, args.subtitle, body), ...(cover !== undefined && { cover_image: cover }) }
+        if (draftId !== undefined && (await stillADraft(session, host, draftId))) {
+          await call(session.fetch, `https://${host}/api/v1/drafts/${draftId}`, { method: 'PUT', body: fields })
+          return { id: draftId, title, editUrl: editUrl(host, draftId), created: false }
+        }
+        const draft = await call<{ id?: unknown }>(session.fetch, `https://${host}/api/v1/drafts`, {
+          method: 'POST',
+          body: { ...fields, ...NEW_DRAFT }
+        })
+        if (typeof draft.id !== 'number') throw new Error("POST /api/v1/drafts answered without the new draft's id")
+        return { id: draft.id, title, editUrl: editUrl(host, draft.id), created: true }
       }
     },
     {
@@ -701,6 +835,51 @@ export const connector = defineConnector({
         await unpublishedDraft(session, host, id, 'deletes')
         await call(session.fetch, `https://${host}/api/v1/drafts/${id}`, { method: 'DELETE' })
         return { deleted: true, id }
+      }
+    },
+    {
+      type: 'uploadImage',
+      label: 'Upload image',
+      description:
+        "Upload a JPEG or PNG from this computer to Substack's picture storage, for a draft's body or cover. It appears nowhere until a draft uses it.",
+      idempotent: false,
+      inputs: [
+        {
+          key: 'file',
+          label: 'Picture file',
+          required: true,
+          description: 'A JPEG or PNG, as an absolute path or one starting with ~/, of at most about 730 KB.',
+          builderHint: 'Shrink a larger picture first, for example with sips on macOS; a relative path is refused.'
+        },
+        { ...OWN_PUBLICATION_INPUT, type: 'select', loadOptions: 'publications' }
+      ],
+      outputs: [
+        { key: 'url', type: 'string', description: "The picture's address, for Save or update draft" },
+        { key: 'width', type: 'number', description: 'Its width in pixels' },
+        { key: 'height', type: 'number', description: 'Its height in pixels' },
+        { key: 'bytes', type: 'number', description: 'Its size as stored' },
+        { key: 'contentType', type: 'string', description: 'Its type, image/jpeg or image/png' }
+      ],
+      run: async (args, ctx) => {
+        const body = await imageBody(localFile(args.file))
+        const session = signedIn(ctx.session)
+        const host = await ownPublication(args.publication, ctx.config, session)
+        const uploaded = await call<{
+          url?: unknown
+          imageWidth?: unknown
+          imageHeight?: unknown
+          bytes?: unknown
+          contentType?: unknown
+        }>(session.fetch, `https://${host}/api/v1/image`, { method: 'POST', body })
+        const url = text(uploaded.url)
+        if (url === undefined) throw new Error('POST /api/v1/image answered without an address for the picture')
+        return {
+          url,
+          width: Number(uploaded.imageWidth ?? 0),
+          height: Number(uploaded.imageHeight ?? 0),
+          bytes: Number(uploaded.bytes ?? 0),
+          contentType: String(uploaded.contentType ?? '')
+        }
       }
     },
     {

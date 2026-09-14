@@ -1,9 +1,13 @@
-import { describe, expect, it } from 'vitest'
-import { createConnectorHarness, runConformance } from '@vornrun/connector-sdk'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { ActionArgumentError, createConnectorHarness, runConformance } from '@vornrun/connector-sdk'
 import { fixture, serve, type Handler } from '../fixtures/serve'
 import { connector, dedupeByUrl, keywordFilter } from './connector'
 import type { FeedItem } from './feed'
 import { FEED_ACCEPT, PAGE_ACCEPT } from './http'
+import { filePath } from './save'
 import { DEFAULT_USER_AGENT } from './settings'
 
 const NOW = '2026-09-12T12:00:00.000Z'
@@ -41,16 +45,23 @@ describe('the manifest', () => {
     expect(connector.icon?.paths).toHaveLength(3)
     for (const action of connector.actions) {
       expect(action.idempotent).toBe(true)
-      expect(action.sample).toBeDefined()
+      // A live check runs an action with its sample, and Save feeds would write a file there.
+      if (action.type === 'saveFeeds') expect(action.sample).toBeUndefined()
+      else expect(action.sample).toBeDefined()
       for (const input of action.inputs ?? []) expect(input.description).toBeTruthy()
     }
     expect(DEFAULT_USER_AGENT).toMatch(/^vorn-connector-rss\/\d+\.\d+\.\d+.* \(\+https:\/\/vorn\.run\)$/)
   })
 
-  it('passes the mock conformance run, every action surviving a {} reply', async () => {
+  it('passes the mock conformance run, but for Save feeds refusing the placeholder path before any request', async () => {
     const run = await runConformance(connector, { mock: true, now: () => NOW })
-    expect(run.findings.map((finding) => finding.code)).toEqual(['sample-unusable'])
-    expect(run.receipt?.checks).toEqual(['manifest', 'auth', 'secrets', 'actions', 'mock'])
+    expect(run.findings.map((finding) => [finding.code, finding.target])).toEqual([
+      ['mock-action-failed', 'action saveFeeds'],
+      ['sample-unusable', 'trigger newItem']
+    ])
+    expect(run.findings[0]!.message).toMatch(/path must be an absolute path or start with ~\//)
+    // The refusal is a warning, which the SDK counts against mock.
+    expect(run.receipt?.checks).toEqual(['manifest', 'auth', 'secrets', 'actions'])
   })
 })
 
@@ -189,6 +200,74 @@ describe('readFeeds', () => {
     await expect(harness.execute('readFeeds', { urls: SAMPLE, minFeedsOk: '-1' })).rejects.toThrow(
       'minFeedsOk must be a whole number from 0 up'
     )
+  })
+})
+
+describe('saveFeeds', () => {
+  const dirs: string[] = []
+  const scratch = () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rss-save-'))
+    dirs.push(dir)
+    return dir
+  }
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true })
+  })
+
+  it('writes what Read feeds returns to the file, making its folder, and returns only the counts', async () => {
+    const { harness } = harnessFor()
+    const target = join(scratch(), 'week', 'items.json')
+    const args = { urls: `${SAMPLE}\n${ATOM}\n${MISSING}`, perFeed: '3' }
+    const out = await harness.execute('saveFeeds', { ...args, path: target })
+    const read = await harness.execute('readFeeds', args)
+    expect(out).toEqual({ path: target, count: read.count, feedsOk: 2, feedsFailed: read.feedsFailed })
+    expect(JSON.parse(readFileSync(target, 'utf8'))).toEqual({
+      generatedAt: NOW,
+      feedsOk: 2,
+      feedsFailed: read.feedsFailed,
+      count: read.count,
+      items: read.items
+    })
+    expect(readdirSync(join(target, '..'))).toEqual(['items.json'])
+  })
+
+  it('replaces a file already there, and reads ~/ as the home folder', async () => {
+    const home = scratch()
+    vi.stubEnv('HOME', home)
+    writeFileSync(join(home, 'items.json'), 'old')
+    const { harness } = harnessFor()
+    const out = await harness.execute('saveFeeds', { urls: SAMPLE, path: '~/items.json' })
+    expect(out.path).toBe(join(home, 'items.json'))
+    expect(JSON.parse(readFileSync(join(home, 'items.json'), 'utf8')).count).toBe(7)
+  })
+
+  it('refuses a missing, relative or ~user path before reading any feed', async () => {
+    const { harness, calls } = harnessFor()
+    for (const path of ['', 'items.json', './items.json', '~other/items.json']) {
+      const refused = await harness.execute('saveFeeds', { urls: SAMPLE, path }).catch((error: unknown) => error)
+      expect(refused).toBeInstanceOf(ActionArgumentError)
+      expect(refused).toMatchObject({ field: 'path' })
+    }
+    expect(calls).toEqual([])
+    expect(() => filePath(undefined)).toThrow(ActionArgumentError)
+  })
+
+  it('writes nothing when too few feeds answer', async () => {
+    const { harness } = harnessFor()
+    const target = join(scratch(), 'items.json')
+    await expect(harness.execute('saveFeeds', { urls: MISSING, path: target })).rejects.toThrow(/fewer than minFeedsOk 1/)
+    expect(existsSync(target)).toBe(false)
+  })
+
+  it('leaves no half-written file behind when the rename fails', async () => {
+    const dir = scratch()
+    const target = join(dir, 'taken')
+    mkdirSync(target)
+    writeFileSync(join(target, 'inside'), 'x')
+    const { harness } = harnessFor()
+    await expect(harness.execute('saveFeeds', { urls: SAMPLE, path: target })).rejects.toThrow()
+    expect(readdirSync(dir)).toEqual(['taken'])
   })
 })
 

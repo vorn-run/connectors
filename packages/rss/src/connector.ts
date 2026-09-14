@@ -1,4 +1,4 @@
-import { defineConnector } from '@vornrun/connector-sdk'
+import { defineConnector, type ConnectorConfig } from '@vornrun/connector-sdk'
 import { TYPE_OF_FORMAT, discoverFeeds } from './discover'
 import { isJsonFeed, itemTime, newestFirst, withinHours, type FeedItem, type ParsedFeed } from './feed'
 import {
@@ -15,6 +15,7 @@ import {
   type Fetched
 } from './http'
 import { pollFeeds, toConnectorItem } from './poll'
+import { filePath, writeJsonAtomically } from './save'
 import { DEFAULT_LOOKBACK_HOURS, DEFAULT_USER_AGENT, optionalHours, userAgentOf, wholeNumber } from './settings'
 // Bundled at build time: a pack is one file, so a version read from disk is not there to read.
 import pkg from '../package.json'
@@ -83,6 +84,84 @@ const ITEM_OUTPUT = {
   key: 'items',
   description:
     'Items as { id, title, url, author, publishedAt, updatedAt, summary, html, categories, feedTitle, feedUrl }'
+}
+
+const READ_FEEDS_INPUTS = [
+  {
+    key: 'urls',
+    label: 'Feed URLs',
+    description: "Feed addresses, one per line or comma separated; the connection's feeds when empty.",
+    builderHint: 'Leave it empty to read the feeds the connection already polls.'
+  },
+  SINCE_HOURS_INPUT,
+  {
+    key: 'perFeed',
+    label: 'Items per feed',
+    type: 'number' as const,
+    description: `The newest items kept from each feed, a whole number from 1 to ${MAX_ITEMS}; ${DEFAULT_ITEMS} when empty.`
+  },
+  {
+    key: 'keywords',
+    label: 'Keywords',
+    description:
+      'Comma separated; an item passes when any one matches its title or summary as a whole word or phrase, ignoring case. Empty keeps everything.',
+    builderHint: 'Whole words only: "AI" matches "AI agents" but not "said".'
+  },
+  {
+    key: 'minFeedsOk',
+    label: 'Feeds that must answer',
+    type: 'number' as const,
+    description: 'The action fails, naming every failed feed, when fewer feeds than this answer; 1 when empty.',
+    builderHint: 'Set it to the number of feeds when every one of them has to be read.'
+  }
+]
+
+const FEEDS_ANSWERED_OUTPUTS = [
+  { key: 'count', type: 'number' as const, description: 'How many items came back, in `items`' },
+  { key: 'feedsOk', type: 'number' as const, description: 'How many feeds answered' },
+  { key: 'feedsFailed', description: 'The feeds that did not answer, as [{ url, error }]' }
+]
+
+interface ReadContext {
+  fetch: typeof fetch
+  config: ConnectorConfig
+  now: () => string
+}
+
+/** Read feeds' work: every feed read, filtered and merged, or an error when too few answer. */
+async function readMany(args: Record<string, unknown>, ctx: ReadContext) {
+  const perFeed = wholeNumber(args.perFeed, 'perFeed', 1, MAX_ITEMS, DEFAULT_ITEMS)
+  const minFeedsOk = wholeNumber(args.minFeedsOk, 'minFeedsOk', 0, Infinity, 1)
+  const hours = optionalHours(args.sinceHours, 'sinceHours')
+  const matches = keywordFilter(args.keywords)
+  const given = feedList(args.urls)
+  const raws = given.length > 0 ? given : feedList(ctx.config.feeds)
+  if (raws.length === 0) throw new Error("Give feed URLs in urls, or add them to the connection's feeds")
+  const userAgent = userAgentOf(ctx.config)
+  const nowMs = Date.parse(ctx.now())
+  const { urls, invalid } = uniqueFeeds(raws)
+  const read = await mapLimit(urls, MAX_IN_FLIGHT, async (url) => {
+    try {
+      return { items: (await readFeedAt(ctx.fetch, url, { userAgent })).items }
+    } catch (error) {
+      return { failure: error as FeedError }
+    }
+  })
+  const failures = [...invalid, ...read.flatMap((result) => (result.failure ? [result.failure] : []))]
+  const feedsFailed = failures.map((failure) => ({ url: failure.url, error: failure.reason }))
+  const total = urls.length + invalid.length
+  const feedsOk = total - failures.length
+  if (feedsOk < minFeedsOk) {
+    throw new Error(
+      `${feedsOk} of ${total} feeds answered, fewer than minFeedsOk ${minFeedsOk}: ${failures.map((f) => f.message).join('; ')}`
+    )
+  }
+  const picked = read.flatMap(({ items = [] }) => {
+    const recent = hours === undefined ? items : withinHours(items, hours, nowMs)
+    return newestFirst(recent.filter(matches)).slice(0, perFeed)
+  })
+  const items = newestFirst(dedupeByUrl(picked))
+  return { items, count: items.length, feedsOk, feedsFailed }
 }
 
 export const connector = defineConnector({
@@ -183,77 +262,39 @@ export const connector = defineConnector({
       description:
         "Items from several feeds at once, filtered by age and keywords, one copy per address, newest first. A feed that fails is listed with its reason and never loses the others' items.",
       idempotent: true,
-      inputs: [
-        {
-          key: 'urls',
-          label: 'Feed URLs',
-          description: "Feed addresses, one per line or comma separated; the connection's feeds when empty.",
-          builderHint: 'Leave it empty to read the feeds the connection already polls.'
-        },
-        SINCE_HOURS_INPUT,
-        {
-          key: 'perFeed',
-          label: 'Items per feed',
-          type: 'number',
-          description: `The newest items kept from each feed, a whole number from 1 to ${MAX_ITEMS}; ${DEFAULT_ITEMS} when empty.`
-        },
-        {
-          key: 'keywords',
-          label: 'Keywords',
-          description:
-            'Comma separated; an item passes when any one matches its title or summary as a whole word or phrase, ignoring case. Empty keeps everything.',
-          builderHint: 'Whole words only: "AI" matches "AI agents" but not "said".'
-        },
-        {
-          key: 'minFeedsOk',
-          label: 'Feeds that must answer',
-          type: 'number',
-          description: 'The action fails, naming every failed feed, when fewer feeds than this answer; 1 when empty.',
-          builderHint: 'Set it to the number of feeds when every one of them has to be read.'
-        }
-      ],
-      outputs: [
-        ITEM_OUTPUT,
-        { key: 'count', type: 'number', description: 'How many items came back, in `items`' },
-        { key: 'feedsOk', type: 'number', description: 'How many feeds answered' },
-        { key: 'feedsFailed', description: 'The feeds that did not answer, as [{ url, error }]' }
-      ],
+      inputs: READ_FEEDS_INPUTS,
+      outputs: [ITEM_OUTPUT, ...FEEDS_ANSWERED_OUTPUTS],
       sample: {
         urls: 'https://www.rssboard.org/files/sample-rss-2.xml\nhttps://github.com/nodejs/node/releases.atom'
       },
+      run: (args, ctx) => readMany(args, ctx)
+    },
+    {
+      type: 'saveFeeds',
+      label: 'Save feeds to a file',
+      description:
+        'Read feeds exactly as Read feeds does, then write the items to a JSON file instead of returning them, so a large read never has to pass through a template.',
+      // Writing the same file again with a fresh read is safe to repeat.
+      idempotent: true,
+      inputs: [
+        {
+          key: 'path',
+          label: 'File',
+          required: true,
+          description: 'Where to write, as an absolute path or one starting with ~/; its folder is created when missing.',
+          builderHint: 'For example ~/digests/items.json; a relative path is refused, and an existing file is replaced.'
+        },
+        ...READ_FEEDS_INPUTS
+      ],
+      outputs: [
+        { key: 'path', type: 'string', description: 'The absolute path written, holding { generatedAt, feedsOk, feedsFailed, count, items }' },
+        ...FEEDS_ANSWERED_OUTPUTS
+      ],
       run: async (args, ctx) => {
-        const perFeed = wholeNumber(args.perFeed, 'perFeed', 1, MAX_ITEMS, DEFAULT_ITEMS)
-        const minFeedsOk = wholeNumber(args.minFeedsOk, 'minFeedsOk', 0, Infinity, 1)
-        const hours = optionalHours(args.sinceHours, 'sinceHours')
-        const matches = keywordFilter(args.keywords)
-        const given = feedList(args.urls)
-        const raws = given.length > 0 ? given : feedList(ctx.config.feeds)
-        if (raws.length === 0) throw new Error("Give feed URLs in urls, or add them to the connection's feeds")
-        const userAgent = userAgentOf(ctx.config)
-        const nowMs = Date.parse(ctx.now())
-        const { urls, invalid } = uniqueFeeds(raws)
-        const read = await mapLimit(urls, MAX_IN_FLIGHT, async (url) => {
-          try {
-            return { items: (await readFeedAt(ctx.fetch, url, { userAgent })).items }
-          } catch (error) {
-            return { failure: error as FeedError }
-          }
-        })
-        const failures = [...invalid, ...read.flatMap((result) => (result.failure ? [result.failure] : []))]
-        const feedsFailed = failures.map((failure) => ({ url: failure.url, error: failure.reason }))
-        const total = urls.length + invalid.length
-        const feedsOk = total - failures.length
-        if (feedsOk < minFeedsOk) {
-          throw new Error(
-            `${feedsOk} of ${total} feeds answered, fewer than minFeedsOk ${minFeedsOk}: ${failures.map((f) => f.message).join('; ')}`
-          )
-        }
-        const picked = read.flatMap(({ items = [] }) => {
-          const recent = hours === undefined ? items : withinHours(items, hours, nowMs)
-          return newestFirst(recent.filter(matches)).slice(0, perFeed)
-        })
-        const items = newestFirst(dedupeByUrl(picked))
-        return { items, count: items.length, feedsOk, feedsFailed }
+        const target = filePath(args.path)
+        const { items, count, feedsOk, feedsFailed } = await readMany(args, ctx)
+        await writeJsonAtomically(target, { generatedAt: ctx.now(), feedsOk, feedsFailed, count, items })
+        return { path: target, count, feedsOk, feedsFailed }
       }
     },
     {

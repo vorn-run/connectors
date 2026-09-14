@@ -1,6 +1,22 @@
-import { describe, expect, it, vi } from 'vitest'
-import { createConnectorHarness, runConformance, type ConnectorConfig } from '@vornrun/connector-sdk'
-import { DEFAULT_FEED_POSTS, MAX_FEED_POSTS, connector, feedLimit, flattenComments, neverPublishing } from './connector'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import {
+  ActionArgumentError,
+  createConnectorHarness,
+  runConformance,
+  type ConnectorConfig
+} from '@vornrun/connector-sdk'
+import {
+  DEFAULT_FEED_POSTS,
+  MAX_FEED_POSTS,
+  MAX_UPLOAD_BODY,
+  connector,
+  feedLimit,
+  flattenComments,
+  neverPublishing
+} from './connector'
 
 const NOW = '2026-09-10T12:00:00.000Z'
 
@@ -85,7 +101,9 @@ describe('the manifest', () => {
       'getPost',
       'createDraft',
       'updateDraft',
+      'saveDraft',
       'deleteDraft',
+      'uploadImage',
       'commentOnPost',
       'setCommentLike',
       'deleteComment',
@@ -98,10 +116,14 @@ describe('the manifest', () => {
     ])
   })
 
-  it('passes its own conformance run, every action included', async () => {
+  it('passes its own conformance run, but for Upload image refusing the placeholder file before any request', async () => {
     const run = await runConformance(connector, { mock: true })
-    expect(run.findings.filter((item) => item.code.startsWith('mock'))).toEqual([])
-    expect(run.passed).toEqual(expect.arrayContaining(['manifest', 'auth', 'secrets', 'actions', 'dedupe', 'mock']))
+    const mock = run.findings.filter((item) => item.code.startsWith('mock'))
+    expect(mock.map((item) => [item.code, item.target])).toEqual([['mock-action-failed', 'action uploadImage']])
+    expect(mock[0]!.message).toMatch(/file must be an absolute path or start with ~\//)
+    // The refusal is a warning, which the SDK counts against mock.
+    expect(run.passed).toEqual(expect.arrayContaining(['manifest', 'auth', 'secrets', 'actions', 'dedupe']))
+    expect(run.passed).not.toContain('mock')
   })
 })
 
@@ -364,6 +386,198 @@ describe('deleteDraft', () => {
     }))
     await expect(harness.execute('deleteDraft', { draftId: '9' })).rejects.toThrow(/published post/)
     expect(sent.filter((s) => s.method === 'DELETE')).toEqual([])
+  })
+})
+
+/** An 8x8 PNG, the one uploaded on 2026-09-14 to read Substack's answer. */
+const PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAEklEQVR4nGP4z8CAFTEMLQkAQH0/wSLFTm0AAAAASUVORK5CYII=',
+  'base64'
+)
+const UPLOADED = 'https://substack-post-media.s3.amazonaws.com/public/images/6e0bf0d8-f0ba-4bfa-81b4-a587df28b14a_8x8.png'
+
+const scratchDirs: string[] = []
+function scratch(): string {
+  const dir = mkdtempSync(join(tmpdir(), 'substack-'))
+  scratchDirs.push(dir)
+  return dir
+}
+afterEach(() => {
+  vi.unstubAllEnvs()
+  for (const dir of scratchDirs.splice(0)) rmSync(dir, { recursive: true, force: true })
+})
+
+describe('uploadImage', () => {
+  const answered = (r: Sent) => {
+    if (r.method === 'POST' && r.url.pathname === '/api/v1/image') {
+      return {
+        body: { id: 344551368, url: UPLOADED, contentType: 'image/png', bytes: 74, imageWidth: 8, imageHeight: 8 }
+      }
+    }
+    return r.url.pathname.endsWith('/profile/self') ? { body: PROFILE } : undefined
+  }
+
+  it('uploads a PNG through the window as a data address, and returns where it lives', async () => {
+    const file = join(scratch(), 'hero.png')
+    writeFileSync(file, PNG)
+    const { sent, harness } = setup(answered)
+    await expect(harness.execute('uploadImage', { file })).resolves.toEqual({
+      url: UPLOADED,
+      width: 8,
+      height: 8,
+      bytes: 74,
+      contentType: 'image/png'
+    })
+    expect(sent.map(at)).toEqual(['window POST exampleletter.substack.com/api/v1/image'])
+    expect(sent[0]!.body).toEqual({ image: `data:image/png;base64,${PNG.toString('base64')}` })
+  })
+
+  it('names a JPEG by its bytes, reads ~/ as the home folder, and falls back to the primary publication', async () => {
+    const home = scratch()
+    vi.stubEnv('HOME', home)
+    writeFileSync(join(home, 'hero.jpg'), Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00]))
+    const { sent, harness } = setup(answered, {})
+    await harness.execute('uploadImage', { file: '~/hero.jpg' })
+    expect(sent.map(at)).toEqual([
+      'window GET substack.com/api/v1/user/profile/self',
+      'window POST exampleletter.substack.com/api/v1/image'
+    ])
+    expect((sent[1]!.body as { image: string }).image).toMatch(/^data:image\/jpeg;base64,/)
+  })
+
+  it('refuses, before any request, a path it cannot use or a file that is not a picture that fits', async () => {
+    const dir = scratch()
+    writeFileSync(join(dir, 'notes.txt'), 'words')
+    writeFileSync(join(dir, 'huge.png'), Buffer.concat([PNG, Buffer.alloc((MAX_UPLOAD_BODY / 4) * 3)]))
+    mkdirSync(join(dir, 'folder'))
+    const { sent, harness } = setup(answered)
+    const refusals: Array<[string, RegExp]> = [
+      // An empty file is refused by the SDK, which checks required inputs first.
+      ['', /file/],
+      ['hero.png', /absolute path/],
+      ['~other/hero.png', /absolute path/],
+      [join(dir, 'missing.png'), /No file at/],
+      [join(dir, 'folder'), /No file at/],
+      [join(dir, 'notes.txt'), /notes.txt is not a JPEG or PNG/],
+      [join(dir, 'huge.png'), /huge.png is \d+ bytes; the upload takes at most \d+/]
+    ]
+    for (const [file, reason] of refusals) {
+      const refused = await harness.execute('uploadImage', { file }).catch((error: unknown) => error)
+      expect(refused).toBeInstanceOf(ActionArgumentError)
+      expect(refused).toMatchObject({ field: 'file', message: expect.stringMatching(reason) })
+    }
+    expect(sent).toEqual([])
+  })
+
+  it('fails when Substack answers without an address', async () => {
+    const file = join(scratch(), 'hero.png')
+    writeFileSync(file, PNG)
+    const { harness } = setup(() => ({ body: { id: 1 } }))
+    await expect(harness.execute('uploadImage', { file })).rejects.toThrow(/without an address/)
+  })
+})
+
+describe('saveDraft', () => {
+  const HERO = `---\n\n![A lighthouse](${UPLOADED})\n\nWords.`
+  function draftSite(draft: { status?: number; body?: unknown } = { body: { id: 9, is_published: false } }) {
+    return setup((r) => {
+      if (r.url.pathname.endsWith('/profile/self')) return { body: PROFILE }
+      if (r.method === 'GET' && r.url.pathname === '/api/v1/drafts/9') return draft
+      if (r.method === 'POST' && r.url.pathname === '/api/v1/drafts') return { body: { id: 215726718 } }
+      if (r.method === 'PUT') return { body: {} }
+      return undefined
+    })
+  }
+
+  it('saves a new draft, cover and picture block included, when no id is given or a template left it empty', async () => {
+    for (const draftId of [undefined, '', '  ', 0]) {
+      const { sent, harness } = draftSite()
+      const out = await harness.execute('saveDraft', {
+        ...(draftId !== undefined && { draftId }),
+        title: 'Hello',
+        subtitle: 'World',
+        body: HERO,
+        coverImage: UPLOADED
+      })
+      expect(out).toEqual({
+        id: 215726718,
+        title: 'Hello',
+        editUrl: 'https://exampleletter.substack.com/publish/post/215726718',
+        created: true
+      })
+      expect(sent.map(at)).toEqual([
+        'window GET substack.com/api/v1/user/profile/self',
+        'window POST exampleletter.substack.com/api/v1/drafts'
+      ])
+      const draft = sent[1]!.body as Record<string, unknown>
+      expect(draft).toMatchObject({
+        draft_title: 'Hello',
+        draft_subtitle: 'World',
+        cover_image: UPLOADED,
+        draft_bylines: [{ id: 204810422, is_guest: false }],
+        type: 'newsletter',
+        audience: 'everyone'
+      })
+      expect(JSON.parse(draft.draft_body as string).content[1]).toEqual({
+        type: 'captionedImage',
+        content: [
+          { type: 'image2', attrs: { src: UPLOADED, width: 8, height: 8, alt: 'A lighthouse', title: null } }
+        ]
+      })
+    }
+  })
+
+  it('updates the draft it names, once it has checked the draft is still one, and leaves an unnamed cover alone', async () => {
+    const { sent, harness } = draftSite()
+    await expect(harness.execute('saveDraft', { draftId: 9, title: 'New', body: 'Words' })).resolves.toEqual({
+      id: 9,
+      title: 'New',
+      editUrl: 'https://exampleletter.substack.com/publish/post/9',
+      created: false
+    })
+    expect(sent.map(at)).toEqual([
+      'window GET substack.com/api/v1/user/profile/self',
+      'window GET exampleletter.substack.com/api/v1/drafts/9',
+      'window PUT exampleletter.substack.com/api/v1/drafts/9'
+    ])
+    expect(sent[2]!.body).toMatchObject({ draft_title: 'New', draft_subtitle: '' })
+    expect(sent[2]!.body).not.toHaveProperty('cover_image')
+  })
+
+  it('saves a new draft instead when the one named was deleted or has been published', async () => {
+    for (const draft of [{ status: 404, body: { error: 'Draft not found' } }, { body: { id: 9, is_published: true } }]) {
+      const { sent, harness } = draftSite(draft)
+      const out = await harness.execute('saveDraft', { draftId: '9', title: 't', body: 'b', coverImage: UPLOADED })
+      expect(out).toMatchObject({ id: 215726718, created: true })
+      expect(sent.map(at).slice(1)).toEqual([
+        'window GET exampleletter.substack.com/api/v1/drafts/9',
+        'window POST exampleletter.substack.com/api/v1/drafts'
+      ])
+      expect(sent.filter((s) => s.method === 'PUT')).toEqual([])
+    }
+  })
+
+  it('refuses an id that is not a draft id, before any request', async () => {
+    const { sent, harness } = draftSite()
+    for (const draftId of ['-3', '1.5']) {
+      const refused = await harness.execute('saveDraft', { draftId, title: 't', body: 'b' }).catch((error: unknown) => error)
+      expect(refused).toBeInstanceOf(ActionArgumentError)
+      expect(refused).toMatchObject({ field: 'draftId' })
+    }
+    await expect(harness.execute('saveDraft', { draftId: 'abc', title: 't', body: 'b' })).rejects.toThrow(/number/)
+    await expect(harness.execute('saveDraft', { title: ' ', body: 'b' })).rejects.toThrow(/title is required/)
+    await expect(harness.execute('saveDraft', { title: 't', body: ' ' })).rejects.toThrow(/body is required/)
+    expect(sent).toEqual([])
+  })
+
+  it('reports any other answer to the check, and a new draft that comes back without an id', async () => {
+    const broken = draftSite({ status: 500, body: { error: 'Oops' } })
+    await expect(broken.harness.execute('saveDraft', { draftId: 9, title: 't', body: 'b' })).rejects.toThrow(
+      /GET \/api\/v1\/drafts\/9 answered 500: Oops/
+    )
+    expect(broken.sent.filter((s) => s.method !== 'GET')).toEqual([])
+    const { harness } = setup((r) => (r.url.pathname.endsWith('/profile/self') ? { body: PROFILE } : { body: {} }))
+    await expect(harness.execute('saveDraft', { title: 't', body: 'b' })).rejects.toThrow(/without the new draft's id/)
   })
 })
 
@@ -790,7 +1004,12 @@ describe('publishing', () => {
     await harness.execute('getPost', { post: 'a-post' })
     await harness.execute('createDraft', { title: 't', body: 'b' })
     await harness.execute('updateDraft', { draftId: '1', title: 't', body: 'b' })
+    await harness.execute('saveDraft', { draftId: '1', title: 't', body: 'b', coverImage: UPLOADED })
+    await harness.execute('saveDraft', { title: 't', body: 'b' })
     await harness.execute('deleteDraft', { draftId: '1' })
+    const file = join(scratch(), 'hero.png')
+    writeFileSync(file, PNG)
+    await harness.execute('uploadImage', { file }).catch(() => {})
     await harness.execute('commentOnPost', { postId: '1', body: 'c' })
     await harness.execute('setCommentLike', { commentId: '1', liked: 'true' })
     await harness.execute('deleteComment', { commentId: '1' })
@@ -800,7 +1019,7 @@ describe('publishing', () => {
     await harness.execute('readNotes', {})
     await harness.execute('deleteNote', { noteId: '1' })
     await harness.execute('readSubscriberCount', {})
-    expect(sent.length).toBeGreaterThan(17)
+    expect(sent.length).toBeGreaterThan(20)
     expect(
       sent.filter(
         (s) => /publish|schedule/i.test(s.url.pathname) && !s.url.pathname.startsWith('/api/v1/publish-dashboard/')

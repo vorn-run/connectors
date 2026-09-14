@@ -13,7 +13,10 @@ const NODES = new Set([
   'blockquote',
   'code_block',
   'horizontal_rule',
-  'hard_break'
+  'hard_break',
+  // Read back from a published post's body on 2026-09-14.
+  'captionedImage',
+  'image2'
 ])
 const MARKS = new Set(['strong', 'em', 'code', 'strikethrough', 'link'])
 
@@ -98,11 +101,47 @@ describe('markdown as a Substack draft body', () => {
     expect(doc.content?.[0]?.content?.map((n) => n.text).join('')).toContain('click')
   })
 
-  it('links a picture rather than dropping it, since uploading one is the editor’s job', () => {
+  it('links a picture from anywhere but Substack rather than dropping it', () => {
     const doc = markdownToDoc('![the chart](https://example.com/chart.png)')
     expect(doc.content?.[0]?.content).toEqual([
       t('the chart', [{ type: 'link', attrs: { href: 'https://example.com/chart.png' } }])
     ])
+  })
+
+  it('makes a paragraph holding only an uploaded picture the editor’s picture block, its size from the file name', () => {
+    const src = 'https://substack-post-media.s3.amazonaws.com/public/images/6e0bf0d8-f0ba_1456x816.jpeg'
+    const doc = markdownToDoc(`---\n\n![A lighthouse at dusk](${src} "Hero")\n\nAfter.`)
+    expect(doc.content).toEqual([
+      { type: 'horizontal_rule' },
+      {
+        type: 'captionedImage',
+        content: [
+          {
+            type: 'image2',
+            attrs: { src, width: 1456, height: 816, alt: 'A lighthouse at dusk', title: 'Hero' }
+          }
+        ]
+      },
+      { type: 'paragraph', content: [t('After.')] }
+    ])
+  })
+
+  it('takes a substackcdn.com address too, leaving the size empty when the name does not carry it', () => {
+    const src = 'https://substackcdn.com/image/fetch/f_auto/picture.png'
+    expect(markdownToDoc(`![](${src})`).content).toEqual([
+      {
+        type: 'captionedImage',
+        content: [{ type: 'image2', attrs: { src, width: null, height: null, alt: null, title: null } }]
+      }
+    ])
+  })
+
+  it('keeps a link for a Substack picture sharing its paragraph, or served over plain http', () => {
+    const src = 'https://substack-post-media.s3.amazonaws.com/public/images/a_8x8.png'
+    const shared = markdownToDoc(`Look: ![pic](${src})`)
+    expect(shared.content?.[0]?.type).toBe('paragraph')
+    const plain = markdownToDoc('![pic](http://substackcdn.com/a_8x8.png)')
+    expect(plain.content?.[0]?.type).toBe('paragraph')
   })
 
   it('writes a table as one line per row', () => {

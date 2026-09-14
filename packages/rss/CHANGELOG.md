@@ -2,6 +2,10 @@
 
 All notable changes to `@vornrun/connector-rss`.
 
+## 0.1.3
+
+- **Save feeds to a file** (`saveFeeds`): reads feeds exactly as Read feeds does, then writes `{ generatedAt, feedsOk, feedsFailed, count, items }` to a JSON file and returns only `path`, `count`, `feedsOk` and `feedsFailed`. A week of items can outgrow what a workflow template carries, and a later step can read the file instead. The path is absolute or starts with `~/`; the folder is created when missing, and the file is written beside itself and renamed into place, so a reader never sees half of it.
+
 ## 0.1.2
 
 Speaks Vorn's own connector protocol instead of MCP, so it needs Vorn 0.7.1-beta.3 or later. Action arguments arrive as typed values.

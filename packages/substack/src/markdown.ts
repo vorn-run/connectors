@@ -55,7 +55,7 @@ function inline(tokens: Token[], marks: DocMark[] = []): DocNode[] {
         return inline(link.tokens, withLink(marks, link.href))
       }
       case 'image': {
-        // A picture needs an upload the editor does itself; the draft keeps a link to it instead.
+        // Only a picture on Substack and alone in its paragraph becomes a block; any other keeps a link to it.
         const image = token as Tokens.Image
         return text(image.text || image.href, withLink(marks, image.href))
       }
@@ -69,7 +69,36 @@ function inline(tokens: Token[], marks: DocMark[] = []): DocNode[] {
   })
 }
 
+/** Where Upload image puts a picture, and the address Substack serves it through. */
+const MEDIA_HOST = /^(substack-post-media\.s3\.amazonaws\.com|substackcdn\.com)$/
+/** Substack writes an uploaded picture's size into its file name, as `_1456x816.png`. */
+const SIZE_IN_NAME = /_(\d+)x(\d+)\.\w+$/
+
+/** The editor's picture block, for a paragraph holding nothing but a picture uploaded to Substack. */
+function uploadedImage(tokens: Token[]): DocNode | undefined {
+  const kept = tokens.filter((token) => !(token.type === 'text' && token.raw.trim() === ''))
+  if (kept.length !== 1 || kept[0]!.type !== 'image') return undefined
+  const image = kept[0] as Tokens.Image
+  const url = URL.canParse(image.href) ? new URL(image.href) : undefined
+  if (url?.protocol !== 'https:' || !MEDIA_HOST.test(url.hostname)) return undefined
+  const size = SIZE_IN_NAME.exec(url.pathname)
+  return node('captionedImage', [
+    {
+      type: 'image2',
+      attrs: {
+        src: image.href,
+        width: size ? Number(size[1]) : null,
+        height: size ? Number(size[2]) : null,
+        alt: image.text || null,
+        title: image.title || null
+      }
+    }
+  ])
+}
+
 function paragraph(tokens: Token[]): DocNode[] {
+  const picture = uploadedImage(tokens)
+  if (picture) return [picture]
   const content = inline(tokens)
   return content.length > 0 ? [node('paragraph', content)] : []
 }
@@ -135,7 +164,7 @@ function blocks(tokens: Token[]): DocNode[] {
   })
 }
 
-/** Markdown as the document Substack's editor saves: headings, lists, quotes, code, rules, and inline marks. */
+/** Markdown as the document Substack's editor saves: headings, lists, quotes, code, rules, pictures, and inline marks. */
 export function markdownToDoc(markdown: string): DocNode {
   const content = blocks(Lexer.lex(markdown, { gfm: true }))
   return {

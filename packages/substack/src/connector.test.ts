@@ -116,11 +116,15 @@ describe('the manifest', () => {
     ])
   })
 
-  it('passes its own conformance run, but for Upload image refusing the placeholder file before any request', async () => {
+  it('passes its own conformance run, but for Upload image and Post a note refusing their placeholders before any request', async () => {
     const run = await runConformance(connector, { mock: true })
     const mock = run.findings.filter((item) => item.code.startsWith('mock'))
-    expect(mock.map((item) => [item.code, item.target])).toEqual([['mock-action-failed', 'action uploadImage']])
+    expect(mock.map((item) => [item.code, item.target])).toEqual([
+      ['mock-action-failed', 'action uploadImage'],
+      ['mock-action-failed', 'action postNote']
+    ])
     expect(mock[0]!.message).toMatch(/file must be an absolute path or start with ~\//)
+    expect(mock[1]!.message).toMatch(/link must be a web address starting with https/)
     // The refusal is a warning, which the SDK counts against mock.
     expect(run.passed).toEqual(expect.arrayContaining(['manifest', 'auth', 'secrets', 'actions', 'dedupe']))
     expect(run.passed).not.toContain('mock')
@@ -594,19 +598,22 @@ describe('comments as the signed-in account', () => {
     ).resolves.toEqual({ postId: 5, id: 77 })
     expect(sent.map(at)).toEqual([
       'plain GET exampleletter.substack.com/api/v1/posts/a-post',
-      'window POST exampleletter.substack.com/api/v1/post/5/comment'
+      'window POST substack.com/api/v1/post/5/comment'
     ])
     expect(sent[1]?.body).toEqual({ body: 'Nice' })
   })
 
-  it('refuses to comment on a custom domain, which the window never signed in to', async () => {
-    const { harness } = setup(() => ({ body: { id: 5 } }))
+  it('comments on a post on a custom domain, looked up at its own address', async () => {
+    const { sent, harness } = setup((r) =>
+      r.url.pathname === '/api/v1/posts/a-post' ? { body: { id: 5 } } : { body: { id: 78 } }
+    )
     await expect(
-      harness.execute('commentOnPost', {
-        post: 'https://www.lennysnewsletter.com/p/a-post',
-        body: 'x'
-      })
-    ).rejects.toThrow(/custom domain/)
+      harness.execute('commentOnPost', { post: 'https://www.lennysnewsletter.com/p/a-post', body: 'x' })
+    ).resolves.toEqual({ postId: 5, id: 78 })
+    expect(sent.map(at)).toEqual([
+      'plain GET www.lennysnewsletter.com/api/v1/posts/a-post',
+      'window POST substack.com/api/v1/post/5/comment'
+    ])
   })
 
   it('likes and unlikes a comment', async () => {
@@ -786,8 +793,8 @@ describe('likes and restacks on a post', () => {
     await harness.execute('setPostLike', { postId: '5', liked: 'false' })
     expect(sent.map(at)).toEqual([
       'plain GET exampleletter.substack.com/api/v1/posts/a-post',
-      'window POST exampleletter.substack.com/api/v1/post/5/reaction',
-      'window DELETE exampleletter.substack.com/api/v1/post/5/reaction'
+      'window POST substack.com/api/v1/post/5/reaction',
+      'window DELETE substack.com/api/v1/post/5/reaction'
     ])
     expect(sent[1]?.body).toEqual({ reaction: '❤' })
   })
@@ -800,18 +807,26 @@ describe('likes and restacks on a post', () => {
     })
     await harness.execute('setPostRestack', { postId: '5', restacked: 'false' })
     expect(sent.map(at)).toEqual([
-      'window POST exampleletter.substack.com/api/v1/restack/feed',
-      'window DELETE exampleletter.substack.com/api/v1/restack/feed'
+      'window POST substack.com/api/v1/restack/feed',
+      'window DELETE substack.com/api/v1/restack/feed'
     ])
     expect(sent[0]?.body).toEqual({ postId: 5, commentId: null })
   })
 
-  it('refuses a custom domain, which the window never signed in to', async () => {
-    const { sent, harness } = setup(() => ({ body: { id: 5 } }))
+  it('likes and restacks a post on a custom domain, looked up at its own address', async () => {
+    const { sent, harness } = setup((r) => (r.url.pathname === '/api/v1/posts/a-post' ? { body: { id: 5 } } : { body: {} }))
     const post = 'https://www.lennysnewsletter.com/p/a-post'
-    await expect(harness.execute('setPostLike', { post, liked: 'true' })).rejects.toThrow(/custom domain/)
-    await expect(harness.execute('setPostRestack', { post, restacked: 'true' })).rejects.toThrow(/custom domain/)
-    expect(sent).toEqual([])
+    await expect(harness.execute('setPostLike', { post, liked: 'true' })).resolves.toEqual({ postId: 5, liked: true })
+    await expect(harness.execute('setPostRestack', { post, restacked: 'true' })).resolves.toEqual({
+      postId: 5,
+      restacked: true
+    })
+    expect(sent.map(at)).toEqual([
+      'plain GET www.lennysnewsletter.com/api/v1/posts/a-post',
+      'window POST substack.com/api/v1/post/5/reaction',
+      'plain GET www.lennysnewsletter.com/api/v1/posts/a-post',
+      'window POST substack.com/api/v1/restack/feed'
+    ])
   })
 })
 
@@ -852,6 +867,42 @@ describe('Notes', () => {
       surface: 'feed',
       replyMinimumRole: 'everyone'
     })
+  })
+
+  it('posts a Note with a preview card for its link, made first as an attachment', async () => {
+    const card = '49385e9d-266b-434e-9657-3d2e104acd84'
+    const { sent, harness } = setup((r) => {
+      if (r.url.pathname.endsWith('/profile/self')) return { body: PROFILE }
+      if (r.url.pathname.endsWith('/comment/attachment')) return { body: { id: card, type: 'link', linkMetadata: {} } }
+      return { body: { id: 335788095 } }
+    })
+    await expect(
+      harness.execute('postNote', { body: 'Worth a read.', link: 'https://openai.com/index/a-story' })
+    ).resolves.toEqual({ id: 335788095, url: 'https://substack.com/@javiercanizalez/note/c-335788095' })
+    expect(sent.map(at)).toEqual([
+      'window GET substack.com/api/v1/user/profile/self',
+      'window POST substack.com/api/v1/comment/attachment',
+      'window POST substack.com/api/v1/comment/feed'
+    ])
+    expect(sent[1]?.body).toEqual({ url: 'https://openai.com/index/a-story', type: 'link' })
+    expect(sent[2]?.body).toMatchObject({ attachmentIds: [card], tabId: 'for-you' })
+  })
+
+  it('refuses a link card that is not https, before anything is sent', async () => {
+    const { sent, harness } = setup(() => ({ body: {} }))
+    await expect(harness.execute('postNote', { body: 'x', link: 'http://example.com' })).rejects.toThrow(
+      ActionArgumentError
+    )
+    await expect(harness.execute('postNote', { body: 'x', link: 'not an address' })).rejects.toThrow(/https/)
+    expect(sent).toEqual([])
+  })
+
+  it('posts nothing when Substack makes no card for the link', async () => {
+    const { sent, harness } = setup((r) => (r.url.pathname.endsWith('/profile/self') ? { body: PROFILE } : { body: {} }))
+    await expect(harness.execute('postNote', { body: 'x', link: 'https://example.com/a' })).rejects.toThrow(
+      /no preview card/
+    )
+    expect(sent.map(at)).not.toContain('window POST substack.com/api/v1/comment/feed')
   })
 
   it('gives the id without an address when the profile has no handle, and nothing when no id comes back', async () => {

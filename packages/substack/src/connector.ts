@@ -15,9 +15,12 @@ import { postRef, publicationHost, substackHost } from './publication'
 import pkg from '../package.json'
 
 export const ORIGINS = ['https://substack.com', 'https://*.substack.com']
+/** Where Substack's own reader sends likes, restacks and comments, whatever domain the post lives on. */
+export const SITE = 'https://substack.com'
 export const PROFILE_URL = 'https://substack.com/api/v1/user/profile/self'
 export const SEARCH_URL = 'https://substack.com/api/v1/post/search'
 export const NOTES_URL = 'https://substack.com/api/v1/comment/feed'
+export const ATTACHMENT_URL = 'https://substack.com/api/v1/comment/attachment'
 
 /** A publication's feed holds about its last twenty posts. */
 export const MAX_FEED_POSTS = 20
@@ -139,6 +142,22 @@ function publicationsOf(me: Profile): Array<{ subdomain: string; name: string; p
 /** What a step names, else the connection's publication. */
 function stepPublication(value: unknown, config: ConnectorConfig): unknown {
   return text(value) ?? config.publication
+}
+
+/** The address a Note's preview card shows, or nothing when none is given. */
+export function cardLink(value: unknown): string | undefined {
+  const raw = text(value)
+  if (raw === undefined) return undefined
+  let url: URL
+  try {
+    url = new URL(raw)
+  } catch {
+    throw new ActionArgumentError('link', `link must be a web address starting with https://; got "${raw}"`)
+  }
+  if (url.protocol !== 'https:') {
+    throw new ActionArgumentError('link', `link must be a web address starting with https://; got "${raw}"`)
+  }
+  return url.href
 }
 
 async function readPosts(fetchImpl: typeof fetch, host: string): Promise<FeedPost[]> {
@@ -453,6 +472,13 @@ const POST_INPUTS = [
     description: "The post's id, as Search posts returns it; saves looking the post up by address."
   }
 ]
+
+/** A post action goes through substack.com, so the publication only finds a post given by slug. */
+const SLUG_PUBLICATION_INPUT = {
+  ...PUBLICATION_INPUT,
+  description:
+    "The publication a post given by slug is on, as its substack.com subdomain or address; the connection's publication when empty."
+}
 
 const COMMENT_PUBLICATION_INPUT = {
   ...PUBLICATION_INPUT,
@@ -890,7 +916,7 @@ export const connector = defineConnector({
       inputs: [
         ...POST_INPUTS,
         { key: 'body', label: 'Comment', required: true, description: 'The comment, as plain text.' },
-        PUBLICATION_INPUT
+        SLUG_PUBLICATION_INPUT
       ],
       outputs: [
         { key: 'id', type: 'number', description: "The new comment's id" },
@@ -900,11 +926,8 @@ export const connector = defineConnector({
         const session = signedIn(ctx.session)
         const body = text(args.body)
         if (body === undefined) throw new Error('body is required')
-        const publication = stepPublication(args.publication, ctx.config)
-        // Checked before the lookup: a custom domain is outside the window, whatever the post.
-        const host = substackHost(postHost(args.post, publication))
-        const { id } = await resolvePost(ctx.fetch, args.post, args.postId, publication)
-        const comment = await call<{ id?: unknown }>(session.fetch, `https://${host}/api/v1/post/${id}/comment`, {
+        const { id } = await resolvePost(ctx.fetch, args.post, args.postId, stepPublication(args.publication, ctx.config))
+        const comment = await call<{ id?: unknown }>(session.fetch, `${SITE}/api/v1/post/${id}/comment`, {
           method: 'POST',
           body: { body }
         })
@@ -985,17 +1008,14 @@ export const connector = defineConnector({
           required: true,
           description: 'true to like it, false to take the like back.'
         },
-        PUBLICATION_INPUT
+        SLUG_PUBLICATION_INPUT
       ],
       outputs: [{ key: 'liked', type: 'boolean', description: 'The state now set' }],
       run: async (args, ctx) => {
         const session = signedIn(ctx.session)
         const liked = args.liked === true
-        const publication = stepPublication(args.publication, ctx.config)
-        // Checked before the lookup: a custom domain is outside the window, whatever the post.
-        const host = substackHost(postHost(args.post, publication))
-        const { id } = await resolvePost(ctx.fetch, args.post, args.postId, publication)
-        await call(session.fetch, `https://${host}/api/v1/post/${id}/reaction`, {
+        const { id } = await resolvePost(ctx.fetch, args.post, args.postId, stepPublication(args.publication, ctx.config))
+        await call(session.fetch, `${SITE}/api/v1/post/${id}/reaction`, {
           method: liked ? 'POST' : 'DELETE',
           body: { reaction: REACTION }
         })
@@ -1017,16 +1037,14 @@ export const connector = defineConnector({
           required: true,
           description: 'true to restack it, false to take the restack back.'
         },
-        PUBLICATION_INPUT
+        SLUG_PUBLICATION_INPUT
       ],
       outputs: [{ key: 'restacked', type: 'boolean', description: 'The state now set' }],
       run: async (args, ctx) => {
         const session = signedIn(ctx.session)
         const restacked = args.restacked === true
-        const publication = stepPublication(args.publication, ctx.config)
-        const host = substackHost(postHost(args.post, publication))
-        const { id } = await resolvePost(ctx.fetch, args.post, args.postId, publication)
-        await call(session.fetch, `https://${host}/api/v1/restack/feed`, {
+        const { id } = await resolvePost(ctx.fetch, args.post, args.postId, stepPublication(args.publication, ctx.config))
+        await call(session.fetch, `${SITE}/api/v1/restack/feed`, {
           method: restacked ? 'POST' : 'DELETE',
           body: { postId: id, commentId: null }
         })
@@ -1045,6 +1063,13 @@ export const connector = defineConnector({
           label: 'Note',
           required: true,
           description: "The Note in markdown, converted the way a draft's body is."
+        },
+        {
+          key: 'link',
+          label: 'Link card',
+          description:
+            "An https address to show as a preview card under the Note, the card Substack's composer makes from a pasted link; it is not added to the text.",
+          builderHint: "Leave the address out of the Note's text when it goes here, or it shows twice."
         }
       ],
       outputs: [
@@ -1055,14 +1080,26 @@ export const connector = defineConnector({
         const session = signedIn(ctx.session)
         const body = text(args.body)
         if (body === undefined) throw new Error('body is required')
+        const link = cardLink(args.link)
         const me = await call<Profile>(session.fetch, PROFILE_URL)
+        const card =
+          link === undefined
+            ? undefined
+            : await call<{ id?: unknown }>(session.fetch, ATTACHMENT_URL, {
+                method: 'POST',
+                body: { url: link, type: 'link' }
+              })
+        if (card && (typeof card.id !== 'string' || card.id === '')) {
+          throw new Error(`Substack made no preview card for ${link}, so the Note was not posted`)
+        }
         const note = await call<{ id?: unknown }>(session.fetch, NOTES_URL, {
           method: 'POST',
           body: {
             bodyJson: { ...markdownToDoc(body), attrs: { schemaVersion: 'v1' } },
             tabId: 'for-you',
             surface: 'feed',
-            replyMinimumRole: 'everyone'
+            replyMinimumRole: 'everyone',
+            ...(card && { attachmentIds: [card.id] })
           }
         })
         if (typeof note.id !== 'number') return {}

@@ -2,6 +2,15 @@
 
 All notable changes to `@vornrun/connector-substack`.
 
+## 0.2.3
+
+Likes, restacks and comments reach any post, and a Note can carry a link card.
+
+- **`setPostLike`, `setPostRestack` and `commentOnPost`** send their request to `substack.com` by post id, the way Substack's own reader does, instead of to the post's publication. A post on a publication's own domain now works: it is looked up at its own address without the signed-in window, then liked, restacked or commented on through substack.com. Before, such a post was refused, and its substack.com address failed after redirecting. `publication` now only finds a post given by slug.
+- **`postNote`** takes an optional `link`, an https address shown as a preview card under the Note. The card is made first with `POST substack.com/api/v1/comment/attachment` (`{ url, type: "link" }`), as the Note composer does with a pasted link, and its id goes in the Note's `attachmentIds`. When Substack makes no card, nothing is posted. Without `link` the request is unchanged.
+
+The attachment call and its answer (`id`, `type`, `linkMetadata`) and the post actions' substack.com paths were read from Substack's own web app on 2026-09-15; the attachment was then created once on the author's account without posting a Note.
+
 ## 0.2.2
 
 Pictures in drafts, and one action a workflow can run every week against the same draft.

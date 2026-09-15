@@ -75,19 +75,23 @@ for templates.
 | `saveDraft` | no | yes | `GET substack.com/api/v1/user/profile/self` for the byline. With a `draftId` that is not empty or 0, `GET /api/v1/drafts/<id>`: when it is still an unpublished draft, `PUT /api/v1/drafts/<id>` with the new title, subtitle and markdown body. Otherwise, a 404 or a published post included, `POST /api/v1/drafts` saves a new one. `coverImage`, when given, is sent as the draft's `cover_image`; when empty the cover is left as it is. Returns `id`, `title`, `editUrl` and `created`. |
 | `deleteDraft` | no | yes | `GET`, then `DELETE /api/v1/drafts/<id>`; a published post is refused. Returns `deleted`. |
 | `uploadImage` | no | yes | Reads `file` (a JPEG or PNG, absolute or starting `~/`), then `POST /api/v1/image` on the publication with `{ image: "data:<type>;base64,…" }`. A file whose body would pass 1,000,000 bytes, about 730 KB, is refused before it is read, since the signed-in window carries at most 1 MiB. Returns `url`, `width`, `height`, `bytes` and `contentType`. |
-| `commentOnPost` | no | yes | `POST /api/v1/post/<id>/comment` with `{ body }`. Returns `id` and `postId`. |
+| `commentOnPost` | no | yes | `POST substack.com/api/v1/post/<id>/comment` with `{ body }`. Returns `id` and `postId`. |
 | `setCommentLike` | yes | yes | `POST` to like or `DELETE` to unlike `/api/v1/comment/<id>/reaction`, with `{ reaction: "❤" }`. Returns `liked`. |
 | `deleteComment` | no | yes | `DELETE /api/v1/comment/<id>`. Returns `deleted`. |
-| `setPostLike` | no | yes | `POST` to like or `DELETE` to unlike `/api/v1/post/<id>/reaction`, with `{ reaction: "❤" }`. Returns `postId` and `liked`. |
-| `setPostRestack` | no | yes | `POST` to restack or `DELETE` to undo `/api/v1/restack/feed`, with `{ postId, commentId: null }`. Posts only. Returns `postId` and `restacked`. |
-| `postNote` | no | yes | `GET substack.com/api/v1/user/profile/self` for the handle, then `POST substack.com/api/v1/comment/feed` with the markdown as the editor's document under `attrs.schemaVersion: "v1"`, plus `tabId: "for-you"`, `surface: "feed"` and `replyMinimumRole: "everyone"`. Returns `id` and `url`. |
+| `setPostLike` | no | yes | `POST` to like or `DELETE` to unlike `substack.com/api/v1/post/<id>/reaction`, with `{ reaction: "❤" }`. Returns `postId` and `liked`. |
+| `setPostRestack` | no | yes | `POST` to restack or `DELETE` to undo `substack.com/api/v1/restack/feed`, with `{ postId, commentId: null }`. Posts only. Returns `postId` and `restacked`. |
+| `postNote` | no | yes | `GET substack.com/api/v1/user/profile/self` for the handle; with a `link`, `POST substack.com/api/v1/comment/attachment` with `{ url, type: "link" }` for its preview card; then `POST substack.com/api/v1/comment/feed` with the markdown as the editor's document under `attrs.schemaVersion: "v1"`, plus `tabId: "for-you"`, `surface: "feed"`, `replyMinimumRole: "everyone"` and the card's id in `attachmentIds`. Returns `id` and `url`. |
 | `readNotes` | yes | yes | Resolves a handle with `GET substack.com/api/v1/user/<handle>/public_profile`, or takes the signed-in account, then follows `nextCursor` through `GET substack.com/api/v1/reader/feed/profile/<userId>` for up to ten pages, keeping the items that are Notes. `limit` from 1 to 100, default 20. Returns `profile`, `count` and `notes` (`id`, `body`, `url`, `date`, `likes`, `restacks`). |
 | `deleteNote` | no | yes | `DELETE substack.com/api/v1/comment/<id>`. Returns `deleted`. |
 | `readSubscriberCount` | yes | yes | `GET /api/v1/publish-dashboard/summary` on your publication. Returns `subscribers` (every subscriber, free and paid, from the summary's `totalEmail`, the count the dashboard shows), `paidSubscribers` (from the summary's `subscribers`, which counts paid ones only), `appSubscribers`, `views` and `openRate`, as the summary reports them. |
 
-Writes stay on `*.substack.com`. A publication on a custom domain can be read
-at its own address, but a comment on one of its posts is refused; write to it
-at its substack.com address instead.
+Writes stay on `substack.com` and `*.substack.com`. A like, a restack or a
+comment goes to `substack.com` by post id, as Substack's own reader sends it,
+so a post on a publication's own domain works too: the connector looks it up at
+its own address without the signed-in window, then acts through substack.com.
+
+A Note shows a link as a plain address in its text. For the preview card
+Substack draws under a Note, give the address as `link` instead.
 
 ### Markdown in a draft
 
@@ -111,8 +115,10 @@ Tests make no network calls. Plain and signed-in fetches are separate stubs,
 so each test also says which calls went through the window. There is no live
 check: every signed-in action needs the Vorn window, which the SDK's live
 check skips. The receipt leaves out `mock`, because the check hands every
-input a placeholder and `uploadImage` refuses a placeholder `file` that is not
-absolute before it reads anything; its tests upload from a scratch folder.
+input a placeholder: `uploadImage` refuses a placeholder `file` that is not
+absolute before it reads anything, and `postNote` refuses a placeholder `link`
+that is not an https address before it sends anything. Their tests use a
+scratch folder and a real address.
 
 ## Built from
 

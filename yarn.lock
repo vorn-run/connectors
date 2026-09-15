@@ -1077,12 +1077,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:^22.10.2":
-  version: 22.20.1
-  resolution: "@types/node@npm:22.20.1"
+"@types/node@npm:^26.5.1":
+  version: 26.5.1
+  resolution: "@types/node@npm:26.5.1"
   dependencies:
-    undici-types: "npm:~6.21.0"
-  checksum: 10c0/f2ba54d3d1fb92e1c57c78d32c3a17655b1e87363b707136f55c422b4838d4054901ce5d27f75bb0e5ecb7ebfee3804e0987822d22b473473008091857a09353
+    undici-types: "npm:~8.9.0"
+  checksum: 10c0/40aa7aa4c099c8a08bf39b5bcb15eaf2cc073666c2191b1d9ac8243ce6b68b23ace904a044c521f6d310b70e94514b531be5f4fc184f141a7ce7f0679ebc7bb3
   languageName: node
   linkType: hard
 
@@ -1215,7 +1215,7 @@ __metadata:
   resolution: "@vornrun/connector-ado@workspace:packages/ado"
   dependencies:
     "@azure/identity": "npm:^4.13.1"
-    "@types/node": "npm:^22.10.2"
+    "@types/node": "npm:^26.5.1"
     "@vitest/coverage-v8": "npm:^4.1.10"
     "@vornrun/connector-sdk": "npm:^0.7.1-beta.3"
     azure-devops-node-api: "npm:15.1.2"
@@ -1231,7 +1231,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@vornrun/connector-airtable@workspace:packages/airtable"
   dependencies:
-    "@types/node": "npm:^22.10.2"
+    "@types/node": "npm:^26.5.1"
     "@vitest/coverage-v8": "npm:^4.1.10"
     "@vornrun/connector-sdk": "npm:^0.7.1-beta.3"
     tsup: "npm:^8.5.1"
@@ -1246,7 +1246,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@vornrun/connector-anthropic@workspace:packages/anthropic"
   dependencies:
-    "@types/node": "npm:^22.10.2"
+    "@types/node": "npm:^26.5.1"
     "@vitest/coverage-v8": "npm:^4.1.10"
     "@vornrun/connector-sdk": "npm:^0.7.1-beta.3"
     tsup: "npm:^8.5.1"
@@ -1261,7 +1261,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@vornrun/connector-discord@workspace:packages/discord"
   dependencies:
-    "@types/node": "npm:^22.10.2"
+    "@types/node": "npm:^26.5.1"
     "@vitest/coverage-v8": "npm:^4.1.10"
     "@vornrun/connector-sdk": "npm:^0.7.1-beta.3"
     tsup: "npm:^8.5.1"
@@ -1279,7 +1279,7 @@ __metadata:
     "@octokit/plugin-retry": "npm:^8.1.1"
     "@octokit/plugin-throttling": "npm:^11.0.5"
     "@octokit/rest": "npm:^22.0.1"
-    "@types/node": "npm:^22.10.2"
+    "@types/node": "npm:^26.5.1"
     "@vitest/coverage-v8": "npm:^4.1.10"
     "@vornrun/connector-sdk": "npm:^0.7.1-beta.3"
     tsup: "npm:^8.5.1"
@@ -1294,7 +1294,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@vornrun/connector-gitlab@workspace:packages/gitlab"
   dependencies:
-    "@types/node": "npm:^22.10.2"
+    "@types/node": "npm:^26.5.1"
     "@vitest/coverage-v8": "npm:^4.1.10"
     "@vornrun/connector-sdk": "npm:^0.7.1-beta.3"
     tsup: "npm:^8.5.1"
@@ -1309,7 +1309,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@vornrun/connector-hubspot@workspace:packages/hubspot"
   dependencies:
-    "@types/node": "npm:^22.10.2"
+    "@types/node": "npm:^26.5.1"
     "@vitest/coverage-v8": "npm:^4.1.10"
     "@vornrun/connector-sdk": "npm:^0.7.1-beta.3"
     tsup: "npm:^8.5.1"
@@ -1324,7 +1324,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@vornrun/connector-jira@workspace:packages/jira"
   dependencies:
-    "@types/node": "npm:^22.10.2"
+    "@types/node": "npm:^26.5.1"
     "@vitest/coverage-v8": "npm:^4.1.10"
     "@vornrun/connector-sdk": "npm:^0.7.1-beta.3"
     tsup: "npm:^8.5.1"
@@ -1340,7 +1340,7 @@ __metadata:
   resolution: "@vornrun/connector-kusto@workspace:packages/kusto"
   dependencies:
     "@azure/identity": "npm:^4.13.1"
-    "@types/node": "npm:^22.10.2"
+    "@types/node": "npm:^26.5.1"
     "@vitest/coverage-v8": "npm:^4.1.10"
     "@vornrun/connector-sdk": "npm:^0.7.1-beta.3"
     azure-kusto-data: "npm:7.2.0"
@@ -1356,7 +1356,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@vornrun/connector-linear@workspace:packages/linear"
   dependencies:
-    "@types/node": "npm:^22.10.2"
+    "@types/node": "npm:^26.5.1"
     "@vitest/coverage-v8": "npm:^4.1.10"
     "@vornrun/connector-sdk": "npm:^0.7.1-beta.3"
     tsup: "npm:^8.5.1"
@@ -1371,7 +1371,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@vornrun/connector-mysql@workspace:packages/mysql"
   dependencies:
-    "@types/node": "npm:^22.10.2"
+    "@types/node": "npm:^26.5.1"
     "@vitest/coverage-v8": "npm:^4.1.10"
     "@vornrun/connector-sdk": "npm:^0.7.1-beta.3"
     mysql2: "npm:^3"
@@ -1388,7 +1388,7 @@ __metadata:
   resolution: "@vornrun/connector-notion@workspace:packages/notion"
   dependencies:
     "@notionhq/client": "npm:^5.24.0"
-    "@types/node": "npm:^22.10.2"
+    "@types/node": "npm:^26.5.1"
     "@vitest/coverage-v8": "npm:^4.1.10"
     "@vornrun/connector-sdk": "npm:^0.7.1-beta.3"
     tsup: "npm:^8.5.1"
@@ -1403,7 +1403,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@vornrun/connector-ollama@workspace:packages/ollama"
   dependencies:
-    "@types/node": "npm:^22.10.2"
+    "@types/node": "npm:^26.5.1"
     "@vitest/coverage-v8": "npm:^4.1.10"
     "@vornrun/connector-sdk": "npm:^0.7.1-beta.3"
     tsup: "npm:^8.5.1"
@@ -1418,7 +1418,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@vornrun/connector-openai@workspace:packages/openai"
   dependencies:
-    "@types/node": "npm:^22.10.2"
+    "@types/node": "npm:^26.5.1"
     "@vitest/coverage-v8": "npm:^4.1.10"
     "@vornrun/connector-sdk": "npm:^0.7.1-beta.3"
     tsup: "npm:^8.5.1"
@@ -1433,7 +1433,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@vornrun/connector-postgres@workspace:packages/postgres"
   dependencies:
-    "@types/node": "npm:^22.10.2"
+    "@types/node": "npm:^26.5.1"
     "@vitest/coverage-v8": "npm:^4.1.10"
     "@vornrun/connector-sdk": "npm:^0.7.1-beta.3"
     postgres: "npm:^3.4.9"
@@ -1449,7 +1449,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@vornrun/connector-rss@workspace:packages/rss"
   dependencies:
-    "@types/node": "npm:^22.10.2"
+    "@types/node": "npm:^26.5.1"
     "@vitest/coverage-v8": "npm:^4.1.10"
     "@vornrun/connector-sdk": "npm:^0.7.1-beta.3"
     tsup: "npm:^8.5.1"
@@ -1476,7 +1476,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@vornrun/connector-slack@workspace:packages/slack"
   dependencies:
-    "@types/node": "npm:^22.10.2"
+    "@types/node": "npm:^26.5.1"
     "@vitest/coverage-v8": "npm:^4.1.10"
     "@vornrun/connector-sdk": "npm:^0.7.1-beta.3"
     tsup: "npm:^8.5.1"
@@ -1491,7 +1491,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@vornrun/connector-stripe@workspace:packages/stripe"
   dependencies:
-    "@types/node": "npm:^22.10.2"
+    "@types/node": "npm:^26.5.1"
     "@vitest/coverage-v8": "npm:^4.1.10"
     "@vornrun/connector-sdk": "npm:^0.7.1-beta.3"
     tsup: "npm:^8.5.1"
@@ -1506,7 +1506,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@vornrun/connector-substack@workspace:packages/substack"
   dependencies:
-    "@types/node": "npm:^22.10.2"
+    "@types/node": "npm:^26.5.1"
     "@vitest/coverage-v8": "npm:^4.1.10"
     "@vornrun/connector-sdk": "npm:^0.7.1-beta.3"
     marked: "npm:^18.0.11"
@@ -1522,7 +1522,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@vornrun/connector-telegram@workspace:packages/telegram"
   dependencies:
-    "@types/node": "npm:^22.10.2"
+    "@types/node": "npm:^26.5.1"
     "@vitest/coverage-v8": "npm:^4.1.10"
     "@vornrun/connector-sdk": "npm:^0.7.1-beta.3"
     tsup: "npm:^8.5.1"
@@ -1537,7 +1537,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@vornrun/connector-trello@workspace:packages/trello"
   dependencies:
-    "@types/node": "npm:^22.10.2"
+    "@types/node": "npm:^26.5.1"
     "@vitest/coverage-v8": "npm:^4.1.10"
     "@vornrun/connector-sdk": "npm:^0.7.1-beta.3"
     tsup: "npm:^8.5.1"
@@ -1552,7 +1552,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@vornrun/connector-x@workspace:packages/x"
   dependencies:
-    "@types/node": "npm:^22.10.2"
+    "@types/node": "npm:^26.5.1"
     "@vitest/coverage-v8": "npm:^4.1.10"
     "@vornrun/connector-sdk": "npm:^0.7.1-beta.3"
     tsup: "npm:^8.5.1"
@@ -3572,10 +3572,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"undici-types@npm:~6.21.0":
-  version: 6.21.0
-  resolution: "undici-types@npm:6.21.0"
-  checksum: 10c0/c01ed51829b10aa72fc3ce64b747f8e74ae9b60eafa19a7b46ef624403508a54c526ffab06a14a26b3120d055e1104d7abe7c9017e83ced038ea5cf52f8d5e04
+"undici-types@npm:~8.9.0":
+  version: 8.9.0
+  resolution: "undici-types@npm:8.9.0"
+  checksum: 10c0/51c712c20c087368f62c6fc0f2bc49fa76bfe5dec28ff01584bb677ff29b0622569783c02d43e151143808c48c0503f804093bd2c491b10f2a830138034cb451
   languageName: node
   linkType: hard
 

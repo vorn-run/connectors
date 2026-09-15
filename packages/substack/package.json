@@ -41,7 +41,7 @@
     "@vornrun/connector-sdk": "^0.7.1-beta.3"
   },
   "devDependencies": {
-    "@types/node": "^22.10.2",
+    "@types/node": "^26.5.1",
     "@vitest/coverage-v8": "^4.1.10",
     "marked": "^18.0.11",
     "tsup": "^8.5.1",

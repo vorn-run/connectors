@@ -1,6 +1,6 @@
 {
   "name": "@vornrun/connector-substack",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Trigger workflows from new posts on a Substack publication, and read, search, like, restack and comment on posts, post and read Notes, or save and update a draft with pictures from a step.",
   "type": "module",
   "license": "MIT",

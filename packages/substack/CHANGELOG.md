@@ -2,6 +2,10 @@
 
 All notable changes to `@vornrun/connector-substack`.
 
+## 0.2.4
+
+- **`commentOnPost`** works through substack.com. 0.2.3 sent `{ body }` there, which Substack answers 404; it takes the comment as the editor's document in `bodyJson` together with the post's `publication_id`. The id comes from the post's lookup, or from `GET substack.com/api/v1/posts/by-id/<id>` when only the post's id is given. Checked on 2026-09-15 on the author's own post: `{ body }` and `bodyJson` alone answered 404, `bodyJson` with `publication_id` made the comment, which was deleted.
+
 ## 0.2.3
 
 Likes, restacks and comments reach any post, and a Note can carry a link card.

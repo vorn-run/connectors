@@ -218,7 +218,7 @@ export async function resolvePost(
   post: unknown,
   postId: unknown,
   publication: unknown
-): Promise<{ host: string; id: number }> {
+): Promise<{ host: string; id: number; publicationId?: number }> {
   const raw = text(post)
   const ref = raw?.includes('/') ? postRef(raw) : undefined
   const host = postHost(post, publication)
@@ -227,9 +227,17 @@ export async function resolvePost(
   if (/^\d+$/.test(raw)) return { host, id: Number(raw) }
   const slug = ref?.slug ?? raw
   if (!SLUG.test(slug)) throw new Error(`"${slug}" is not a post slug`)
-  const found = await call<{ id?: unknown }>(fetchImpl, `https://${host}/api/v1/posts/${slug}`)
+  const found = await call<{ id?: unknown; publication_id?: unknown }>(fetchImpl, `https://${host}/api/v1/posts/${slug}`)
   if (typeof found.id !== 'number') throw new Error(`No post "${slug}" on ${host}`)
-  return { host, id: found.id }
+  return { host, id: found.id, ...(typeof found.publication_id === 'number' && { publicationId: found.publication_id }) }
+}
+
+/** The publication a post is on, from Substack's public lookup by id; a comment names it. */
+async function postPublicationId(fetchImpl: typeof fetch, id: number): Promise<number> {
+  const found = await call<{ post?: { publication_id?: unknown } }>(fetchImpl, `${SITE}/api/v1/posts/by-id/${id}`)
+  const publicationId = found.post?.publication_id
+  if (typeof publicationId !== 'number') throw new Error(`Could not find which publication post ${id} is on`)
+  return publicationId
 }
 
 export function postItem(post: FeedPost): ConnectorItem {
@@ -926,12 +934,14 @@ export const connector = defineConnector({
         const session = signedIn(ctx.session)
         const body = text(args.body)
         if (body === undefined) throw new Error('body is required')
-        const { id } = await resolvePost(ctx.fetch, args.post, args.postId, stepPublication(args.publication, ctx.config))
-        const comment = await call<{ id?: unknown }>(session.fetch, `${SITE}/api/v1/post/${id}/comment`, {
+        const post = await resolvePost(ctx.fetch, args.post, args.postId, stepPublication(args.publication, ctx.config))
+        const publicationId = post.publicationId ?? (await postPublicationId(ctx.fetch, post.id))
+        // substack.com answers 404 unless the comment names the post's publication.
+        const comment = await call<{ id?: unknown }>(session.fetch, `${SITE}/api/v1/post/${post.id}/comment`, {
           method: 'POST',
-          body: { body }
+          body: { bodyJson: { ...markdownToDoc(body), attrs: { schemaVersion: 'v1' } }, publication_id: publicationId }
         })
-        return { postId: id, ...(typeof comment.id === 'number' && { id: comment.id }) }
+        return { postId: post.id, ...(typeof comment.id === 'number' && { id: comment.id }) }
       }
     },
     {

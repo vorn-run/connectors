@@ -2192,7 +2192,7 @@
       "name": "Substack",
       "description": "Trigger workflows from new posts on a Substack publication, and read, search, like, restack and comment on posts, post and read Notes, or save and update a draft with pictures from a step.",
       "packageName": "@vornrun/connector-substack",
-      "version": "0.2.3",
+      "version": "0.2.4",
       "capabilities": [
         "triggers",
         "actions"
@@ -2211,8 +2211,8 @@
       "authRung": "browser",
       "verified": {
         "schema": 1,
-        "version": "0.2.3",
-        "checkedAt": "2026-09-15T17:51:54.942Z",
+        "version": "0.2.4",
+        "checkedAt": "2026-09-15T18:04:18.580Z",
         "checks": [
           "manifest",
           "auth",
@@ -2225,7 +2225,7 @@
           "launch"
         ]
       },
-      "packUrl": "https://github.com/vorn-run/connectors/releases/download/substack-v0.2.3/substack-0.2.3.vorn.tgz",
+      "packUrl": "https://github.com/vorn-run/connectors/releases/download/substack-v0.2.4/substack-0.2.4.vorn.tgz",
       "icon": {
         "viewBox": "0 0 24 24",
         "paths": [

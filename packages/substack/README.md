@@ -75,7 +75,7 @@ for templates.
 | `saveDraft` | no | yes | `GET substack.com/api/v1/user/profile/self` for the byline. With a `draftId` that is not empty or 0, `GET /api/v1/drafts/<id>`: when it is still an unpublished draft, `PUT /api/v1/drafts/<id>` with the new title, subtitle and markdown body. Otherwise, a 404 or a published post included, `POST /api/v1/drafts` saves a new one. `coverImage`, when given, is sent as the draft's `cover_image`; when empty the cover is left as it is. Returns `id`, `title`, `editUrl` and `created`. |
 | `deleteDraft` | no | yes | `GET`, then `DELETE /api/v1/drafts/<id>`; a published post is refused. Returns `deleted`. |
 | `uploadImage` | no | yes | Reads `file` (a JPEG or PNG, absolute or starting `~/`), then `POST /api/v1/image` on the publication with `{ image: "data:<type>;base64,…" }`. A file whose body would pass 1,000,000 bytes, about 730 KB, is refused before it is read, since the signed-in window carries at most 1 MiB. Returns `url`, `width`, `height`, `bytes` and `contentType`. |
-| `commentOnPost` | no | yes | `POST substack.com/api/v1/post/<id>/comment` with `{ body }`. Returns `id` and `postId`. |
+| `commentOnPost` | no | yes | `POST substack.com/api/v1/post/<id>/comment` with the comment as the editor's document in `bodyJson` and the post's `publication_id`, read from the post's lookup (or `GET substack.com/api/v1/posts/by-id/<id>` when only its id is given). Returns `id` and `postId`. |
 | `setCommentLike` | yes | yes | `POST` to like or `DELETE` to unlike `/api/v1/comment/<id>/reaction`, with `{ reaction: "❤" }`. Returns `liked`. |
 | `deleteComment` | no | yes | `DELETE /api/v1/comment/<id>`. Returns `deleted`. |
 | `setPostLike` | no | yes | `POST` to like or `DELETE` to unlike `substack.com/api/v1/post/<id>/reaction`, with `{ reaction: "❤" }`. Returns `postId` and `liked`. |
@@ -116,9 +116,10 @@ so each test also says which calls went through the window. There is no live
 check: every signed-in action needs the Vorn window, which the SDK's live
 check skips. The receipt leaves out `mock`, because the check hands every
 input a placeholder: `uploadImage` refuses a placeholder `file` that is not
-absolute before it reads anything, and `postNote` refuses a placeholder `link`
-that is not an https address before it sends anything. Their tests use a
-scratch folder and a real address.
+absolute before it reads anything, `postNote` refuses a placeholder `link`
+that is not an https address before it sends anything, and `commentOnPost`
+stops when the placeholder answer names no publication for the post. Their
+tests use a scratch folder, a real address and a lookup that names one.
 
 ## Built from
 

@@ -116,15 +116,17 @@ describe('the manifest', () => {
     ])
   })
 
-  it('passes its own conformance run, but for Upload image and Post a note refusing their placeholders before any request', async () => {
+  it('passes its own conformance run, but for the actions that stop on a placeholder or a placeholder answer', async () => {
     const run = await runConformance(connector, { mock: true })
     const mock = run.findings.filter((item) => item.code.startsWith('mock'))
     expect(mock.map((item) => [item.code, item.target])).toEqual([
       ['mock-action-failed', 'action uploadImage'],
+      ['mock-action-failed', 'action commentOnPost'],
       ['mock-action-failed', 'action postNote']
     ])
     expect(mock[0]!.message).toMatch(/file must be an absolute path or start with ~\//)
-    expect(mock[1]!.message).toMatch(/link must be a web address starting with https/)
+    expect(mock[1]!.message).toMatch(/which publication post/)
+    expect(mock[2]!.message).toMatch(/link must be a web address starting with https/)
     // The refusal is a warning, which the SDK counts against mock.
     expect(run.passed).toEqual(expect.arrayContaining(['manifest', 'auth', 'secrets', 'actions', 'dedupe']))
     expect(run.passed).not.toContain('mock')
@@ -586,9 +588,9 @@ describe('saveDraft', () => {
 })
 
 describe('comments as the signed-in account', () => {
-  it('comments through the window after looking the post up without it', async () => {
+  it('comments through the window, naming the publication the lookup found', async () => {
     const { sent, harness } = setup((r) =>
-      r.url.pathname === '/api/v1/posts/a-post' ? { body: { id: 5 } } : { body: { id: 77, body: 'Nice' } }
+      r.url.pathname === '/api/v1/posts/a-post' ? { body: { id: 5, publication_id: 8174077 } } : { body: { id: 77 } }
     )
     await expect(
       harness.execute('commentOnPost', {
@@ -600,12 +602,19 @@ describe('comments as the signed-in account', () => {
       'plain GET exampleletter.substack.com/api/v1/posts/a-post',
       'window POST substack.com/api/v1/post/5/comment'
     ])
-    expect(sent[1]?.body).toEqual({ body: 'Nice' })
+    expect(sent[1]?.body).toEqual({
+      bodyJson: {
+        type: 'doc',
+        attrs: { schemaVersion: 'v1' },
+        content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Nice' }] }]
+      },
+      publication_id: 8174077
+    })
   })
 
   it('comments on a post on a custom domain, looked up at its own address', async () => {
     const { sent, harness } = setup((r) =>
-      r.url.pathname === '/api/v1/posts/a-post' ? { body: { id: 5 } } : { body: { id: 78 } }
+      r.url.pathname === '/api/v1/posts/a-post' ? { body: { id: 5, publication_id: 9 } } : { body: { id: 78 } }
     )
     await expect(
       harness.execute('commentOnPost', { post: 'https://www.lennysnewsletter.com/p/a-post', body: 'x' })
@@ -614,6 +623,23 @@ describe('comments as the signed-in account', () => {
       'plain GET www.lennysnewsletter.com/api/v1/posts/a-post',
       'window POST substack.com/api/v1/post/5/comment'
     ])
+    expect(sent[1]?.body).toMatchObject({ publication_id: 9 })
+  })
+
+  it('finds the publication of a post given only by id, and refuses when Substack does not say', async () => {
+    const { sent, harness } = setup((r) =>
+      r.url.pathname === '/api/v1/posts/by-id/5' ? { body: { post: { id: 5, publication_id: 9 } } } : { body: { id: 79 } }
+    )
+    await expect(harness.execute('commentOnPost', { postId: '5', body: 'x' })).resolves.toEqual({ postId: 5, id: 79 })
+    expect(sent.map(at)).toEqual([
+      'plain GET substack.com/api/v1/posts/by-id/5',
+      'window POST substack.com/api/v1/post/5/comment'
+    ])
+    const unknown = setup(() => ({ body: {} }))
+    await expect(unknown.harness.execute('commentOnPost', { postId: '6', body: 'x' })).rejects.toThrow(
+      /which publication post 6 is on/
+    )
+    expect(unknown.sent.map(at)).toEqual(['plain GET substack.com/api/v1/posts/by-id/6'])
   })
 
   it('likes and unlikes a comment', async () => {
@@ -1046,7 +1072,7 @@ describe('publishing', () => {
     const { sent, harness } = setup((r) => {
       if (r.url.pathname === '/feed') return { text: FEED }
       if (r.url.pathname.endsWith('/profile/self')) return { body: PROFILE }
-      return { body: { id: 1, comments: [], results: [] } }
+      return { body: { id: 1, post: { id: 1, publication_id: 1 }, comments: [], results: [] } }
     })
     await harness.execute('readFeed', {})
     await harness.execute('searchPosts', { query: 'q' })

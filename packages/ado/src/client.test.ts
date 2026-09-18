@@ -5,7 +5,9 @@ import {
   defaultCredential,
   fieldPatch,
   entraToken,
-  witApi,
+  adoApi,
+  commentOnWorkItem,
+  getWorkItem,
   organizationName,
   organizationUrl,
   workItemUrl,
@@ -30,6 +32,8 @@ function fakeWit(overrides: Partial<WitApi> = {}): WitApi {
     getWorkItems: vi.fn(async () => [] as WorkItem[]),
     createWorkItem: vi.fn(async () => ({ id: 1 }) as WorkItem),
     updateWorkItem: vi.fn(async () => ({ id: 1 }) as WorkItem),
+    getWorkItem: vi.fn(async (id: number) => ({ id }) as WorkItem),
+    addComment: vi.fn(async () => ({ id: 9 })),
     ...overrides
   }
 }
@@ -190,11 +194,77 @@ describe('connecting', () => {
     expect(connection.authHandler.password).toBeUndefined()
   })
 
-  it('resolves the work-item API from the connection', async () => {
-    const api = { queryByWiql: vi.fn(), getWorkItems: vi.fn() }
-    const connection = { getWorkItemTrackingApi: vi.fn(async () => api) }
-    expect(await witApi(connection)).toBe(api)
-    expect(connection.getWorkItemTrackingApi).toHaveBeenCalled()
+  function fakeConnection(user?: { id?: string }) {
+    return {
+      getWorkItemTrackingApi: vi.fn(async () => ({ queryByWiql: vi.fn() })),
+      getGitApi: vi.fn(async () => ({ getThreads: vi.fn() })),
+      connect: vi.fn(async () => ({ authenticatedUser: user }))
+    }
+  }
+
+  it('resolves each API from the connection once, and only when asked', async () => {
+    // Resolving an API is a round trip to the location service; a poll that
+    // only reads work items should never pay for the Git API.
+    const connection = fakeConnection({ id: 'me-guid' })
+    const api = adoApi(connection)
+    const wit = await api.wit()
+    expect(await api.wit()).toBe(wit)
+    expect(connection.getWorkItemTrackingApi).toHaveBeenCalledTimes(1)
+    expect(connection.getGitApi).not.toHaveBeenCalled()
+
+    const git = await api.git()
+    expect(await api.git()).toBe(git)
+    expect(connection.getGitApi).toHaveBeenCalledTimes(1)
+  })
+
+  it('learns who is signed in once, so a vote is cast as them', async () => {
+    const connection = fakeConnection({ id: 'me-guid' })
+    const api = adoApi(connection)
+    expect(await api.userId()).toBe('me-guid')
+    await api.userId()
+    expect(connection.connect).toHaveBeenCalledTimes(1)
+  })
+
+  it('refuses to vote as nobody', async () => {
+    await expect(adoApi(fakeConnection()).userId()).rejects.toThrow(/who is signed in/)
+  })
+})
+
+describe('getWorkItem', () => {
+  it('reads the one work item asked for', async () => {
+    const wit = fakeWit()
+    await expect(getWorkItem(wit, 42)).resolves.toEqual({ id: 42 })
+    expect(wit.getWorkItem).toHaveBeenCalledWith(42)
+  })
+
+  it('explains a sign-in page rather than reporting a parse error', async () => {
+    const wit = fakeWit({
+      getWorkItem: vi.fn(async () => {
+        throw new Error('<!DOCTYPE html>')
+      })
+    })
+    await expect(getWorkItem(wit, 1)).rejects.toThrow(/sign-in page/)
+  })
+})
+
+describe('commentOnWorkItem', () => {
+  it("posts the text to the work item's discussion in its project", async () => {
+    const wit = fakeWit()
+    await expect(
+      commentOnWorkItem(wit, { project: 'proj', id: 42, text: 'Looks done' })
+    ).resolves.toEqual({ id: 9 })
+    expect(wit.addComment).toHaveBeenCalledWith({ text: 'Looks done' }, 'proj', 42)
+  })
+
+  it('surfaces a real API error', async () => {
+    const wit = fakeWit({
+      addComment: vi.fn(async () => {
+        throw new Error('TF401232: Work item 42 does not exist')
+      })
+    })
+    await expect(commentOnWorkItem(wit, { project: 'p', id: 42, text: 'x' })).rejects.toThrow(
+      /TF401232/
+    )
   })
 })
 

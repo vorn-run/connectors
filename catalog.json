@@ -4,9 +4,9 @@
     {
       "id": "ado",
       "name": "Azure DevOps",
-      "description": "Trigger workflows from the work items a WIQL query returns.",
+      "description": "Trigger workflows from work items and pull requests, and review, comment, vote and update from a step.",
       "packageName": "@vornrun/connector-ado",
-      "version": "0.2.4",
+      "version": "0.3.0",
       "capabilities": [
         "triggers",
         "actions"
@@ -18,14 +18,16 @@
         "work items",
         "wiql",
         "boards",
-        "tfs"
+        "tfs",
+        "pull requests",
+        "code review"
       ],
       "auth": "Signs in with your Azure identity — `az login` is usually all it needs.",
       "authRung": "cli",
       "verified": {
         "schema": 1,
-        "version": "0.2.4",
-        "checkedAt": "2026-09-13T19:24:58.512Z",
+        "version": "0.3.0",
+        "checkedAt": "2026-09-18T18:04:36.189Z",
         "checks": [
           "auth",
           "secrets",
@@ -36,7 +38,7 @@
           "launch"
         ]
       },
-      "packUrl": "https://github.com/vorn-run/connectors/releases/download/ado-v0.2.4/ado-0.2.4.vorn.tgz",
+      "packUrl": "https://github.com/vorn-run/connectors/releases/download/ado-v0.3.0/ado-0.3.0.vorn.tgz",
       "icon": {
         "viewBox": "0 0 24 24",
         "paths": [
@@ -48,6 +50,11 @@
           "type": "workItem",
           "label": "Work item matches the query",
           "description": "Fires once per work item the WIQL query newly returns."
+        },
+        {
+          "type": "pullRequestOpened",
+          "label": "A pull request is opened",
+          "description": "Fires once for each active pull request opened since the last poll — the start of an automated review."
         }
       ],
       "actions": [
@@ -60,6 +67,56 @@
           "type": "updateWorkItem",
           "label": "Update a work item",
           "description": "Change the title, state, description or assignee of a work item."
+        },
+        {
+          "type": "getWorkItem",
+          "label": "Read a work item",
+          "description": "Every field of one work item, for a step that needs more than the trigger carried."
+        },
+        {
+          "type": "commentOnWorkItem",
+          "label": "Comment on a work item",
+          "description": "Add a comment to a work item's discussion."
+        },
+        {
+          "type": "createPullRequest",
+          "label": "Open a pull request",
+          "description": "Open a pull request from a pushed branch, optionally linked to work items."
+        },
+        {
+          "type": "getPullRequest",
+          "label": "Read a pull request",
+          "description": "Title, description, branches, commits, merge status and every reviewer's vote."
+        },
+        {
+          "type": "listPullRequestChanges",
+          "label": "List the files a pull request changes",
+          "description": "Every changed path as of the latest push, with the two commits to diff between."
+        },
+        {
+          "type": "listPullRequestComments",
+          "label": "Read the review discussion",
+          "description": "Every comment thread on a pull request, with its status and the line it is on, so a review does not repeat itself."
+        },
+        {
+          "type": "commentOnPullRequest",
+          "label": "Comment on a pull request",
+          "description": "Start a thread on the overview or on a line of a file, or reply to an existing thread."
+        },
+        {
+          "type": "resolvePullRequestThread",
+          "label": "Resolve a review thread",
+          "description": "Mark a comment thread fixed, won't fix, closed, by design — or active again."
+        },
+        {
+          "type": "votePullRequest",
+          "label": "Approve or reject a pull request",
+          "description": "Cast your vote as the signed-in identity: approve, approve with suggestions, wait for author, reject, or reset."
+        },
+        {
+          "type": "completePullRequest",
+          "label": "Complete (merge) a pull request",
+          "description": "Merge now, or set auto-complete so it merges itself once approvals and policies pass."
         }
       ],
       "env": [
@@ -74,8 +131,13 @@
         },
         {
           "name": "ADO_QUERY",
-          "required": true,
-          "description": "Work items to poll, e.g. SELECT [System.Id] FROM WorkItems WHERE [System.State] = 'New' ORDER BY [System.ChangedDate] DESC"
+          "required": false,
+          "description": "Work items to poll, for the work item trigger, e.g. SELECT [System.Id] FROM WorkItems WHERE [System.State] = 'New' ORDER BY [System.ChangedDate] DESC"
+        },
+        {
+          "name": "ADO_REPOSITORY",
+          "required": false,
+          "description": "Repository name. Narrows the pull request trigger to it, and is where createPullRequest opens one. Blank watches every repository in the project."
         },
         {
           "name": "ADO_TOP",
@@ -469,9 +531,9 @@
     {
       "id": "github",
       "name": "GitHub",
-      "description": "Trigger workflows from GitHub issues and pull requests, and open, close or comment on them from a step.",
+      "description": "Trigger workflows from GitHub issues and pull requests; comment, review, approve and merge from a step.",
       "packageName": "@vornrun/connector-github",
-      "version": "0.2.1",
+      "version": "0.3.0",
       "capabilities": [
         "triggers",
         "actions"
@@ -488,8 +550,8 @@
       "authRung": "cli",
       "verified": {
         "schema": 1,
-        "version": "0.2.1",
-        "checkedAt": "2026-09-13T19:25:03.285Z",
+        "version": "0.3.0",
+        "checkedAt": "2026-09-18T18:04:41.519Z",
         "checks": [
           "auth",
           "secrets",
@@ -500,7 +562,7 @@
           "launch"
         ]
       },
-      "packUrl": "https://github.com/vorn-run/connectors/releases/download/github-v0.2.1/github-0.2.1.vorn.tgz",
+      "packUrl": "https://github.com/vorn-run/connectors/releases/download/github-v0.3.0/github-0.3.0.vorn.tgz",
       "icon": {
         "viewBox": "0 0 24 24",
         "paths": [
@@ -539,6 +601,41 @@
           "type": "createPullRequest",
           "label": "Open a pull request",
           "description": "Open a pull request from a pushed branch into the base branch."
+        },
+        {
+          "type": "getPullRequest",
+          "label": "Read a pull request",
+          "description": "Title, body, branches, head commit, size, whether it can merge, and each reviewer's verdict."
+        },
+        {
+          "type": "listPullRequestFiles",
+          "label": "List the files a pull request changes",
+          "description": "Every changed file with its unified diff — what a reviewer reads."
+        },
+        {
+          "type": "listPullRequestComments",
+          "label": "Read the review discussion",
+          "description": "Comments on lines of the diff and on the conversation, so a review does not repeat itself."
+        },
+        {
+          "type": "commentOnPullRequest",
+          "label": "Comment on a pull request",
+          "description": "Comment on the conversation, on a line of a file, or in reply to an inline comment."
+        },
+        {
+          "type": "reviewPullRequest",
+          "label": "Review a pull request",
+          "description": "Approve, request changes or comment — with a summary and line comments, sent as one review."
+        },
+        {
+          "type": "requestReviewers",
+          "label": "Request reviewers",
+          "description": "Ask people or teams to review a pull request."
+        },
+        {
+          "type": "mergePullRequest",
+          "label": "Merge a pull request",
+          "description": "Merge it as it stands — refused if anything was pushed since it was read, or branch protection says no."
         }
       ],
       "env": [

@@ -2,6 +2,14 @@
 
 All notable changes to `@vornrun/connector-github`.
 
+## 0.3.0
+
+Code review from a workflow step.
+
+- **Read:** `getPullRequest` (with each reviewer's latest verdict), `listPullRequestFiles` (with diffs), `listPullRequestComments` (line comments and conversation).
+- **Say:** `commentOnPullRequest` (conversation, a line or a whole file, or a reply), `reviewPullRequest` (approve, request changes or comment, with line comments, as one review), `requestReviewers`.
+- **Merge:** `mergePullRequest` — squash, merge or rebase, only at the head commit it read, deleting the branch unless told to keep it. Branch protection's refusal comes back in GitHub's words.
+
 ## 0.2.1
 
 Speaks Vorn's own connector protocol instead of MCP, so it needs Vorn 0.7.1-beta.3 or later. Action arguments arrive as typed values.

@@ -14,6 +14,22 @@ import {
   type GitHubIssue,
   type GitHubSearchResponse
 } from './search'
+import {
+  MERGE_METHODS,
+  REVIEW_EVENTS,
+  comment,
+  getPull,
+  inlineComments,
+  listComments,
+  listFiles,
+  merge,
+  requestReviewers,
+  review,
+  splitReviewers,
+  type MergeMethod,
+  type Repo,
+  type ReviewEventName
+} from './pulls'
 
 export interface GitHubConnectorOptions extends GitHubClientOptions {
   version?: string
@@ -104,7 +120,7 @@ export function createGitHubConnector(options: GitHubConnectorOptions = {}) {
     name: 'GitHub',
     ...(options.version && { version: options.version }),
     description:
-      'Trigger workflows from GitHub issues and pull requests, and open, close or comment on them from a step.',
+      'Trigger workflows from GitHub issues and pull requests; comment, review, approve and merge from a step.',
     // GitHub's own mark.
     icon: {
       viewBox: '0 0 24 24',
@@ -291,9 +307,270 @@ export function createGitHubConnector(options: GitHubConnectorOptions = {}) {
           )
           return { number: pull.data.number, url: pull.data.html_url }
         }
+      },
+      {
+        type: 'getPullRequest',
+        label: 'Read a pull request',
+        description:
+          'Title, body, branches, head commit, size, whether it can merge, and each reviewer\'s verdict.',
+        idempotent: true,
+        inputs: [PULL_INPUT],
+        outputs: [
+          { key: 'number', type: 'number' },
+          { key: 'url', description: 'Where to read it' },
+          { key: 'title' },
+          { key: 'body' },
+          { key: 'state', description: 'open or closed' },
+          { key: 'draft', type: 'boolean' },
+          { key: 'merged', type: 'boolean' },
+          { key: 'mergeable', type: 'boolean', description: 'null while GitHub is still working it out' },
+          { key: 'mergeableState', description: 'clean, blocked, behind, dirty, unstable…' },
+          { key: 'author' },
+          { key: 'headBranch' },
+          { key: 'headSha', description: 'The commit a review is of' },
+          { key: 'baseBranch' },
+          { key: 'changedFiles', type: 'number' },
+          { key: 'reviews', type: 'array', description: "{ author, state } — each reviewer's latest verdict" }
+        ],
+        async run(args, { config }) {
+          const where = repoOf(config)
+          return client().run((api) => getPull(api, where, issueNumber(args.number)))
+        }
+      },
+      {
+        type: 'listPullRequestFiles',
+        label: 'List the files a pull request changes',
+        description: 'Every changed file with its unified diff — what a reviewer reads.',
+        idempotent: true,
+        inputs: [PULL_INPUT],
+        outputs: [
+          {
+            key: 'files',
+            type: 'array',
+            description: '{ filename, status, additions, deletions, patch, previousFilename? } for each'
+          },
+          { key: 'count', type: 'number' }
+        ],
+        async run(args, { config }) {
+          const where = repoOf(config)
+          const files = await client().run((api) => listFiles(api, where, issueNumber(args.number)))
+          return { files, count: files.length }
+        }
+      },
+      {
+        type: 'listPullRequestComments',
+        label: 'Read the review discussion',
+        description:
+          'Comments on lines of the diff and on the conversation, so a review does not repeat itself.',
+        idempotent: true,
+        inputs: [PULL_INPUT],
+        outputs: [
+          {
+            key: 'inline',
+            type: 'array',
+            description: '{ id, author, body, path, line, inReplyTo?, url } for each'
+          },
+          { key: 'conversation', type: 'array', description: '{ id, author, body, url } for each' }
+        ],
+        async run(args, { config }) {
+          const where = repoOf(config)
+          return client().run((api) => listComments(api, where, issueNumber(args.number)))
+        }
+      },
+      {
+        type: 'commentOnPullRequest',
+        label: 'Comment on a pull request',
+        description:
+          'Comment on the conversation, on a line of a file, or in reply to an inline comment.',
+        // Two identical calls make two comments.
+        idempotent: false,
+        inputs: [
+          PULL_INPUT,
+          { key: 'body', label: 'Comment', required: true, description: 'Markdown.' },
+          {
+            key: 'path',
+            label: 'File',
+            description: 'Path in the repository, e.g. src/app.ts. Blank comments on the conversation.'
+          },
+          {
+            key: 'line',
+            label: 'Line',
+            type: 'number',
+            description: 'Line in the new version of the file. Blank with a file comments on the whole file.'
+          },
+          {
+            key: 'replyTo',
+            label: 'Reply to',
+            type: 'number',
+            description: 'An inline comment id from listPullRequestComments.'
+          }
+        ],
+        outputs: [
+          { key: 'id', type: 'number', description: 'The new comment id' },
+          { key: 'url', description: 'Where to read the comment' }
+        ],
+        async run(args, { config }) {
+          const where = repoOf(config)
+          return client().run((api) =>
+            comment(api, where, issueNumber(args.number), {
+              body: requiredArg(args.body, 'body'),
+              path: text(args.path),
+              line: optionalNumber(args.line, 'line'),
+              replyTo: optionalNumber(args.replyTo, 'replyTo')
+            })
+          )
+        }
+      },
+      {
+        type: 'reviewPullRequest',
+        label: 'Review a pull request',
+        description:
+          'Approve, request changes or comment — with a summary and line comments, sent as one review.',
+        // Two identical calls submit two reviews.
+        idempotent: false,
+        inputs: [
+          PULL_INPUT,
+          {
+            key: 'event',
+            label: 'Verdict',
+            type: 'select',
+            required: true,
+            options: [
+              { value: 'approve', label: 'Approve' },
+              { value: 'requestChanges', label: 'Request changes' },
+              { value: 'comment', label: 'Comment' }
+            ],
+            description: 'Requesting changes or commenting needs a body.'
+          },
+          { key: 'body', label: 'Summary', description: 'Markdown.' },
+          {
+            key: 'comments',
+            label: 'Line comments',
+            type: 'json',
+            description: 'A list of { path, line, body }, or one such object.'
+          }
+        ],
+        outputs: [
+          { key: 'id', type: 'number' },
+          { key: 'state', description: 'APPROVED, CHANGES_REQUESTED or COMMENTED' },
+          { key: 'url', description: 'Where to read the review' }
+        ],
+        async run(args, { config }) {
+          const where = repoOf(config)
+          const event = String(args.event ?? '').trim()
+          if (!(event in REVIEW_EVENTS)) {
+            throw new Error(
+              `event must be one of ${Object.keys(REVIEW_EVENTS).join(', ')}, got "${event}"`
+            )
+          }
+          const comments = inlineComments(args.comments)
+          return client().run((api) =>
+            review(api, where, issueNumber(args.number), {
+              event: event as ReviewEventName,
+              body: text(args.body),
+              comments
+            })
+          )
+        }
+      },
+      {
+        type: 'requestReviewers',
+        label: 'Request reviewers',
+        description: 'Ask people or teams to review a pull request.',
+        // Asking someone already asked leaves them asked.
+        idempotent: true,
+        inputs: [
+          PULL_INPUT,
+          {
+            key: 'reviewers',
+            label: 'Reviewers',
+            required: true,
+            description: 'Comma-separated logins, and org/team for a team.'
+          }
+        ],
+        outputs: [{ key: 'requested', type: 'array', description: 'Everyone now asked to review' }],
+        async run(args, { config }) {
+          const where = repoOf(config)
+          const names = splitReviewers(args.reviewers)
+          return client().run((api) => requestReviewers(api, where, issueNumber(args.number), names))
+        }
+      },
+      {
+        type: 'mergePullRequest',
+        label: 'Merge a pull request',
+        description:
+          'Merge it as it stands — refused if anything was pushed since it was read, or branch protection says no.',
+        // A second call fails: there is nothing left to merge.
+        idempotent: false,
+        inputs: [
+          PULL_INPUT,
+          {
+            key: 'method',
+            label: 'Merge method',
+            type: 'select',
+            options: [
+              { value: 'squash', label: 'Squash and merge' },
+              { value: 'merge', label: 'Create a merge commit' },
+              { value: 'rebase', label: 'Rebase and merge' }
+            ],
+            description: 'Defaults to squash.'
+          },
+          { key: 'title', label: 'Commit title', description: "Defaults to GitHub's." },
+          { key: 'message', label: 'Commit message', description: "Defaults to GitHub's." },
+          {
+            key: 'keepBranch',
+            label: 'Keep branch',
+            type: 'boolean',
+            description: 'Keep the head branch after merging. It is deleted by default.'
+          }
+        ],
+        outputs: [
+          { key: 'merged', type: 'boolean' },
+          { key: 'sha', description: 'The merge commit' },
+          { key: 'branchDeleted', type: 'boolean' }
+        ],
+        async run(args, { config }) {
+          const where = repoOf(config)
+          const method = text(args.method) ?? 'squash'
+          if (!(MERGE_METHODS as readonly string[]).includes(method)) {
+            throw new Error(`method must be one of ${MERGE_METHODS.join(', ')}, got "${method}"`)
+          }
+          const keep = args.keepBranch === true || String(args.keepBranch ?? '').trim() === 'true'
+          return client().run((api) =>
+            merge(api, where, issueNumber(args.number), {
+              method: method as MergeMethod,
+              title: text(args.title),
+              message: text(args.message),
+              deleteBranch: !keep
+            })
+          )
+        }
       }
     ]
   })
+}
+
+/** Every pull request action names one the same way. */
+const PULL_INPUT = {
+  key: 'number',
+  label: 'Pull request #',
+  required: true,
+  description: 'The pull request number, e.g. {{trigger.item.externalId}}.'
+}
+
+function repoOf(config: unknown): Repo {
+  const cfg = config as Record<string, unknown>
+  return { owner: required(cfg, 'owner', 'GITHUB_OWNER'), repo: required(cfg, 'repo', 'GITHUB_REPO') }
+}
+
+/** A line or comment id: blank is absent, anything else must be a positive whole number. */
+function optionalNumber(value: unknown, name: string): number | undefined {
+  if (text(value) === undefined) return undefined
+  const parsed = Number(value)
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error(`${name} must be a positive whole number, got ${JSON.stringify(value)}`)
+  }
+  return parsed
 }
 
 /**

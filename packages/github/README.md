@@ -1,7 +1,8 @@
 # @vornrun/connector-github
 
-Trigger Vorn workflows from GitHub issues and pull requests, and open, close or
-comment on them from a workflow step.
+Trigger Vorn workflows from GitHub issues and pull requests; from a workflow
+step open, close or comment on them, and review, approve and merge pull
+requests.
 
 ## Signing in
 
@@ -57,6 +58,23 @@ advancing past it would lose those items for good.
 | Close an issue | yes | Closing a closed issue leaves it closed |
 | Comment on an issue | no | Two identical calls make two comments |
 | Open a pull request | no | From a pushed branch into `main` unless told otherwise; a second call for the same branches is refused by GitHub |
+| `getPullRequest` | yes | Title, body, branches, head commit, size, mergeability, each reviewer's latest verdict |
+| `listPullRequestFiles` | yes | Every changed file with its unified diff (`patch`) |
+| `listPullRequestComments` | yes | Line comments (`inline`) and the conversation, from their two endpoints |
+| `commentOnPullRequest` | no | On the conversation, on a line (`path` + `line`) or whole file (`path`), or a reply (`replyTo`) |
+| `reviewPullRequest` | no | Approve, request changes or comment, with a summary and line comments, as one review |
+| `requestReviewers` | yes | Comma-separated logins; `org/team` for a team |
+| `mergePullRequest` | no | Squash (default), merge or rebase, then delete the branch unless `keepBranch` |
+
+A review workflow is typically: **A pull request is opened** →
+`listPullRequestFiles` → an agent reads the diffs → `reviewPullRequest` with its
+verdict and line comments.
+
+**Merging** sends the head commit it read as `sha`, so GitHub refuses the merge
+if anything was pushed since — nothing lands unreviewed. Required approvals and
+checks are branch protection's to enforce; its refusal is reported as
+`Pull request #N cannot be merged: <GitHub's reason>`. A branch on a fork is
+never deleted, and one the repository already deleted counts as deleted.
 
 Issue numbers arrive as text from workflow templates and are validated before
 being sent, so a `{{...}}` that resolved to nothing names itself rather than
@@ -77,6 +95,10 @@ returning a confusing 404 about the repository.
 
 - [REST: issues](https://docs.github.com/en/rest/issues/issues)
 - [REST: issue comments](https://docs.github.com/en/rest/issues/comments)
+- [REST: pull requests](https://docs.github.com/en/rest/pulls/pulls),
+  [reviews](https://docs.github.com/en/rest/pulls/reviews),
+  [review comments](https://docs.github.com/en/rest/pulls/comments) and
+  [review requests](https://docs.github.com/en/rest/pulls/review-requests)
 - [Search: issues and pull requests](https://docs.github.com/en/rest/search/search#search-issues-and-pull-requests)
 - [Rate limits](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api)
 - [`@octokit/rest`](https://github.com/octokit/rest.js)

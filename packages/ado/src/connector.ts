@@ -1,14 +1,36 @@
 import { defineConnector, type ConnectorItem, type FetchContext } from '@vornrun/connector-sdk'
 import {
   ambientToken,
+  commentOnWorkItem,
   connect,
   createWorkItem,
+  getWorkItem,
   queryWorkItemIds,
   readWorkItems,
   updateWorkItem,
   workItemUrl,
-  type WitApi
+  type AdoApi
 } from './client'
+import {
+  MERGE_STRATEGIES,
+  THREAD_STATUSES,
+  VOTES,
+  comment,
+  completePullRequest,
+  createPullRequest,
+  describePullRequest,
+  findPullRequest,
+  listActivePullRequests,
+  listChanges,
+  listThreads,
+  pullRequestUrl,
+  branchName,
+  setThreadStatus,
+  threadStatusName,
+  vote,
+  voteName,
+  type PullRequest
+} from './git'
 
 const DEFAULT_TOP = 100
 
@@ -35,7 +57,7 @@ export type AdoConnectorOptions = {
   getToken?: () => Promise<string>
 
   /** Injected in tests, so a fetch never needs a real organization. */
-  connectImpl?: (organization: string, token: string) => Promise<WitApi>
+  connectImpl?: (organization: string, token: string) => Promise<AdoApi>
 }
 
 function required(config: Record<string, unknown>, key: string, env: string): string {
@@ -48,7 +70,7 @@ export function createAdoConnector(options: AdoConnectorOptions = {}) {
   const getToken = options.getToken ?? ambientToken
 
   const connectTo = options.connectImpl ?? connect
-  let cached: { organization: string; token: string; api: Promise<WitApi> } | undefined
+  let cached: { organization: string; token: string; api: Promise<AdoApi> } | undefined
 
   /**
    * One connection per organization, held until the token changes.
@@ -60,11 +82,42 @@ export function createAdoConnector(options: AdoConnectorOptions = {}) {
    * failing. Keying on the token gets both — `DefaultAzureCredential` returns
    * the same string until it nears expiry, and a new one invalidates this.
    */
-  function connectionFor(organization: string, token: string): Promise<WitApi> {
+  function connectionFor(organization: string, token: string): Promise<AdoApi> {
     if (!cached || cached.organization !== organization || cached.token !== token) {
       cached = { organization, token, api: connectTo(organization, token) }
     }
     return cached.api
+  }
+
+  /** The organization and project a step works in, and a live connection to them. */
+  async function session(config: unknown) {
+    const cfg = config as Record<string, unknown>
+    const organization = required(cfg, 'organization', 'ADO_ORGANIZATION')
+    const project = required(cfg, 'project', 'ADO_PROJECT')
+    const api = await connectionFor(organization, await getToken())
+    return { cfg, organization, project, api }
+  }
+
+  /** The pull request a step names, looked up so its repository is known. */
+  async function pullRequestFor(args: Record<string, unknown>, config: unknown) {
+    const context = await session(config)
+    const git = await context.api.git()
+    const pr = await findPullRequest(git, context.project, positiveId(args.pullRequestId, 'pullRequestId'))
+    return { ...context, git, pr }
+  }
+
+  async function fetchPullRequests(context: FetchContext): Promise<ConnectorItem[]> {
+    const config = context.config as Record<string, unknown>
+    const organization = required(config, 'organization', 'ADO_ORGANIZATION')
+    const project = required(config, 'project', 'ADO_PROJECT')
+    const top = Number(config.top ?? DEFAULT_TOP) || DEFAULT_TOP
+    const api = await connectionFor(organization, await getToken())
+    const pulls = await listActivePullRequests(await api.git(), {
+      project,
+      repository: text(config.repository),
+      top
+    })
+    return pulls.map((pr) => pullRequestItem(organization, pr))
   }
 
   async function fetchWorkItems(context: FetchContext): Promise<ConnectorItem[]> {
@@ -75,7 +128,7 @@ export function createAdoConnector(options: AdoConnectorOptions = {}) {
     const top = Number(config.top ?? DEFAULT_TOP) || DEFAULT_TOP
 
     const token = await getToken()
-    const wit = await connectionFor(organization, token)
+    const wit = await (await connectionFor(organization, token)).wit()
     const ids = await queryWorkItemIds(wit, { project, query, top })
     const items = await readWorkItems(wit, ids)
 
@@ -105,7 +158,8 @@ export function createAdoConnector(options: AdoConnectorOptions = {}) {
     id: 'ado',
     name: 'Azure DevOps',
     ...(options.version && { version: options.version }),
-    description: 'Trigger workflows from the work items a WIQL query returns.',
+    description:
+      'Trigger workflows from work items and pull requests, and review, comment, vote and update from a step.',
     // The Azure DevOps mark itself, rather than something board-shaped: a
     // connector people recognize at a glance is one they trust they picked
     // right.
@@ -129,10 +183,19 @@ export function createAdoConnector(options: AdoConnectorOptions = {}) {
         key: 'query',
         env: 'ADO_QUERY',
         label: 'WIQL query',
-        required: true,
+        // Needed by the work item trigger only; a connection that watches pull
+        // requests, or only runs actions, has no query to give.
         description:
-          'Work items to poll, e.g. SELECT [System.Id] FROM WorkItems ' +
+          'Work items to poll, for the work item trigger, e.g. SELECT [System.Id] FROM WorkItems ' +
           "WHERE [System.State] = 'New' ORDER BY [System.ChangedDate] DESC"
+      },
+      {
+        key: 'repository',
+        env: 'ADO_REPOSITORY',
+        label: 'Repository',
+        description:
+          'Repository name. Narrows the pull request trigger to it, and is where ' +
+          'createPullRequest opens one. Blank watches every repository in the project.'
       },
       {
         key: 'top',
@@ -151,6 +214,17 @@ export function createAdoConnector(options: AdoConnectorOptions = {}) {
         // rather than re-reading everything the query still matches.
         dedupe: 'timestamp',
         fetch: fetchWorkItems
+      },
+      {
+        type: 'pullRequestOpened',
+        label: 'A pull request is opened',
+        description:
+          'Fires once for each active pull request opened since the last poll — the start of an automated review.',
+        // Creation date, not a change date: the list API carries no "last
+        // updated", and a review should start once per pull request rather
+        // than on every reviewer's vote.
+        dedupe: 'timestamp',
+        fetch: fetchPullRequests
       }
     ],
     actions: [
@@ -183,7 +257,7 @@ export function createAdoConnector(options: AdoConnectorOptions = {}) {
           const title = text(args.title)
           if (!title) throw new Error('title is required')
 
-          const wit = await connectionFor(organization, await getToken())
+          const wit = await (await connectionFor(organization, await getToken())).wit()
           const item = await createWorkItem(wit, {
             project,
             type: text(args.type) ?? DEFAULT_WORK_ITEM_TYPE,
@@ -219,12 +293,9 @@ export function createAdoConnector(options: AdoConnectorOptions = {}) {
           const cfg = config as Record<string, unknown>
           const organization = required(cfg, 'organization', 'ADO_ORGANIZATION')
           const project = required(cfg, 'project', 'ADO_PROJECT')
-          const id = Number(args.id)
-          if (!Number.isInteger(id) || id <= 0) {
-            throw new Error(`id must be a work item number, got ${JSON.stringify(args.id)}`)
-          }
+          const id = positiveId(args.id, 'id')
 
-          const wit = await connectionFor(organization, await getToken())
+          const wit = await (await connectionFor(organization, await getToken())).wit()
           const item = await updateWorkItem(wit, {
             id,
             fields: {
@@ -235,6 +306,395 @@ export function createAdoConnector(options: AdoConnectorOptions = {}) {
             }
           })
           return describe(item, organization, project)
+        }
+      },
+      {
+        type: 'getWorkItem',
+        label: 'Read a work item',
+        description: 'Every field of one work item, for a step that needs more than the trigger carried.',
+        idempotent: true,
+        inputs: [{ key: 'id', label: 'Work item id', type: 'number', required: true, description: 'The work item number.' }],
+        outputs: [
+          { key: 'id', type: 'number' },
+          { key: 'url', description: 'Where to open it on the board' },
+          { key: 'title' },
+          { key: 'state' },
+          { key: 'type', description: 'Bug, Task, User Story…' },
+          { key: 'description', description: 'HTML, as the board stores it' },
+          { key: 'assignedTo', description: 'Display name of the assignee, if any' },
+          { key: 'fields', type: 'object', description: 'Every field, by reference name' }
+        ],
+        async run(args, { config }) {
+          const { organization, project, api } = await session(config)
+          const item = await getWorkItem(await api.wit(), positiveId(args.id, 'id'))
+          const fields = item?.fields ?? {}
+          const assignee = fields[ASSIGNED_FIELD] as { displayName?: string } | string | undefined
+          return {
+            ...describe(item ?? {}, organization, project),
+            type: String(fields[TYPE_FIELD] ?? ''),
+            description: String(fields[DESCRIPTION_FIELD] ?? ''),
+            assignedTo: typeof assignee === 'object' ? (assignee?.displayName ?? '') : (assignee ?? ''),
+            fields
+          }
+        }
+      },
+      {
+        type: 'commentOnWorkItem',
+        label: 'Comment on a work item',
+        description: "Add a comment to a work item's discussion.",
+        // Two identical calls make two comments.
+        idempotent: false,
+        inputs: [
+          { key: 'id', label: 'Work item id', type: 'number', required: true, description: 'The work item number.' },
+          {
+            key: 'text',
+            label: 'Comment',
+            required: true,
+            description: 'Plain text, or HTML for links and lists.'
+          }
+        ],
+        outputs: [
+          { key: 'commentId', type: 'number' },
+          { key: 'url', description: 'The work item the comment is on' }
+        ],
+        async run(args, { config }) {
+          const { organization, project, api } = await session(config)
+          const id = positiveId(args.id, 'id')
+          const posted = await commentOnWorkItem(await api.wit(), {
+            project,
+            id,
+            text: requiredText(args.text, 'text')
+          })
+          return { commentId: posted?.id ?? 0, url: workItemUrl(organization, project, id) }
+        }
+      },
+      {
+        type: 'createPullRequest',
+        label: 'Open a pull request',
+        description: 'Open a pull request from a pushed branch, optionally linked to work items.',
+        // A second identical call is refused: a branch pair has one active pull request.
+        idempotent: false,
+        inputs: [
+          { key: 'sourceBranch', label: 'Branch', required: true, description: 'The pushed branch.' },
+          {
+            key: 'targetBranch',
+            label: 'Into',
+            description: "Defaults to the repository's default branch."
+          },
+          { key: 'title', label: 'Title', required: true, description: 'Pull request title.' },
+          { key: 'description', label: 'Description', description: 'Markdown.' },
+          {
+            key: 'repository',
+            label: 'Repository',
+            description: 'Repository name. Defaults to ADO_REPOSITORY.'
+          },
+          { key: 'draft', label: 'Draft', type: 'boolean', description: 'Open it as a draft.' },
+          {
+            key: 'workItems',
+            label: 'Work items',
+            description: 'Comma-separated work item ids to link.'
+          }
+        ],
+        outputs: [
+          { key: 'id', type: 'number', description: 'The new pull request number' },
+          { key: 'url', description: 'Where to review it' }
+        ],
+        async run(args, { config }) {
+          const { cfg, organization, project, api } = await session(config)
+          const repository = text(args.repository) ?? text(cfg.repository)
+          if (!repository) throw new Error('repository is required: name it, or set ADO_REPOSITORY.')
+          const pr = await createPullRequest(await api.git(), {
+            project,
+            repository,
+            sourceBranch: requiredText(args.sourceBranch, 'sourceBranch'),
+            targetBranch: text(args.targetBranch),
+            title: requiredText(args.title, 'title'),
+            description: text(args.description),
+            isDraft: flag(args.draft),
+            workItems: String(args.workItems ?? '')
+              .split(',')
+              .map((id) => id.trim().replace(/^#/, ''))
+              .filter(Boolean)
+          })
+          return { id: pr?.pullRequestId ?? 0, url: pullRequestUrl(organization, pr ?? {}) }
+        }
+      },
+      {
+        type: 'getPullRequest',
+        label: 'Read a pull request',
+        description:
+          'Title, description, branches, commits, merge status and every reviewer\'s vote.',
+        idempotent: true,
+        inputs: [PULL_REQUEST_INPUT],
+        outputs: [
+          { key: 'id', type: 'number' },
+          { key: 'url', description: 'Where to review it' },
+          { key: 'title' },
+          { key: 'description' },
+          { key: 'status', description: 'active, completed or abandoned' },
+          { key: 'isDraft', type: 'boolean' },
+          { key: 'repository' },
+          { key: 'sourceBranch' },
+          { key: 'targetBranch' },
+          { key: 'author' },
+          { key: 'mergeStatus', description: 'succeeded, conflicts, queued…' },
+          { key: 'sourceCommit', description: 'Head of the branch being merged' },
+          { key: 'targetCommit', description: 'Head of the branch merged into' },
+          { key: 'reviewers', type: 'array', description: '{ name, vote, isRequired } for each' }
+        ],
+        async run(args, { config }) {
+          const { organization, pr } = await pullRequestFor(args, config)
+          return describePullRequest(organization, pr)
+        }
+      },
+      {
+        type: 'listPullRequestChanges',
+        label: 'List the files a pull request changes',
+        description:
+          'Every changed path as of the latest push, with the two commits to diff between.',
+        idempotent: true,
+        inputs: [PULL_REQUEST_INPUT],
+        outputs: [
+          { key: 'files', type: 'array', description: '{ path, changeType, originalPath? } for each' },
+          { key: 'count', type: 'number' },
+          { key: 'sourceCommit', description: 'git diff <targetCommit> <sourceCommit> shows the change' },
+          { key: 'targetCommit' }
+        ],
+        async run(args, { config }) {
+          const { project, git, pr } = await pullRequestFor(args, config)
+          const files = await listChanges(git, project, pr)
+          return {
+            files,
+            count: files.length,
+            sourceCommit: pr.lastMergeSourceCommit?.commitId ?? '',
+            targetCommit: pr.lastMergeTargetCommit?.commitId ?? ''
+          }
+        }
+      },
+      {
+        type: 'listPullRequestComments',
+        label: 'Read the review discussion',
+        description:
+          'Every comment thread on a pull request, with its status and the line it is on, so a review does not repeat itself.',
+        idempotent: true,
+        inputs: [PULL_REQUEST_INPUT],
+        outputs: [
+          {
+            key: 'threads',
+            type: 'array',
+            description: '{ id, status, filePath, line, comments: [{ id, author, content }] } for each'
+          },
+          { key: 'count', type: 'number' }
+        ],
+        async run(args, { config }) {
+          const { project, git, pr } = await pullRequestFor(args, config)
+          const threads = await listThreads(git, project, pr)
+          return { threads, count: threads.length }
+        }
+      },
+      {
+        type: 'commentOnPullRequest',
+        label: 'Comment on a pull request',
+        description:
+          'Start a thread on the overview or on a line of a file, or reply to an existing thread.',
+        // Two identical calls make two comments.
+        idempotent: false,
+        inputs: [
+          PULL_REQUEST_INPUT,
+          { key: 'text', label: 'Comment', required: true, description: 'Markdown.' },
+          {
+            key: 'filePath',
+            label: 'File',
+            description: 'Path in the repository, e.g. /src/app.ts. Blank comments on the overview.'
+          },
+          {
+            key: 'line',
+            label: 'Line',
+            type: 'number',
+            description: 'Line in the new version of the file. Needs a file.'
+          },
+          {
+            key: 'threadId',
+            label: 'Reply to thread',
+            type: 'number',
+            description: 'A thread id from listPullRequestComments. Replies instead of starting a thread.'
+          },
+          {
+            key: 'status',
+            label: 'Thread status',
+            type: 'select',
+            options: THREAD_STATUS_OPTIONS,
+            description: 'Defaults to active for a new thread; unchanged for a reply.'
+          }
+        ],
+        outputs: [
+          { key: 'threadId', type: 'number', description: 'Thread the comment is in' },
+          { key: 'commentId', type: 'number' },
+          { key: 'url', description: 'The thread, on the pull request' }
+        ],
+        async run(args, { config }) {
+          const { organization, project, git, pr } = await pullRequestFor(args, config)
+          const posted = await comment(git, project, pr, {
+            text: requiredText(args.text, 'text'),
+            filePath: text(args.filePath),
+            line: optionalId(args.line, 'line'),
+            threadId: optionalId(args.threadId, 'threadId'),
+            status: threadStatus(args.status)
+          })
+          return {
+            ...posted,
+            url: `${pullRequestUrl(organization, pr)}?discussionId=${posted.threadId}`
+          }
+        }
+      },
+      {
+        type: 'resolvePullRequestThread',
+        label: 'Resolve a review thread',
+        description: 'Mark a comment thread fixed, won\'t fix, closed, by design — or active again.',
+        // Setting a thread to the status it already has leaves it there.
+        idempotent: true,
+        inputs: [
+          PULL_REQUEST_INPUT,
+          {
+            key: 'threadId',
+            label: 'Thread',
+            type: 'number',
+            required: true,
+            description: 'A thread id from listPullRequestComments.'
+          },
+          {
+            key: 'status',
+            label: 'Status',
+            type: 'select',
+            options: THREAD_STATUS_OPTIONS,
+            description: 'Defaults to fixed.'
+          }
+        ],
+        outputs: [
+          { key: 'threadId', type: 'number' },
+          { key: 'status', description: 'Status after the change' }
+        ],
+        async run(args, { config }) {
+          const { project, git, pr } = await pullRequestFor(args, config)
+          const threadId = positiveId(args.threadId, 'threadId')
+          const thread = await setThreadStatus(
+            git,
+            project,
+            pr,
+            threadId,
+            threadStatus(args.status) ?? THREAD_STATUSES.fixed
+          )
+          return { threadId, status: threadStatusName(thread?.status) }
+        }
+      },
+      {
+        type: 'votePullRequest',
+        label: 'Approve or reject a pull request',
+        description:
+          'Cast your vote as the signed-in identity: approve, approve with suggestions, wait for author, reject, or reset.',
+        // A vote replaces your previous one, so casting it again changes nothing.
+        idempotent: true,
+        inputs: [
+          PULL_REQUEST_INPUT,
+          {
+            key: 'vote',
+            label: 'Vote',
+            type: 'select',
+            required: true,
+            options: [
+              { value: 'approve', label: 'Approve' },
+              { value: 'approveWithSuggestions', label: 'Approve with suggestions' },
+              { value: 'waitForAuthor', label: 'Wait for author' },
+              { value: 'reject', label: 'Reject' },
+              { value: 'reset', label: 'Reset vote' }
+            ],
+            description: 'Pair it with commentOnPullRequest to say why.'
+          }
+        ],
+        outputs: [
+          { key: 'vote', description: 'The vote now recorded' },
+          { key: 'url', description: 'Where to review it' }
+        ],
+        async run(args, { config }) {
+          const { organization, project, api, git, pr } = await pullRequestFor(args, config)
+          const name = String(args.vote ?? '').trim()
+          if (!(name in VOTES)) {
+            throw new Error(`vote must be one of ${Object.keys(VOTES).join(', ')}, got "${name}"`)
+          }
+          const cast = await vote(git, project, pr, await api.userId(), VOTES[name as keyof typeof VOTES])
+          return { vote: voteName(cast?.vote), url: pullRequestUrl(organization, pr) }
+        }
+      },
+      {
+        type: 'completePullRequest',
+        label: 'Complete (merge) a pull request',
+        description:
+          'Merge now, or set auto-complete so it merges itself once approvals and policies pass.',
+        // Completing twice fails on the second call — there is nothing left to merge.
+        idempotent: false,
+        inputs: [
+          PULL_REQUEST_INPUT,
+          {
+            key: 'autoComplete',
+            label: 'Auto-complete',
+            type: 'boolean',
+            description:
+              'Merge when every required approval and policy passes, rather than now. Recommended where approvals are required.'
+          },
+          {
+            key: 'mergeStrategy',
+            label: 'Merge type',
+            type: 'select',
+            options: [
+              { value: 'squash', label: 'Squash commit' },
+              { value: 'noFastForward', label: 'Merge (no fast-forward)' },
+              { value: 'rebase', label: 'Rebase and fast-forward' },
+              { value: 'rebaseMerge', label: 'Semi-linear merge' }
+            ],
+            description: 'Defaults to squash.'
+          },
+          {
+            key: 'keepSourceBranch',
+            label: 'Keep branch',
+            type: 'boolean',
+            description: 'Keep the source branch after merging. It is deleted by default.'
+          },
+          {
+            key: 'transitionWorkItems',
+            label: 'Close linked work items',
+            type: 'boolean',
+            description: 'Move linked work items to their completed state.'
+          },
+          { key: 'message', label: 'Merge commit message', description: 'Defaults to the one Azure DevOps writes.' }
+        ],
+        outputs: [
+          { key: 'status', description: 'completed when merged now; active while auto-complete waits' },
+          { key: 'autoComplete', type: 'boolean', description: 'Whether auto-complete is set' },
+          { key: 'mergeStatus', description: 'succeeded, conflicts, queued…' },
+          { key: 'url', description: 'Where to review it' }
+        ],
+        async run(args, { config }) {
+          const { organization, project, api, git, pr } = await pullRequestFor(args, config)
+          const strategy = text(args.mergeStrategy) ?? 'squash'
+          if (!(strategy in MERGE_STRATEGIES)) {
+            throw new Error(
+              `mergeStrategy must be one of ${Object.keys(MERGE_STRATEGIES).join(', ')}, got "${strategy}"`
+            )
+          }
+          const done = await completePullRequest(git, project, pr, await api.userId(), {
+            autoComplete: flag(args.autoComplete),
+            mergeStrategy: MERGE_STRATEGIES[strategy as keyof typeof MERGE_STRATEGIES],
+            deleteSourceBranch: !flag(args.keepSourceBranch),
+            transitionWorkItems: flag(args.transitionWorkItems),
+            message: text(args.message)
+          })
+          const described = describePullRequest(organization, { ...pr, ...done })
+          return {
+            status: described.status,
+            autoComplete: Boolean(done?.autoCompleteSetBy?.id),
+            mergeStatus: described.mergeStatus,
+            url: described.url
+          }
         }
       }
     ]
@@ -264,5 +724,88 @@ function describe(
     url: workItemUrl(organization, project, id),
     title: String(item.fields?.[TITLE_FIELD] ?? ''),
     state: String(item.fields?.[STATE_FIELD] ?? '')
+  }
+}
+
+/** Every pull request action names one the same way. */
+const PULL_REQUEST_INPUT = {
+  key: 'pullRequestId',
+  label: 'Pull request',
+  type: 'number' as const,
+  required: true,
+  description: 'The pull request number, e.g. {{trigger.item.externalId}}.'
+}
+
+const THREAD_STATUS_OPTIONS = [
+  { value: 'active', label: 'Active' },
+  { value: 'fixed', label: 'Resolved' },
+  { value: 'wontFix', label: "Won't fix" },
+  { value: 'closed', label: 'Closed' },
+  { value: 'byDesign', label: 'By design' }
+]
+
+function threadStatus(value: unknown): number | undefined {
+  const name = text(value)
+  if (name === undefined) return undefined
+  if (!(name in THREAD_STATUSES)) {
+    throw new Error(
+      `status must be one of ${Object.keys(THREAD_STATUSES).join(', ')}, got "${name}"`
+    )
+  }
+  return THREAD_STATUSES[name as keyof typeof THREAD_STATUSES]
+}
+
+/** A boolean argument, which a template may still render as the text "true". */
+function flag(value: unknown): boolean {
+  return value === true || String(value ?? '').trim().toLowerCase() === 'true'
+}
+
+function requiredText(value: unknown, name: string): string {
+  const found = text(value)
+  if (!found) throw new Error(`${name} is required`)
+  return found
+}
+
+/**
+ * An id or line number, which must be a positive whole number. 0 and -1 are
+ * numbers, so nothing upstream stops them, and the API's answer to either
+ * talks about a malformed url rather than the argument.
+ */
+function positiveId(value: unknown, name: string): number {
+  const id = Number(value)
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new Error(`${name} must be a positive whole number, got ${JSON.stringify(value)}`)
+  }
+  return id
+}
+
+function optionalId(value: unknown, name: string): number | undefined {
+  return text(value) === undefined ? undefined : positiveId(value, name)
+}
+
+/** A pull request as the trigger delivers it. */
+function pullRequestItem(organization: string, pr: PullRequest): ConnectorItem {
+  if (pr.pullRequestId === undefined) {
+    // Vorn dedupes on this, as with work items.
+    throw new Error('Azure DevOps returned a pull request with no id')
+  }
+  const created = pr.creationDate
+  return {
+    externalId: String(pr.pullRequestId),
+    url: pullRequestUrl(organization, pr),
+    title: pr.title ?? `Pull request ${pr.pullRequestId}`,
+    description: pr.description ?? '',
+    status: pr.isDraft ? 'draft' : 'active',
+    updatedAt:
+      created instanceof Date ? created.toISOString() : String(created ?? new Date(0).toISOString()),
+    labels: (pr.labels ?? []).map((label) => label.name ?? '').filter(Boolean),
+    ...(pr.createdBy?.displayName && { assignee: pr.createdBy.displayName }),
+    data: {
+      repository: pr.repository?.name ?? '',
+      sourceBranch: branchName(pr.sourceRefName),
+      targetBranch: branchName(pr.targetRefName),
+      author: pr.createdBy?.displayName ?? '',
+      isDraft: pr.isDraft === true
+    }
   }
 }

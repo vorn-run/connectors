@@ -2,6 +2,10 @@
 
 All notable changes to `@vornrun/connector-ado`.
 
+## 0.3.1
+
+Starts as a pack again. `azure-devops-node-api` reads `__dirname` when a connection is made, which the bundled pack did not define, so every step that reached Azure DevOps failed with `__dirname is not defined in ES module scope`. Built with `@vornrun/connector-sdk` 0.7.2, whose packer gives a bundled dependency `__dirname` and `__filename`.
+
 ## 0.3.0
 
 Code review on Azure Repos, and more to do with work items.

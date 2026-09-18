@@ -1,7 +1,8 @@
 import { describe, it, expect, vi } from 'vitest'
 import { createConnectorHarness, connectionSetup } from '@vornrun/connector-sdk'
 import { createAdoConnector } from './connector'
-import type { WitApi, WorkItem } from './client'
+import type { AdoApi, WitApi, WorkItem } from './client'
+import type { GitApi } from './git'
 
 const NOW = '2026-08-05T12:00:00.000Z'
 
@@ -42,13 +43,27 @@ function respondWith(items: WorkItem[]) {
     updateWorkItem: vi.fn(async (_headers, document, id) => {
       call.wrote = { document, id }
       return { id, fields: { 'System.Title': 'Updated', 'System.State': 'Closed' } }
+    }),
+    getWorkItem: vi.fn(async (id: number) => ({ id, ...items.find((item) => item.id === id) })),
+    addComment: vi.fn(async (request, project, workItemId) => {
+      call.wrote = { request, project, workItemId }
+      return { id: 55 }
     })
   }
   return { wit, call }
 }
 
+/** The connection a fake work-item API (and optionally a fake Git API) sits behind. */
+function apiOf(wit: WitApi, git: Partial<GitApi> = {}, userId = 'me-guid'): AdoApi {
+  return {
+    wit: async () => wit,
+    git: async () => git as GitApi,
+    userId: async () => userId
+  }
+}
+
 function harness(wit: WitApi, config: Record<string, string | undefined> = CONFIG) {
-  const connector = createAdoConnector({ getToken, connectImpl: async () => wit })
+  const connector = createAdoConnector({ getToken, connectImpl: async () => apiOf(wit) })
   return createConnectorHarness(connector, { config, now: () => NOW })
 }
 
@@ -101,7 +116,7 @@ describe('ado connector', () => {
       // Connecting asks the location service where the API lives, so a
       // connection per poll is a network round trip nobody asked for.
       const { wit } = respondWith([])
-      const connectImpl = vi.fn(async () => wit)
+      const connectImpl = vi.fn(async () => apiOf(wit))
       const h = createConnectorHarness(createAdoConnector({ getToken, connectImpl }), {
         config: CONFIG,
         now: () => NOW
@@ -115,7 +130,7 @@ describe('ado connector', () => {
       // getBearerHandler captures the token it was given, so a connection kept
       // past that token's hour would fail every poll from then on.
       const { wit } = respondWith([])
-      const connectImpl = vi.fn(async () => wit)
+      const connectImpl = vi.fn(async () => apiOf(wit))
       let issued = 0
       const h = createConnectorHarness(
         createAdoConnector({ getToken: async () => `token-${++issued}`, connectImpl }),
@@ -129,7 +144,7 @@ describe('ado connector', () => {
 
     it('reconnects when a second organization is polled', async () => {
       const { wit } = respondWith([])
-      const connectImpl = vi.fn(async () => wit)
+      const connectImpl = vi.fn(async () => apiOf(wit))
       const connector = createAdoConnector({ getToken, connectImpl })
       await createConnectorHarness(connector, { config: CONFIG, now: () => NOW }).poll('workItem')
       await createConnectorHarness(connector, {
@@ -229,7 +244,7 @@ describe('ado connector', () => {
   describe('credentials', () => {
     it('asks for a token once per poll and hands it to the connection', async () => {
       const { wit } = respondWith([])
-      const connectImpl = vi.fn(async () => wit)
+      const connectImpl = vi.fn(async () => apiOf(wit))
       const h = createConnectorHarness(
         createAdoConnector({ getToken: async () => 'entra-token', connectImpl }),
         { config: CONFIG, now: () => NOW }
@@ -358,10 +373,10 @@ describe('updateWorkItem action', () => {
     // /workitems/0 fails with something about a malformed url.
     const { wit } = respondWith([])
     await expect(harness(wit).execute('updateWorkItem', { id: 0, title: 'x' })).rejects.toThrow(
-      /must be a work item number/
+      /id must be a positive whole number/
     )
     await expect(harness(wit).execute('updateWorkItem', { id: 1.5, title: 'x' })).rejects.toThrow(
-      /must be a work item number/
+      /id must be a positive whole number/
     )
   })
 
@@ -387,5 +402,376 @@ describe('what the manifest promises', () => {
     expect(icon?.viewBox).toBe('0 0 24 24')
     expect(icon?.paths).toHaveLength(1)
     expect(icon?.paths[0]).toMatch(/^M0 8\.877L2\.247 5\.91/)
+  })
+})
+
+const PR = {
+  pullRequestId: 412,
+  title: 'Add caching',
+  description: 'Adds a cache',
+  status: 1,
+  isDraft: false,
+  sourceRefName: 'refs/heads/feature/cache',
+  targetRefName: 'refs/heads/main',
+  creationDate: new Date('2026-08-05T11:00:00.000Z'),
+  createdBy: { displayName: 'Ana' },
+  labels: [{ name: 'perf' }, {}],
+  lastMergeSourceCommit: { commitId: 'abc' },
+  lastMergeTargetCommit: { commitId: 'def' },
+  repository: { id: 'repo-guid', name: 'web', project: { name: 'proj' } }
+}
+
+const PR_URL = 'https://dev.azure.com/contoso/proj/_git/web/pullrequest/412'
+
+/** A harness whose connection carries a fake Git API; the pull request is always #412. */
+function gitHarness(git: Partial<GitApi>, config: Record<string, string | undefined> = CONFIG) {
+  const { wit } = respondWith([])
+  const full = { getPullRequestById: vi.fn(async () => PR), ...git }
+  const connector = createAdoConnector({ getToken, connectImpl: async () => apiOf(wit, full) })
+  return { git: full, h: createConnectorHarness(connector, { config, now: () => NOW }) }
+}
+
+describe('pullRequestOpened trigger', () => {
+  it('delivers active pull requests across the project, linked to the review page', async () => {
+    const getPullRequestsByProject = vi.fn(async () => [
+      PR,
+      { ...PR, pullRequestId: 413, isDraft: true, creationDate: '2026-08-05T11:30:00.000Z', title: undefined, description: undefined, createdBy: undefined, labels: undefined }
+    ])
+    const { h } = gitHarness({ getPullRequestsByProject })
+    const page = await h.poll('pullRequestOpened')
+
+    expect(getPullRequestsByProject).toHaveBeenCalledWith('proj', { status: 1 }, undefined, 0, 100)
+    expect(page.items[0]).toMatchObject({
+      externalId: '412',
+      url: PR_URL,
+      title: 'Add caching',
+      status: 'active',
+      updatedAt: '2026-08-05T11:00:00.000Z',
+      labels: ['perf'],
+      assignee: 'Ana',
+      repository: 'web',
+      sourceBranch: 'feature/cache',
+      targetBranch: 'main',
+      isDraft: false
+    })
+    expect(page.items[1]).toMatchObject({ externalId: '413', title: 'Pull request 413', status: 'draft' })
+  })
+
+  it('watches one repository when one is configured', async () => {
+    const getPullRequests = vi.fn(async () => [{ ...PR, creationDate: undefined }])
+    const { h } = gitHarness({ getPullRequests }, { ...CONFIG, repository: 'web', top: '5' })
+    const page = await h.poll('pullRequestOpened')
+    expect(getPullRequests).toHaveBeenCalledWith('web', { status: 1 }, 'proj', undefined, 0, 5)
+    expect(page.items[0].updatedAt).toBe('1970-01-01T00:00:00.000Z')
+  })
+
+  it('does not start a second review of the same pull request', async () => {
+    const { h } = gitHarness({ getPullRequestsByProject: vi.fn(async () => [PR]) })
+    expect(await h.pollTwice('pullRequestOpened')).toEqual([])
+  })
+
+  it('refuses a pull request with no id rather than dedupe them together', async () => {
+    const { h } = gitHarness({
+      getPullRequestsByProject: vi.fn(async () => [{ ...PR, pullRequestId: undefined }])
+    })
+    await expect(h.poll('pullRequestOpened')).rejects.toThrow(/no id/)
+  })
+
+  it('needs no WIQL query', async () => {
+    const { h } = gitHarness(
+      { getPullRequestsByProject: vi.fn(async () => []) },
+      { organization: 'contoso', project: 'proj' }
+    )
+    await expect(h.poll('pullRequestOpened')).resolves.toMatchObject({ items: [] })
+  })
+})
+
+describe('getWorkItem action', () => {
+  it('reads every field, naming the assignee', async () => {
+    const { wit } = respondWith([
+      workItem(42, {
+        'System.Description': '<p>Full</p>',
+        'System.AssignedTo': { displayName: 'Bo', uniqueName: 'bo@example.com' }
+      })
+    ])
+    const result = await harness(wit).execute('getWorkItem', { id: '42' })
+    expect(result).toMatchObject({
+      id: 42,
+      url: 'https://dev.azure.com/contoso/proj/_workitems/edit/42',
+      title: 'Item 42',
+      state: 'New',
+      type: 'Bug',
+      description: '<p>Full</p>',
+      assignedTo: 'Bo'
+    })
+    expect((result as { fields: Record<string, unknown> }).fields['System.Title']).toBe('Item 42')
+  })
+
+  it('takes an assignee stored as text, and survives an empty answer', async () => {
+    const { wit } = respondWith([workItem(1, { 'System.AssignedTo': 'bo@example.com' })])
+    await expect(harness(wit).execute('getWorkItem', { id: 1 })).resolves.toMatchObject({
+      assignedTo: 'bo@example.com'
+    })
+    wit.getWorkItem = vi.fn(async () => null as unknown as WorkItem)
+    await expect(harness(wit).execute('getWorkItem', { id: 1 })).resolves.toMatchObject({
+      id: 0,
+      type: '',
+      assignedTo: '',
+      fields: {}
+    })
+  })
+})
+
+describe('commentOnWorkItem action', () => {
+  it("posts to the work item's discussion in the configured project", async () => {
+    const { wit, call } = respondWith([])
+    const result = await harness(wit).execute('commentOnWorkItem', { id: 42, text: 'Done in #412' })
+    expect(call.wrote).toEqual({ request: { text: 'Done in #412' }, project: 'proj', workItemId: 42 })
+    expect(result).toEqual({
+      commentId: 55,
+      url: 'https://dev.azure.com/contoso/proj/_workitems/edit/42'
+    })
+  })
+
+  it('refuses blank text and reads an empty answer as comment 0', async () => {
+    const { wit } = respondWith([])
+    await expect(
+      harness(wit).execute('commentOnWorkItem', { id: 42, text: '  ' })
+    ).rejects.toThrow(/text is required/)
+    wit.addComment = vi.fn(async () => null as unknown as { id?: number })
+    await expect(
+      harness(wit).execute('commentOnWorkItem', { id: 42, text: 'x' })
+    ).resolves.toMatchObject({ commentId: 0 })
+  })
+})
+
+describe('createPullRequest action', () => {
+  it('opens one in the configured repository, linking work items', async () => {
+    const createPullRequest = vi.fn(async () => PR)
+    const { h } = gitHarness({ createPullRequest }, { ...CONFIG, repository: 'web' })
+    const result = await h.execute('createPullRequest', {
+      sourceBranch: 'feature/cache',
+      targetBranch: 'main',
+      title: 'Add caching',
+      draft: true,
+      workItems: '#7, 8,'
+    })
+    expect(createPullRequest).toHaveBeenCalledWith(
+      expect.objectContaining({ isDraft: true, workItemRefs: [{ id: '7' }, { id: '8' }] }),
+      'web',
+      'proj'
+    )
+    expect(result).toEqual({ id: 412, url: PR_URL })
+  })
+
+  it('takes the repository from the step, and survives an empty answer', async () => {
+    const createPullRequest = vi.fn(async () => null as unknown as typeof PR)
+    const { h } = gitHarness({ createPullRequest })
+    await expect(
+      h.execute('createPullRequest', {
+        sourceBranch: 'x',
+        targetBranch: 'main',
+        title: 't',
+        repository: 'api'
+      })
+    ).resolves.toMatchObject({ id: 0 })
+    expect(createPullRequest).toHaveBeenCalledWith(expect.objectContaining({ isDraft: false }), 'api', 'proj')
+  })
+
+  it('asks for a repository when neither the step nor the connection names one', async () => {
+    const { h } = gitHarness({})
+    await expect(
+      h.execute('createPullRequest', { sourceBranch: 'x', title: 't' })
+    ).rejects.toThrow(/repository is required/)
+  })
+})
+
+describe('pull request actions', () => {
+  it('reads a pull request by number alone', async () => {
+    const { h, git } = gitHarness({})
+    const result = await h.execute('getPullRequest', { pullRequestId: '412' })
+    expect(git.getPullRequestById).toHaveBeenCalledWith(412, 'proj')
+    expect(result).toMatchObject({ id: 412, url: PR_URL, sourceCommit: 'abc', author: 'Ana' })
+  })
+
+  it('refuses a pull request number that is not one', async () => {
+    const { h } = gitHarness({})
+    await expect(h.execute('getPullRequest', { pullRequestId: 0 })).rejects.toThrow(
+      /pullRequestId must be a positive whole number/
+    )
+  })
+
+  it('lists the changed files with the commits to diff', async () => {
+    const { h } = gitHarness({
+      getPullRequestIterations: vi.fn(async () => [{ id: 1 }]),
+      getPullRequestIterationChanges: vi.fn(async () => ({
+        changeEntries: [{ changeType: 2, item: { path: '/a.ts' } }]
+      }))
+    })
+    await expect(h.execute('listPullRequestChanges', { pullRequestId: 412 })).resolves.toEqual({
+      files: [{ path: '/a.ts', changeType: 'edit' }],
+      count: 1,
+      sourceCommit: 'abc',
+      targetCommit: 'def'
+    })
+  })
+
+  it('reads blanks for commits a new pull request does not have yet', async () => {
+    const { h } = gitHarness({
+      getPullRequestById: vi.fn(async () => ({ ...PR, lastMergeSourceCommit: undefined, lastMergeTargetCommit: undefined })),
+      getPullRequestIterations: vi.fn(async () => [])
+    })
+    await expect(h.execute('listPullRequestChanges', { pullRequestId: 412 })).resolves.toMatchObject({
+      sourceCommit: '',
+      targetCommit: ''
+    })
+  })
+
+  it('reads the discussion', async () => {
+    const { h } = gitHarness({
+      getThreads: vi.fn(async () => [{ id: 1, status: 1, comments: [{ id: 1, content: 'Why?' }] }])
+    })
+    await expect(h.execute('listPullRequestComments', { pullRequestId: 412 })).resolves.toMatchObject({
+      count: 1,
+      threads: [{ id: 1, status: 'active' }]
+    })
+  })
+
+  it('comments on a line and links straight to the thread', async () => {
+    const createThread = vi.fn(async () => ({ id: 9, comments: [{ id: 1 }] }))
+    const { h } = gitHarness({ createThread })
+    const result = await h.execute('commentOnPullRequest', {
+      pullRequestId: 412,
+      text: 'Off by one',
+      filePath: '/src/a.ts',
+      line: 12,
+      status: 'active'
+    })
+    expect(createThread).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 1, threadContext: expect.objectContaining({ filePath: '/src/a.ts' }) }),
+      'repo-guid',
+      412,
+      'proj'
+    )
+    expect(result).toEqual({ threadId: 9, commentId: 1, url: `${PR_URL}?discussionId=9` })
+  })
+
+  it('replies in a thread when one is named', async () => {
+    const createComment = vi.fn(async () => ({ id: 2 }))
+    const { h } = gitHarness({ createComment })
+    await expect(
+      h.execute('commentOnPullRequest', { pullRequestId: 412, text: 'Done', threadId: '9' })
+    ).resolves.toMatchObject({ threadId: 9, commentId: 2 })
+  })
+
+  it('refuses a thread status it does not know', async () => {
+    const { h } = gitHarness({})
+    await expect(
+      h.execute('commentOnPullRequest', { pullRequestId: 412, text: 'x', status: 'resolved' })
+    ).rejects.toThrow(/status must be one of active, fixed/)
+  })
+
+  it('resolves a thread as fixed unless told otherwise', async () => {
+    const updateThread = vi.fn(async (thread: { status?: number }) => thread)
+    const { h } = gitHarness({ updateThread })
+    await expect(
+      h.execute('resolvePullRequestThread', { pullRequestId: 412, threadId: 9 })
+    ).resolves.toEqual({ threadId: 9, status: 'fixed' })
+    await expect(
+      h.execute('resolvePullRequestThread', { pullRequestId: 412, threadId: 9, status: 'wontFix' })
+    ).resolves.toEqual({ threadId: 9, status: 'wontFix' })
+    updateThread.mockResolvedValueOnce(null as unknown as { status?: number })
+    await expect(
+      h.execute('resolvePullRequestThread', { pullRequestId: 412, threadId: 9 })
+    ).resolves.toEqual({ threadId: 9, status: 'unknown' })
+  })
+
+  it('votes as the signed-in identity, by name', async () => {
+    const createPullRequestReviewer = vi.fn(async (reviewer: { vote: number }) => reviewer)
+    const { h } = gitHarness({ createPullRequestReviewer })
+    await expect(
+      h.execute('votePullRequest', { pullRequestId: 412, vote: 'reject' })
+    ).resolves.toEqual({ vote: 'reject', url: PR_URL })
+    expect(createPullRequestReviewer).toHaveBeenCalledWith({ vote: -10 }, 'repo-guid', 412, 'me-guid', 'proj')
+
+    createPullRequestReviewer.mockResolvedValueOnce(null as unknown as { vote: number })
+    await expect(
+      h.execute('votePullRequest', { pullRequestId: 412, vote: 'approve' })
+    ).resolves.toMatchObject({ vote: 'reset' })
+  })
+
+  it('refuses a vote it does not know', async () => {
+    const { h } = gitHarness({})
+    await expect(
+      h.execute('votePullRequest', { pullRequestId: 412, vote: 'lgtm' })
+    ).rejects.toThrow(/vote must be one of approve/)
+  })
+})
+
+describe('completePullRequest action', () => {
+  it('squashes now and deletes the branch by default', async () => {
+    const updatePullRequest = vi.fn(async () => ({ status: 3, mergeStatus: 3 }))
+    const { h } = gitHarness({ updatePullRequest })
+    const result = await h.execute('completePullRequest', { pullRequestId: 412 })
+    expect(updatePullRequest).toHaveBeenCalledWith(
+      {
+        status: 3,
+        lastMergeSourceCommit: { commitId: 'abc' },
+        completionOptions: { mergeStrategy: 2, deleteSourceBranch: true, transitionWorkItems: false }
+      },
+      'repo-guid',
+      412,
+      'proj'
+    )
+    expect(result).toEqual({ status: 'completed', autoComplete: false, mergeStatus: 'succeeded', url: PR_URL })
+  })
+
+  it('sets auto-complete with the options the step chose', async () => {
+    const updatePullRequest = vi.fn(async () => ({ autoCompleteSetBy: { id: 'me-guid' } }))
+    const { h } = gitHarness({ updatePullRequest })
+    const result = await h.execute('completePullRequest', {
+      pullRequestId: 412,
+      autoComplete: true,
+      mergeStrategy: 'rebase',
+      keepSourceBranch: 'true',
+      transitionWorkItems: true,
+      message: 'Ship it',
+      commitId: 'reviewed'
+    })
+    expect(updatePullRequest).toHaveBeenCalledWith(
+      {
+        autoCompleteSetBy: { id: 'me-guid' },
+        completionOptions: {
+          mergeStrategy: 3,
+          deleteSourceBranch: false,
+          transitionWorkItems: true,
+          mergeCommitMessage: 'Ship it'
+        }
+      },
+      'repo-guid',
+      412,
+      'proj'
+    )
+    expect(result).toMatchObject({ status: 'active', autoComplete: true })
+  })
+
+  it('survives an empty answer', async () => {
+    const { h } = gitHarness({ updatePullRequest: vi.fn(async () => null as unknown as {}) })
+    await expect(h.execute('completePullRequest', { pullRequestId: 412 })).resolves.toMatchObject({
+      status: 'active',
+      autoComplete: false
+    })
+  })
+
+  it('refuses a merge type it does not know', async () => {
+    const { h } = gitHarness({})
+    await expect(
+      h.execute('completePullRequest', { pullRequestId: 412, mergeStrategy: 'octopus' })
+    ).rejects.toThrow(/mergeStrategy must be one of squash/)
+  })
+
+  it('is declared as not repeatable', () => {
+    const action = createAdoConnector({ getToken }).actions.find((a) => a.type === 'completePullRequest')
+    expect(action?.idempotent).toBe(false)
   })
 })

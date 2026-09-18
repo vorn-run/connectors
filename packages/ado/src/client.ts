@@ -1,4 +1,5 @@
 import * as azdev from 'azure-devops-node-api'
+import type { GitApi } from './git'
 
 /**
  * Azure DevOps work item queries, through Microsoft's own client.
@@ -54,6 +55,8 @@ export type WitApi = {
     document: JsonPatchOperation[],
     id: number
   ): Promise<WorkItem>
+  getWorkItem(id: number): Promise<WorkItem>
+  addComment(request: { text: string }, project: string, workItemId: number): Promise<{ id?: number }>
 }
 
 /**
@@ -106,8 +109,12 @@ export function workItemUrl(organization: string, project: string, id: number): 
   return `${organizationUrl(organization)}/${encodeURIComponent(project.trim())}/_workitems/edit/${id}`
 }
 
-/** The part of the SDK's WebApi used to reach the work-item API. */
-export type Connection = { getWorkItemTrackingApi(): Promise<unknown> }
+/** The part of the SDK's WebApi this connector reaches through. */
+export type Connection = {
+  getWorkItemTrackingApi(): Promise<unknown>
+  getGitApi(): Promise<unknown>
+  connect(): Promise<{ authenticatedUser?: { id?: string } }>
+}
 
 /**
  * Build a connection to an organization from an Entra bearer token.
@@ -122,19 +129,39 @@ export function createConnection(organization: string, token: string): Connectio
 }
 
 /**
- * Resolve the work-item API for an organization.
+ * The APIs one organization offers, each resolved the first time it is asked for.
  *
- * `getWorkItemTrackingApi()` asks the location service where the API actually
- * lives, so this is a network round trip — which is why callers hold on to the
- * result rather than connecting per request.
+ * Resolving an API asks the location service where it actually lives, so it is
+ * a network round trip — which is why callers hold on to this rather than
+ * connecting per request, and why a poll that only reads work items never pays
+ * for the Git API.
  */
-export async function witApi(connection: Connection): Promise<WitApi> {
-  return (await connection.getWorkItemTrackingApi()) as WitApi
+export type AdoApi = {
+  wit(): Promise<WitApi>
+  git(): Promise<GitApi>
+  /** The signed-in identity's id, which a vote is cast under. */
+  userId(): Promise<string>
+}
+
+export function adoApi(connection: Connection): AdoApi {
+  let wit: Promise<WitApi> | undefined
+  let git: Promise<GitApi> | undefined
+  let user: Promise<string> | undefined
+  return {
+    wit: () => (wit ??= connection.getWorkItemTrackingApi() as Promise<WitApi>),
+    git: () => (git ??= connection.getGitApi() as Promise<GitApi>),
+    userId: () =>
+      (user ??= connection.connect().then((data) => {
+        const id = data.authenticatedUser?.id
+        if (!id) throw new Error('Azure DevOps did not say who is signed in, so there is no one to vote as.')
+        return id
+      }))
+  }
 }
 
 /* v8 ignore next 3 -- both halves are tested; composing them reaches the network */
-export async function connect(organization: string, token: string): Promise<WitApi> {
-  return witApi(createConnection(organization, token))
+export async function connect(organization: string, token: string): Promise<AdoApi> {
+  return adoApi(createConnection(organization, token))
 }
 
 /** Minimal shape of an Entra credential, so tests can supply their own. */
@@ -187,7 +214,7 @@ export async function ambientToken(): Promise<string> {
  * about an unexpected `<`. That sends people looking at their query rather
  * than their credentials.
  */
-function explain(error: unknown): never {
+export function explain(error: unknown): never {
   const message = error instanceof Error ? error.message : String(error)
   if (/<!DOCTYPE|<html|Unexpected token|non-JSON|203/i.test(message)) {
     throw new Error(
@@ -263,6 +290,32 @@ export async function updateWorkItem(
   }
   try {
     return await wit.updateWorkItem(null, patch, opts.id)
+  } catch (error) {
+    explain(error)
+  }
+}
+
+/** Read one work item with every field it has. */
+export async function getWorkItem(wit: WitApi, id: number): Promise<WorkItem> {
+  try {
+    return await wit.getWorkItem(id)
+  } catch (error) {
+    explain(error)
+  }
+}
+
+/**
+ * Add a comment to a work item's discussion.
+ *
+ * The discussion renders HTML, so plain text shows as written; markup is
+ * passed through for whoever wants a link or a list.
+ */
+export async function commentOnWorkItem(
+  wit: WitApi,
+  opts: { project: string; id: number; text: string }
+): Promise<{ id?: number }> {
+  try {
+    return await wit.addComment({ text: opts.text }, opts.project, opts.id)
   } catch (error) {
     explain(error)
   }

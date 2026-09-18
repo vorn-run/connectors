@@ -360,3 +360,143 @@ describe('the manifest', () => {
     expect(result.nextCursor).toMatch(/^\d{4}-\d{2}-\d{2}T/)
   })
 })
+
+describe('pull request review actions', () => {
+  const calls: Array<[string, Record<string, unknown>]> = []
+  const answer =
+    (name: string, data: unknown) =>
+    async (params: Record<string, unknown>) => {
+      calls.push([name, params])
+      return { data }
+    }
+  const api = {
+    rest: {
+      pulls: {
+        get: answer('get', {
+          number: 42,
+          html_url: 'https://github.com/vorn-run/vorn/pull/42',
+          head: { ref: 'feature/x', sha: 'abc', repo: { full_name: 'vorn-run/vorn' } }
+        }),
+        listReviews: answer('listReviews', [{ user: { login: 'bo' }, state: 'APPROVED' }]),
+        listFiles: answer('listFiles', [{ filename: 'a.ts', status: 'added', patch: '+x' }]),
+        listReviewComments: answer('listReviewComments', []),
+        createReviewComment: answer('createReviewComment', { id: 8, html_url: 'u8' }),
+        createReplyForReviewComment: answer('createReplyForReviewComment', { id: 7, html_url: 'u7' }),
+        createReview: answer('createReview', { id: 9, state: 'CHANGES_REQUESTED', html_url: 'u9' }),
+        requestReviewers: answer('requestReviewers', { requested_reviewers: [{ login: 'bo' }] }),
+        merge: answer('merge', { merged: true, sha: 'm' })
+      },
+      issues: {
+        listComments: answer('listComments', [{ id: 1, body: 'LGTM' }]),
+        createComment: answer('createComment', { id: 10, html_url: 'u10' })
+      },
+      git: { deleteRef: answer('deleteRef', undefined) }
+    },
+    paginate: async (method: (p: unknown) => Promise<{ data: unknown }>, params: unknown) =>
+      (await method(params)).data
+  } as unknown as GitHubApi
+  const client: GitHubClient = { run: (call) => call(api) }
+  const run = (type: string, args: Record<string, unknown>) =>
+    runAction(connector({ client }), type, args, { config: CONFIG })
+  const last = (name: string) => [...calls].reverse().find(([n]) => n === name)?.[1]
+
+  it('reads a pull request with its verdicts', async () => {
+    await expect(run('getPullRequest', { number: '#42' })).resolves.toMatchObject({
+      number: 42,
+      headSha: 'abc',
+      reviews: [{ author: 'bo', state: 'APPROVED' }]
+    })
+    expect(last('get')).toEqual({ owner: 'vorn-run', repo: 'vorn', pull_number: 42 })
+  })
+
+  it('lists files with their diffs', async () => {
+    await expect(run('listPullRequestFiles', { number: 42 })).resolves.toMatchObject({
+      count: 1,
+      files: [{ filename: 'a.ts', patch: '+x' }]
+    })
+  })
+
+  it('reads the discussion', async () => {
+    await expect(run('listPullRequestComments', { number: 42 })).resolves.toMatchObject({
+      inline: [],
+      conversation: [{ id: 1, body: 'LGTM' }]
+    })
+  })
+
+  it('comments on a line, or replies', async () => {
+    await expect(
+      run('commentOnPullRequest', { number: 42, body: 'Why?', path: 'a.ts', line: '3' })
+    ).resolves.toEqual({ id: 8, url: 'u8' })
+    expect(last('createReviewComment')).toMatchObject({ line: 3, commit_id: 'abc' })
+    await expect(
+      run('commentOnPullRequest', { number: 42, body: 'Done', replyTo: 5 })
+    ).resolves.toEqual({ id: 7, url: 'u7' })
+    await expect(run('commentOnPullRequest', { number: 42, body: 'Hi', line: '' })).resolves.toEqual({
+      id: 10,
+      url: 'u10'
+    })
+  })
+
+  it('refuses a line that is not one', async () => {
+    await expect(
+      run('commentOnPullRequest', { number: 42, body: 'x', path: 'a.ts', line: -1 })
+    ).rejects.toThrow(/line must be a positive whole number/)
+  })
+
+  it('submits a review with line comments', async () => {
+    await expect(
+      run('reviewPullRequest', {
+        number: 42,
+        event: 'requestChanges',
+        body: 'Needs tests',
+        comments: [{ path: 'a.ts', line: 1, body: 'Here' }]
+      })
+    ).resolves.toEqual({ id: 9, state: 'CHANGES_REQUESTED', url: 'u9' })
+    expect(last('createReview')).toMatchObject({ event: 'REQUEST_CHANGES', comments: [expect.objectContaining({ path: 'a.ts' })] })
+  })
+
+  it('refuses a verdict it does not know', async () => {
+    await expect(run('reviewPullRequest', { number: 42, event: 'lgtm' })).rejects.toThrow(
+      /event must be one of approve, requestChanges, comment/
+    )
+  })
+
+  it('requests reviewers', async () => {
+    await expect(run('requestReviewers', { number: 42, reviewers: 'bo' })).resolves.toEqual({
+      requested: ['bo']
+    })
+  })
+
+  it('squashes and deletes the branch by default', async () => {
+    await expect(run('mergePullRequest', { number: 42 })).resolves.toEqual({
+      merged: true,
+      sha: 'm',
+      branchDeleted: true
+    })
+    expect(last('merge')).toMatchObject({ merge_method: 'squash', sha: 'abc' })
+  })
+
+  it('merges the way the step says, keeping the branch', async () => {
+    calls.length = 0
+    await expect(
+      run('mergePullRequest', { number: 42, method: 'rebase', keepBranch: true, title: 'T', sha: 'r' })
+    ).resolves.toMatchObject({ branchDeleted: false })
+    expect(last('merge')).toMatchObject({ merge_method: 'rebase', commit_title: 'T', sha: 'r' })
+    expect(last('deleteRef')).toBeUndefined()
+  })
+
+  it('refuses a merge method it does not know', async () => {
+    await expect(run('mergePullRequest', { number: 42, method: 'octopus' })).rejects.toThrow(
+      /method must be one of squash, merge, rebase/
+    )
+  })
+
+  it('declares reads as repeatable and writes as not', () => {
+    const actions = connector({ client }).actions
+    const idempotent = (type: string) => actions.find((a) => a.type === type)?.idempotent
+    expect(idempotent('getPullRequest')).toBe(true)
+    expect(idempotent('requestReviewers')).toBe(true)
+    expect(idempotent('reviewPullRequest')).toBe(false)
+    expect(idempotent('mergePullRequest')).toBe(false)
+  })
+})

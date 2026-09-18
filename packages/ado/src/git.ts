@@ -418,12 +418,12 @@ export async function listThreads(
       )
     }))
     .filter(({ comments }) => comments.length > 0)
-    .map(({ thread, comments }): ThreadSummary => {
+    .map(({ thread, comments }) => {
       const latest = Math.max(
         timeOf(thread.lastUpdatedDate),
         ...comments.map((comment) => timeOf(comment.publishedDate))
       )
-      return {
+      const summary: ThreadSummary = {
         id: thread.id ?? 0,
         status: threadStatusName(thread.status),
         filePath: thread.threadContext?.filePath || null,
@@ -436,9 +436,11 @@ export async function listThreads(
           publishedAt: iso(comment.publishedDate)
         }))
       }
+      return { summary, latest }
     })
-    // ISO strings sort as time, and a blank one sorts last.
-    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+    // A thread with no date at all has latest 0, so it sorts last.
+    .sort((a, b) => b.latest - a.latest)
+    .map(({ summary }) => summary)
   return {
     threads: opts.top === undefined ? matching : matching.slice(0, opts.top),
     total: matching.length

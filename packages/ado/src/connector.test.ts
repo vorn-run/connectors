@@ -652,6 +652,16 @@ describe('pull request actions', () => {
     expect(result).toMatchObject({ count: 1, total: 2, threads: [{ id: 1, filePath: null, line: null }] })
   })
 
+  it('caps an unbounded read by default, and says how many there were', async () => {
+    const many = Array.from({ length: 60 }, (_, i) => ({ id: i + 1, status: 1, comments: [{ content: 'x' }] }))
+    const { h } = gitHarness({ getThreads: vi.fn(async () => many) })
+    const result = (await h.execute('listPullRequestComments', { pullRequestId: 412 })) as {
+      count: number
+      total: number
+    }
+    expect(result).toMatchObject({ count: 50, total: 60 })
+  })
+
   it('refuses a status filter it does not know, before reading anything', async () => {
     const getPullRequestById = vi.fn(async () => PR)
     const { h } = gitHarness({ getPullRequestById })

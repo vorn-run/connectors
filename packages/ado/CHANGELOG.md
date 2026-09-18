@@ -7,7 +7,7 @@ All notable changes to `@vornrun/connector-ado`.
 `listPullRequestComments` is usable on a pull request with real history.
 
 - **`status`**: keep only threads in these states, comma-separated — `active` for triage.
-- **`top`**: keep only the most recently active threads. `total` says how many matched before the cut.
+- **`top`**: keep only the most recently active threads — 50 unless told otherwise. `total` says how many matched before the cut.
 - Threads come back most recently active first, each with `updatedAt`.
 - A thread on the overview has `filePath: null` and `line: null`, and one on a whole file has `line: null`, instead of `''` and `0` — which read as line 0 of a file.
 

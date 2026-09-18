@@ -34,6 +34,9 @@ import {
 
 const DEFAULT_TOP = 100
 
+/** Threads listPullRequestComments returns when not told how many. */
+const DEFAULT_THREADS = 50
+
 /**
  * Fields every item carries back, whatever the query selected.
  *
@@ -409,10 +412,7 @@ export function createAdoConnector(options: AdoConnectorOptions = {}) {
             title: requiredText(args.title, 'title'),
             description: text(args.description),
             isDraft: flag(args.draft),
-            workItems: String(args.workItems ?? '')
-              .split(',')
-              .map((id) => id.trim().replace(/^#/, ''))
-              .filter(Boolean)
+            workItems: commaList(args.workItems).map((id) => id.replace(/^#/, ''))
           })
           return { id: pr?.pullRequestId ?? 0, url: pullRequestUrl(organization, pr ?? {}) }
         }
@@ -487,7 +487,7 @@ export function createAdoConnector(options: AdoConnectorOptions = {}) {
             key: 'top',
             label: 'At most',
             type: 'number',
-            description: 'Keep only the most recently active threads. Blank keeps every one that matched.'
+            description: `Keep only the most recently active threads. Defaults to ${DEFAULT_THREADS}; total says how many matched.`
           }
         ],
         outputs: [
@@ -502,7 +502,9 @@ export function createAdoConnector(options: AdoConnectorOptions = {}) {
         ],
         async run(args, { config }) {
           const statuses = threadStatuses(args.status)
-          const top = optionalId(args.top, 'top')
+          // Capped by default: an uncapped read of a pull request with real
+          // history runs to tens of kilobytes, more than a step's output holds.
+          const top = optionalId(args.top, 'top') ?? DEFAULT_THREADS
           const { project, git, pr } = await pullRequestFor(args, config)
           const { threads, total } = await listThreads(git, project, pr, { statuses, top })
           return { threads, count: threads.length, total }
@@ -783,12 +785,17 @@ function flag(value: unknown): boolean {
   return value === true || String(value ?? '').trim().toLowerCase() === 'true'
 }
 
+/** `a, b,` → `['a', 'b']`: how a template passes a list. */
+function commaList(value: unknown): string[] {
+  return String(value ?? '')
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+}
+
 /** `active, fixed` → the statuses to keep; blank keeps all. */
 function threadStatuses(value: unknown): number[] | undefined {
-  const names = String(value ?? '')
-    .split(',')
-    .map((name) => name.trim())
-    .filter(Boolean)
+  const names = commaList(value)
   if (names.length === 0) return undefined
   return names.map((name) => threadStatus(name) as number)
 }

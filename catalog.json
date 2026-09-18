@@ -6,7 +6,7 @@
       "name": "Azure DevOps",
       "description": "Trigger workflows from work items and pull requests, and review, comment, vote and update from a step.",
       "packageName": "@vornrun/connector-ado",
-      "version": "0.3.1",
+      "version": "0.4.0",
       "capabilities": [
         "triggers",
         "actions"
@@ -26,8 +26,8 @@
       "authRung": "cli",
       "verified": {
         "schema": 1,
-        "version": "0.3.1",
-        "checkedAt": "2026-09-18T18:37:58.713Z",
+        "version": "0.4.0",
+        "checkedAt": "2026-09-18T19:26:08.030Z",
         "checks": [
           "auth",
           "secrets",
@@ -38,7 +38,7 @@
           "launch"
         ]
       },
-      "packUrl": "https://github.com/vorn-run/connectors/releases/download/ado-v0.3.1/ado-0.3.1.vorn.tgz",
+      "packUrl": "https://github.com/vorn-run/connectors/releases/download/ado-v0.4.0/ado-0.4.0.vorn.tgz",
       "icon": {
         "viewBox": "0 0 24 24",
         "paths": [
@@ -96,7 +96,7 @@
         {
           "type": "listPullRequestComments",
           "label": "Read the review discussion",
-          "description": "Every comment thread on a pull request, with its status and the line it is on, so a review does not repeat itself."
+          "description": "Comment threads on a pull request, most recently active first, with status and the line each is on — so a review does not repeat itself."
         },
         {
           "type": "commentOnPullRequest",

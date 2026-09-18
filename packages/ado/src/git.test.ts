@@ -275,50 +275,86 @@ describe('listChanges', () => {
 })
 
 describe('listThreads', () => {
-  it('keeps what people wrote and drops system notices and deleted comments', async () => {
-    const git = fakeGit({
-      getThreads: vi.fn(async () => [
+  const discussion = [
+    {
+      id: 1,
+      status: 1,
+      lastUpdatedDate: new Date('2026-09-01T00:00:00Z'),
+      threadContext: { filePath: '/a.ts', rightFileStart: { line: 4, offset: 1 } },
+      comments: [
         {
           id: 1,
-          status: 1,
-          threadContext: { filePath: '/a.ts', rightFileStart: { line: 4, offset: 1 } },
-          comments: [
-            {
-              id: 1,
-              content: 'Why?',
-              author: { displayName: 'Bo' },
-              publishedDate: new Date('2026-09-01T00:00:00Z')
-            },
-            { id: 2, content: 'gone', isDeleted: true }
-          ]
+          content: 'Why?',
+          author: { displayName: 'Bo' },
+          publishedDate: new Date('2026-09-01T00:00:00Z')
         },
-        { id: 2, comments: [{ id: 1, content: 'Bo voted 10', commentType: 3 }] },
-        { id: 3, isDeleted: true, comments: [{ id: 1, content: 'x' }] },
-        { id: 4, status: 2, threadContext: null, comments: [{ content: 'Overview note' }] },
-        {}
-      ])
+        { id: 2, content: 'gone', isDeleted: true }
+      ]
+    },
+    { id: 2, comments: [{ id: 1, content: 'Bo voted 10', commentType: 3 }] },
+    { id: 3, isDeleted: true, comments: [{ id: 1, content: 'x' }] },
+    {
+      id: 4,
+      status: 2,
+      threadContext: null,
+      comments: [{ content: 'Overview note', publishedDate: '2026-09-03T00:00:00Z' }]
+    },
+    { id: 5, status: 1, threadContext: { filePath: '/b.ts' }, comments: [{ id: 1, content: 'Split this' }] },
+    {}
+  ]
+
+  it('keeps what people wrote, newest first, with null where there is no file or line', async () => {
+    const git = fakeGit({ getThreads: vi.fn(async () => discussion) })
+    await expect(listThreads(git, 'proj', PR)).resolves.toEqual({
+      total: 3,
+      threads: [
+        {
+          id: 4,
+          status: 'fixed',
+          // On the overview: no file, and certainly not line 0 of one.
+          filePath: null,
+          line: null,
+          updatedAt: '2026-09-03T00:00:00.000Z',
+          comments: [{ id: 0, author: '', content: 'Overview note', publishedAt: '2026-09-03T00:00:00Z' }]
+        },
+        {
+          id: 1,
+          status: 'active',
+          filePath: '/a.ts',
+          line: 4,
+          updatedAt: '2026-09-01T00:00:00.000Z',
+          comments: [{ id: 1, author: 'Bo', content: 'Why?', publishedAt: '2026-09-01T00:00:00.000Z' }]
+        },
+        {
+          id: 5,
+          status: 'active',
+          // On a whole file: the file, but no line.
+          filePath: '/b.ts',
+          line: null,
+          updatedAt: '',
+          comments: [{ id: 1, author: '', content: 'Split this', publishedAt: '' }]
+        }
+      ]
     })
-    await expect(listThreads(git, 'proj', PR)).resolves.toEqual([
-      {
-        id: 1,
-        status: 'active',
-        filePath: '/a.ts',
-        line: 4,
-        comments: [{ id: 1, author: 'Bo', content: 'Why?', publishedAt: '2026-09-01T00:00:00.000Z' }]
-      },
-      {
-        id: 4,
-        status: 'fixed',
-        filePath: '',
-        line: 0,
-        comments: [{ id: 0, author: '', content: 'Overview note', publishedAt: '' }]
-      }
-    ])
+  })
+
+  it('keeps only the statuses asked for', async () => {
+    const git = fakeGit({ getThreads: vi.fn(async () => discussion) })
+    const { threads, total } = await listThreads(git, 'proj', PR, { statuses: [1] })
+    expect(threads.map((thread) => thread.id)).toEqual([1, 5])
+    expect(total).toBe(2)
+  })
+
+  it('keeps the most recently active few, and says how many there were', async () => {
+    const git = fakeGit({ getThreads: vi.fn(async () => discussion) })
+    const { threads, total } = await listThreads(git, 'proj', PR, { top: 1 })
+    expect(threads.map((thread) => thread.id)).toEqual([4])
+    expect(total).toBe(3)
   })
 
   it('reads an empty answer as no threads', async () => {
     const git = fakeGit({ getThreads: vi.fn(async () => null as unknown as []) })
-    await expect(listThreads(git, 'proj', PR)).resolves.toEqual([])
+    await expect(listThreads(git, 'proj', PR)).resolves.toEqual({ threads: [], total: 0 })
   })
 })
 

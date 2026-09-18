@@ -637,6 +637,30 @@ describe('pull request actions', () => {
     })
   })
 
+  it('passes the status filter and cap through, and reports what was cut', async () => {
+    const getThreads = vi.fn(async () => [
+      { id: 1, status: 1, comments: [{ content: 'a', publishedDate: '2026-09-02T00:00:00Z' }] },
+      { id: 2, status: 1, comments: [{ content: 'b', publishedDate: '2026-09-01T00:00:00Z' }] },
+      { id: 3, status: 4, comments: [{ content: 'c' }] }
+    ])
+    const { h } = gitHarness({ getThreads })
+    const result = await h.execute('listPullRequestComments', {
+      pullRequestId: 412,
+      status: 'active, fixed',
+      top: 1
+    })
+    expect(result).toMatchObject({ count: 1, total: 2, threads: [{ id: 1, filePath: null, line: null }] })
+  })
+
+  it('refuses a status filter it does not know, before reading anything', async () => {
+    const getPullRequestById = vi.fn(async () => PR)
+    const { h } = gitHarness({ getPullRequestById })
+    await expect(
+      h.execute('listPullRequestComments', { pullRequestId: 412, status: 'open' })
+    ).rejects.toThrow(/status must be one of active, fixed/)
+    expect(getPullRequestById).not.toHaveBeenCalled()
+  })
+
   it('comments on a line and links straight to the thread', async () => {
     const createThread = vi.fn(async () => ({ id: 9, comments: [{ id: 1 }] }))
     const { h } = gitHarness({ createThread })

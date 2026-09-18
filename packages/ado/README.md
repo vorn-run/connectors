@@ -73,7 +73,7 @@ request.
 | --- | --- | --- |
 | `getPullRequest` | yes | Title, description, branches, commits, merge status, every reviewer's vote |
 | `listPullRequestChanges` | yes | Changed paths as of the latest push, and the two commits to `git diff` between |
-| `listPullRequestComments` | yes | Comment threads with status, file and line; system notices left out |
+| `listPullRequestComments` | yes | Comment threads, most recently active first, with status, file and line (`null` off a file or line); system notices left out. `status: active` and `top` keep it small; `total` says how many matched |
 | `commentOnPullRequest` | no | New thread on the overview or a line of a file, or a reply in a thread (`threadId`) |
 | `resolvePullRequestThread` | yes | Mark a thread fixed, won't fix, closed, by design — or active again |
 | `votePullRequest` | yes | Approve, approve with suggestions, wait for author, reject, or reset — as the signed-in identity |

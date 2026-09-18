@@ -473,21 +473,39 @@ export function createAdoConnector(options: AdoConnectorOptions = {}) {
         type: 'listPullRequestComments',
         label: 'Read the review discussion',
         description:
-          'Every comment thread on a pull request, with its status and the line it is on, so a review does not repeat itself.',
+          'Comment threads on a pull request, most recently active first, with status and the line each is on — so a review does not repeat itself.',
         idempotent: true,
-        inputs: [PULL_REQUEST_INPUT],
+        inputs: [
+          PULL_REQUEST_INPUT,
+          {
+            key: 'status',
+            label: 'Only these statuses',
+            description:
+              'Comma-separated: active, fixed, wontFix, closed, byDesign. "active" is what triage wants. Blank reads every thread.'
+          },
+          {
+            key: 'top',
+            label: 'At most',
+            type: 'number',
+            description: 'Keep only the most recently active threads. Blank keeps every one that matched.'
+          }
+        ],
         outputs: [
           {
             key: 'threads',
             type: 'array',
-            description: '{ id, status, filePath, line, comments: [{ id, author, content }] } for each'
+            description:
+              '{ id, status, filePath, line, updatedAt, comments: [{ id, author, content }] } for each; filePath and line are null off a file or line'
           },
-          { key: 'count', type: 'number' }
+          { key: 'count', type: 'number', description: 'Threads returned' },
+          { key: 'total', type: 'number', description: 'Threads that matched, before top' }
         ],
         async run(args, { config }) {
+          const statuses = threadStatuses(args.status)
+          const top = optionalId(args.top, 'top')
           const { project, git, pr } = await pullRequestFor(args, config)
-          const threads = await listThreads(git, project, pr)
-          return { threads, count: threads.length }
+          const { threads, total } = await listThreads(git, project, pr, { statuses, top })
+          return { threads, count: threads.length, total }
         }
       },
       {
@@ -763,6 +781,16 @@ function threadStatus(value: unknown): number | undefined {
 /** A boolean argument, which a template may still render as the text "true". */
 function flag(value: unknown): boolean {
   return value === true || String(value ?? '').trim().toLowerCase() === 'true'
+}
+
+/** `active, fixed` → the statuses to keep; blank keeps all. */
+function threadStatuses(value: unknown): number[] | undefined {
+  const names = String(value ?? '')
+    .split(',')
+    .map((name) => name.trim())
+    .filter(Boolean)
+  if (names.length === 0) return undefined
+  return names.map((name) => threadStatus(name) as number)
 }
 
 function requiredText(value: unknown, name: string): string {

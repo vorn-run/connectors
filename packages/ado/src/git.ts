@@ -47,6 +47,7 @@ export type Thread = {
   id?: number
   status?: number
   isDeleted?: boolean
+  lastUpdatedDate?: Date | string
   comments?: ThreadComment[]
   threadContext?: {
     filePath?: string
@@ -370,22 +371,45 @@ export async function listChanges(
     }))
 }
 
+/** A thread as a step reads it. */
+export type ThreadSummary = {
+  id: number
+  status: string
+  /** Null for a thread on the overview rather than on a file. */
+  filePath: string | null
+  /** Null unless the thread is pinned to a line: on the overview, or on a whole file. */
+  line: number | null
+  updatedAt: string
+  comments: { id: number; author: string; content: string; publishedAt: string }[]
+}
+
+function timeOf(date: Date | string | undefined): number {
+  const parsed = date === undefined ? NaN : new Date(date).getTime()
+  return Number.isNaN(parsed) ? 0 : parsed
+}
+
 /**
- * The review discussion so far.
+ * The review discussion so far, most recently active first.
  *
  * System threads — "Jane voted", "policy passed" — are dropped: they are not
- * something a reviewer answers, and they outnumber the real ones.
+ * something a reviewer answers, and they outnumber the real ones. A pull
+ * request with real history still runs to tens of kilobytes, so `statuses`
+ * keeps only threads in those states (`active` is what triage wants) and
+ * `top` keeps the most recently active few. `total` is how many matched
+ * before `top`, so a caller can tell it was cut.
  */
 export async function listThreads(
   git: GitApi,
   project: string,
-  pr: PullRequest & { repository: { id: string } }
-): Promise<Record<string, unknown>[]> {
+  pr: PullRequest & { repository: { id: string } },
+  opts: { statuses?: number[]; top?: number } = {}
+): Promise<{ threads: ThreadSummary[]; total: number }> {
   const threads = await attempt(() =>
     git.getThreads(pr.repository.id, pr.pullRequestId ?? 0, project)
   )
-  return (threads ?? [])
+  const matching = (threads ?? [])
     .filter((thread) => !thread.isDeleted)
+    .filter((thread) => !opts.statuses || opts.statuses.includes(thread.status ?? 0))
     .map((thread) => ({
       thread,
       comments: (thread.comments ?? []).filter(
@@ -394,18 +418,31 @@ export async function listThreads(
       )
     }))
     .filter(({ comments }) => comments.length > 0)
-    .map(({ thread, comments }) => ({
-      id: thread.id ?? 0,
-      status: threadStatusName(thread.status),
-      filePath: thread.threadContext?.filePath ?? '',
-      line: thread.threadContext?.rightFileStart?.line ?? 0,
-      comments: comments.map((comment) => ({
-        id: comment.id ?? 0,
-        author: comment.author?.displayName ?? '',
-        content: comment.content ?? '',
-        publishedAt: iso(comment.publishedDate)
-      }))
-    }))
+    .map(({ thread, comments }): ThreadSummary => {
+      const latest = Math.max(
+        timeOf(thread.lastUpdatedDate),
+        ...comments.map((comment) => timeOf(comment.publishedDate))
+      )
+      return {
+        id: thread.id ?? 0,
+        status: threadStatusName(thread.status),
+        filePath: thread.threadContext?.filePath || null,
+        line: thread.threadContext?.rightFileStart?.line ?? null,
+        updatedAt: latest > 0 ? new Date(latest).toISOString() : '',
+        comments: comments.map((comment) => ({
+          id: comment.id ?? 0,
+          author: comment.author?.displayName ?? '',
+          content: comment.content ?? '',
+          publishedAt: iso(comment.publishedDate)
+        }))
+      }
+    })
+    // ISO strings sort as time, and a blank one sorts last.
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+  return {
+    threads: opts.top === undefined ? matching : matching.slice(0, opts.top),
+    total: matching.length
+  }
 }
 
 /**

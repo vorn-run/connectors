@@ -1,6 +1,6 @@
 {
   "name": "@vornrun/connector-ado",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Azure DevOps connector for Vorn — trigger workflows from work items and pull requests, and review, vote on and complete pull requests.",
   "type": "module",
   "license": "MIT",

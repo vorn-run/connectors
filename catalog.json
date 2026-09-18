@@ -27,7 +27,7 @@
       "verified": {
         "schema": 1,
         "version": "0.3.0",
-        "checkedAt": "2026-09-18T18:04:36.189Z",
+        "checkedAt": "2026-09-18T18:16:21.125Z",
         "checks": [
           "auth",
           "secrets",
@@ -551,7 +551,7 @@
       "verified": {
         "schema": 1,
         "version": "0.3.0",
-        "checkedAt": "2026-09-18T18:04:41.519Z",
+        "checkedAt": "2026-09-18T18:16:27.118Z",
         "checks": [
           "auth",
           "secrets",
@@ -635,7 +635,7 @@
         {
           "type": "mergePullRequest",
           "label": "Merge a pull request",
-          "description": "Merge it as it stands — refused if anything was pushed since it was read, or branch protection says no."
+          "description": "Merge it at the reviewed commit — refused if anything was pushed since, or branch protection says no."
         }
       ],
       "env": [

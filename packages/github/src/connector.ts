@@ -200,9 +200,7 @@ export function createGitHubConnector(options: GitHubConnectorOptions = {}) {
           { key: 'url', description: 'Where to read it' }
         ],
         async run(args, { config }) {
-          const cfg = config as Record<string, unknown>
-          const owner = required(cfg, 'owner', 'GITHUB_OWNER')
-          const repo = required(cfg, 'repo', 'GITHUB_REPO')
+          const { owner, repo } = repoOf(config)
           const body = text(args.body)
           const labels = String(args.labels ?? '')
             .split(',')
@@ -232,9 +230,7 @@ export function createGitHubConnector(options: GitHubConnectorOptions = {}) {
           { key: 'url', description: 'Where to read it' }
         ],
         async run(args, { config }) {
-          const cfg = config as Record<string, unknown>
-          const owner = required(cfg, 'owner', 'GITHUB_OWNER')
-          const repo = required(cfg, 'repo', 'GITHUB_REPO')
+          const { owner, repo } = repoOf(config)
           const issue = await client().run(async (api) =>
             api.rest.issues.update({
               owner,
@@ -258,9 +254,7 @@ export function createGitHubConnector(options: GitHubConnectorOptions = {}) {
         ],
         outputs: [{ key: 'url', description: 'Where to read the comment' }],
         async run(args, { config }) {
-          const cfg = config as Record<string, unknown>
-          const owner = required(cfg, 'owner', 'GITHUB_OWNER')
-          const repo = required(cfg, 'repo', 'GITHUB_REPO')
+          const { owner, repo } = repoOf(config)
           const comment = await client().run(async (api) =>
             api.rest.issues.createComment({
               owner,
@@ -290,9 +284,7 @@ export function createGitHubConnector(options: GitHubConnectorOptions = {}) {
           { key: 'url', description: 'Where to read it' }
         ],
         async run(args, { config }) {
-          const cfg = config as Record<string, unknown>
-          const owner = required(cfg, 'owner', 'GITHUB_OWNER')
-          const repo = required(cfg, 'repo', 'GITHUB_REPO')
+          const { owner, repo } = repoOf(config)
           const body = text(args.body)
           const pull = await client().run(async (api) =>
             api.rest.pulls.create({
@@ -302,7 +294,7 @@ export function createGitHubConnector(options: GitHubConnectorOptions = {}) {
               base: text(args.base) ?? 'main',
               title: requiredArg(args.title, 'title'),
               ...(body && { body }),
-              draft: String(args.draft ?? '').trim() === 'true'
+              draft: flag(args.draft)
             })
           )
           return { number: pull.data.number, url: pull.data.html_url }
@@ -499,7 +491,7 @@ export function createGitHubConnector(options: GitHubConnectorOptions = {}) {
         type: 'mergePullRequest',
         label: 'Merge a pull request',
         description:
-          'Merge it as it stands — refused if anything was pushed since it was read, or branch protection says no.',
+          'Merge it at the reviewed commit — refused if anything was pushed since, or branch protection says no.',
         // A second call fails: there is nothing left to merge.
         idempotent: false,
         inputs: [
@@ -518,6 +510,12 @@ export function createGitHubConnector(options: GitHubConnectorOptions = {}) {
           { key: 'title', label: 'Commit title', description: "Defaults to GitHub's." },
           { key: 'message', label: 'Commit message', description: "Defaults to GitHub's." },
           {
+            key: 'sha',
+            label: 'Reviewed commit',
+            description:
+              'The headSha a review step read, e.g. {{steps.getPullRequest.headSha}}. The merge is refused if anything was pushed since. Blank merges the head as it is when this step runs.'
+          },
+          {
             key: 'keepBranch',
             label: 'Keep branch',
             type: 'boolean',
@@ -535,13 +533,13 @@ export function createGitHubConnector(options: GitHubConnectorOptions = {}) {
           if (!(MERGE_METHODS as readonly string[]).includes(method)) {
             throw new Error(`method must be one of ${MERGE_METHODS.join(', ')}, got "${method}"`)
           }
-          const keep = args.keepBranch === true || String(args.keepBranch ?? '').trim() === 'true'
           return client().run((api) =>
             merge(api, where, issueNumber(args.number), {
               method: method as MergeMethod,
               title: text(args.title),
               message: text(args.message),
-              deleteBranch: !keep
+              sha: text(args.sha),
+              deleteBranch: !flag(args.keepBranch)
             })
           )
         }
@@ -561,6 +559,11 @@ const PULL_INPUT = {
 function repoOf(config: unknown): Repo {
   const cfg = config as Record<string, unknown>
   return { owner: required(cfg, 'owner', 'GITHUB_OWNER'), repo: required(cfg, 'repo', 'GITHUB_REPO') }
+}
+
+/** A boolean argument, which a template may still render as the text "true". */
+function flag(value: unknown): boolean {
+  return String(value ?? '').trim() === 'true'
 }
 
 /** A line or comment id: blank is absent, anything else must be a positive whole number. */

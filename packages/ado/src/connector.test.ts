@@ -735,7 +735,8 @@ describe('completePullRequest action', () => {
       mergeStrategy: 'rebase',
       keepSourceBranch: 'true',
       transitionWorkItems: true,
-      message: 'Ship it'
+      message: 'Ship it',
+      commitId: 'reviewed'
     })
     expect(updatePullRequest).toHaveBeenCalledWith(
       {

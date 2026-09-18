@@ -98,37 +98,39 @@ export function createAdoConnector(options: AdoConnectorOptions = {}) {
     return { cfg, organization, project, api }
   }
 
-  /** The pull request a step names, looked up so its repository is known. */
-  async function pullRequestFor(args: Record<string, unknown>, config: unknown) {
+  /**
+   * The pull request a step names, looked up so its repository is known —
+   * and, for a step that acts as someone, who is signed in, asked for at the
+   * same time since neither answer waits on the other.
+   */
+  async function pullRequestFor(args: Record<string, unknown>, config: unknown, asUser = false) {
     const context = await session(config)
+    const id = positiveId(args.pullRequestId, 'pullRequestId')
     const git = await context.api.git()
-    const pr = await findPullRequest(git, context.project, positiveId(args.pullRequestId, 'pullRequestId'))
-    return { ...context, git, pr }
+    const [pr, userId] = await Promise.all([
+      findPullRequest(git, context.project, id),
+      asUser ? context.api.userId() : Promise.resolve('')
+    ])
+    return { ...context, git, pr, userId }
   }
 
   async function fetchPullRequests(context: FetchContext): Promise<ConnectorItem[]> {
-    const config = context.config as Record<string, unknown>
-    const organization = required(config, 'organization', 'ADO_ORGANIZATION')
-    const project = required(config, 'project', 'ADO_PROJECT')
-    const top = Number(config.top ?? DEFAULT_TOP) || DEFAULT_TOP
-    const api = await connectionFor(organization, await getToken())
+    const { cfg, organization, project, api } = await session(context.config)
+    const top = Number(cfg.top ?? DEFAULT_TOP) || DEFAULT_TOP
     const pulls = await listActivePullRequests(await api.git(), {
       project,
-      repository: text(config.repository),
+      repository: text(cfg.repository),
       top
     })
     return pulls.map((pr) => pullRequestItem(organization, pr))
   }
 
   async function fetchWorkItems(context: FetchContext): Promise<ConnectorItem[]> {
-    const config = context.config as Record<string, unknown>
-    const organization = required(config, 'organization', 'ADO_ORGANIZATION')
-    const project = required(config, 'project', 'ADO_PROJECT')
-    const query = required(config, 'query', 'ADO_QUERY')
-    const top = Number(config.top ?? DEFAULT_TOP) || DEFAULT_TOP
+    const { cfg, organization, project, api } = await session(context.config)
+    const query = required(cfg, 'query', 'ADO_QUERY')
+    const top = Number(cfg.top ?? DEFAULT_TOP) || DEFAULT_TOP
 
-    const token = await getToken()
-    const wit = await (await connectionFor(organization, token)).wit()
+    const wit = await api.wit()
     const ids = await queryWorkItemIds(wit, { project, query, top })
     const items = await readWorkItems(wit, ids)
 
@@ -290,13 +292,9 @@ export function createAdoConnector(options: AdoConnectorOptions = {}) {
           { key: 'state', description: 'State after the update' }
         ],
         async run(args, { config }) {
-          const cfg = config as Record<string, unknown>
-          const organization = required(cfg, 'organization', 'ADO_ORGANIZATION')
-          const project = required(cfg, 'project', 'ADO_PROJECT')
           const id = positiveId(args.id, 'id')
-
-          const wit = await (await connectionFor(organization, await getToken())).wit()
-          const item = await updateWorkItem(wit, {
+          const { organization, project, api } = await session(config)
+          const item = await updateWorkItem(await api.wit(), {
             id,
             fields: {
               [TITLE_FIELD]: text(args.title),
@@ -616,12 +614,12 @@ export function createAdoConnector(options: AdoConnectorOptions = {}) {
           { key: 'url', description: 'Where to review it' }
         ],
         async run(args, { config }) {
-          const { organization, project, api, git, pr } = await pullRequestFor(args, config)
           const name = String(args.vote ?? '').trim()
           if (!(name in VOTES)) {
             throw new Error(`vote must be one of ${Object.keys(VOTES).join(', ')}, got "${name}"`)
           }
-          const cast = await vote(git, project, pr, await api.userId(), VOTES[name as keyof typeof VOTES])
+          const { organization, project, git, pr, userId } = await pullRequestFor(args, config, true)
+          const cast = await vote(git, project, pr, userId, VOTES[name as keyof typeof VOTES])
           return { vote: voteName(cast?.vote), url: pullRequestUrl(organization, pr) }
         }
       },
@@ -665,7 +663,13 @@ export function createAdoConnector(options: AdoConnectorOptions = {}) {
             type: 'boolean',
             description: 'Move linked work items to their completed state.'
           },
-          { key: 'message', label: 'Merge commit message', description: 'Defaults to the one Azure DevOps writes.' }
+          { key: 'message', label: 'Merge commit message', description: 'Defaults to the one Azure DevOps writes.' },
+          {
+            key: 'commitId',
+            label: 'Reviewed commit',
+            description:
+              'The sourceCommit a review step read, e.g. {{steps.getPullRequest.sourceCommit}}. Merging now is refused if the branch has moved past it. Blank merges the branch as it is when this step runs.'
+          }
         ],
         outputs: [
           { key: 'status', description: 'completed when merged now; active while auto-complete waits' },
@@ -674,14 +678,15 @@ export function createAdoConnector(options: AdoConnectorOptions = {}) {
           { key: 'url', description: 'Where to review it' }
         ],
         async run(args, { config }) {
-          const { organization, project, api, git, pr } = await pullRequestFor(args, config)
           const strategy = text(args.mergeStrategy) ?? 'squash'
           if (!(strategy in MERGE_STRATEGIES)) {
             throw new Error(
               `mergeStrategy must be one of ${Object.keys(MERGE_STRATEGIES).join(', ')}, got "${strategy}"`
             )
           }
-          const done = await completePullRequest(git, project, pr, await api.userId(), {
+          const { organization, project, git, pr, userId } = await pullRequestFor(args, config, true)
+          const done = await completePullRequest(git, project, pr, userId, {
+            commitId: text(args.commitId),
             autoComplete: flag(args.autoComplete),
             mergeStrategy: MERGE_STRATEGIES[strategy as keyof typeof MERGE_STRATEGIES],
             deleteSourceBranch: !flag(args.keepSourceBranch),

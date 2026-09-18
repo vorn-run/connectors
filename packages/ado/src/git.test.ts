@@ -454,6 +454,17 @@ describe('completePullRequest', () => {
     )
   })
 
+  it('pins the merge to the commit a review step read, not the head now', async () => {
+    const git = fakeGit({ updatePullRequest: vi.fn(async () => ({})) })
+    await completePullRequest(git, 'proj', PR, 'me-guid', { ...options, commitId: 'reviewed' })
+    expect(git.updatePullRequest).toHaveBeenCalledWith(
+      expect.objectContaining({ lastMergeSourceCommit: { commitId: 'reviewed' } }),
+      'repo-guid',
+      412,
+      'proj'
+    )
+  })
+
   it('sets auto-complete as the signed-in identity rather than merging now', async () => {
     const git = fakeGit({ updatePullRequest: vi.fn(async () => ({})) })
     await completePullRequest(git, 'proj', PR, 'me-guid', { ...options, autoComplete: true })

@@ -79,12 +79,12 @@ export function latestVerdicts(reviews: RawReview[]): { author: string; state: s
 }
 
 export async function getPull(api: GitHubApi, where: Repo, number: number): Promise<PullSummary> {
-  const pull = await readPull(api, where, number)
-  const reviews = (await api.paginate(api.rest.pulls.listReviews, {
-    ...where,
-    pull_number: number,
-    per_page: 100
-  })) as RawReview[]
+  const [pull, reviews] = await Promise.all([
+    readPull(api, where, number),
+    api.paginate(api.rest.pulls.listReviews, { ...where, pull_number: number, per_page: 100 }) as Promise<
+      RawReview[]
+    >
+  ])
   return {
     number: pull.number ?? number,
     url: pull.html_url ?? '',
@@ -158,16 +158,10 @@ type RawComment = {
  * that skipped either would repeat something already said.
  */
 export async function listComments(api: GitHubApi, where: Repo, number: number) {
-  const inline = (await api.paginate(api.rest.pulls.listReviewComments, {
-    ...where,
-    pull_number: number,
-    per_page: 100
-  })) as RawComment[]
-  const conversation = (await api.paginate(api.rest.issues.listComments, {
-    ...where,
-    issue_number: number,
-    per_page: 100
-  })) as RawComment[]
+  const [inline, conversation] = (await Promise.all([
+    api.paginate(api.rest.pulls.listReviewComments, { ...where, pull_number: number, per_page: 100 }),
+    api.paginate(api.rest.issues.listComments, { ...where, issue_number: number, per_page: 100 })
+  ])) as [RawComment[], RawComment[]]
   return {
     inline: (inline ?? []).map((comment) => ({
       id: comment.id ?? 0,
@@ -342,22 +336,23 @@ function status(error: unknown): unknown {
 }
 
 /**
- * Merge a pull request, only as it was when this step read it.
+ * Merge a pull request, only at the commit that was reviewed.
  *
- * The head commit is read first and sent as `sha`: GitHub refuses the merge
- * (409) if anything was pushed since, so a commit that lands between a review
- * and its merge is never merged unreviewed. Branch protection — required
- * approvals, required checks — is GitHub's to enforce; its refusal (405)
- * comes back in its own words.
+ * `sha` — the head a review step read — goes to GitHub, which refuses the
+ * merge (409) if anything was pushed since, so a commit that lands between
+ * that review and this merge is never merged unreviewed. Without one, the
+ * head read just now is sent, which only guards the instant between that read
+ * and the merge. Branch protection — required approvals, required checks — is
+ * GitHub's to enforce; its refusal (405) comes back in its own words.
  */
 export async function merge(
   api: GitHubApi,
   where: Repo,
   number: number,
-  opts: { method: MergeMethod; title?: string; message?: string; deleteBranch: boolean }
+  opts: { method: MergeMethod; sha?: string; title?: string; message?: string; deleteBranch: boolean }
 ): Promise<{ merged: boolean; sha: string; branchDeleted: boolean }> {
   const pull = await readPull(api, where, number)
-  const head = pull.head?.sha
+  const head = opts.sha ?? pull.head?.sha
   if (!head) throw new Error(`Pull request #${number} has no head commit to merge.`)
 
   let result: { merged?: boolean; sha?: string } | undefined

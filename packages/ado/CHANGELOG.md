@@ -7,7 +7,7 @@ All notable changes to `@vornrun/connector-ado`.
 Code review on Azure Repos, and more to do with work items.
 
 - **Trigger added:** `pullRequestOpened` fires once for each new active pull request, across the project or in the repository `ADO_REPOSITORY` names.
-- **Pull request actions:** `getPullRequest`, `listPullRequestChanges`, `listPullRequestComments`, `commentOnPullRequest` (overview, a line of a file, or a reply), `resolvePullRequestThread`, `votePullRequest` (approve, approve with suggestions, wait for author, reject, reset), `completePullRequest` (merge now, pinned to the reviewed commit, or set auto-complete) and `createPullRequest`. Each names the pull request by number alone.
+- **Pull request actions:** `getPullRequest`, `listPullRequestChanges`, `listPullRequestComments`, `commentOnPullRequest` (overview, a line of a file, or a reply), `resolvePullRequestThread`, `votePullRequest` (approve, approve with suggestions, wait for author, reject, reset), `completePullRequest` (merge now — pinned to the reviewed commit when given one — or set auto-complete) and `createPullRequest`. Each names the pull request by number alone.
 - **Work item actions:** `getWorkItem`, `commentOnWorkItem`.
 - `ADO_QUERY` is no longer required on the form: only the work item trigger reads it, and it still says so when it is missing.
 

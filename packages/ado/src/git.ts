@@ -139,7 +139,7 @@ export type GitApi = {
 }
 
 /** PullRequestStatus.Active in the SDK's enum. */
-export const ACTIVE = 1
+const ACTIVE = 1
 
 const PULL_REQUEST_STATUS: Record<number, string> = { 1: 'active', 2: 'abandoned', 3: 'completed' }
 
@@ -165,8 +165,6 @@ export const VOTES = {
   reject: -10
 } as const
 
-export type VoteName = keyof typeof VOTES
-
 export function voteName(vote: number | undefined): string {
   const found = Object.entries(VOTES).find(([, value]) => value === vote)
   return found ? found[0] : 'reset'
@@ -180,8 +178,6 @@ export const THREAD_STATUSES = {
   closed: 4,
   byDesign: 5
 } as const
-
-export type ThreadStatusName = keyof typeof THREAD_STATUSES
 
 export function threadStatusName(status: number | undefined): string {
   const found = Object.entries(THREAD_STATUSES).find(([, value]) => value === status)
@@ -518,14 +514,14 @@ export const MERGE_STRATEGIES = {
   rebaseMerge: 4
 } as const
 
-export type MergeStrategyName = keyof typeof MERGE_STRATEGIES
-
 /**
  * Complete (merge) a pull request, or set it to complete itself.
  *
- * Completing now pins `lastMergeSourceCommit` to the commit the step read:
- * Azure DevOps refuses the merge if the branch moved since, so a push that
- * lands between a review and its merge is never merged unreviewed.
+ * Completing now pins `lastMergeSourceCommit`: Azure DevOps refuses the merge
+ * if the branch has moved past it. Pinned to `commitId` — the commit a review
+ * step read — a push that lands between that review and this merge is never
+ * merged unreviewed. Without one it pins the commit read just now, which only
+ * guards the instant between that read and the merge.
  *
  * Auto-complete is the other shape, and the one that fits required
  * approvals: the pull request merges itself, as the signed-in identity, the
@@ -538,6 +534,7 @@ export async function completePullRequest(
   pr: PullRequest & { repository: { id: string } },
   userId: string,
   opts: {
+    commitId?: string
     autoComplete: boolean
     mergeStrategy: number
     deleteSourceBranch: boolean
@@ -555,7 +552,7 @@ export async function completePullRequest(
     ? { autoCompleteSetBy: { id: userId }, completionOptions }
     : {
         status: 3,
-        lastMergeSourceCommit: { commitId: pr.lastMergeSourceCommit?.commitId },
+        lastMergeSourceCommit: { commitId: opts.commitId ?? pr.lastMergeSourceCommit?.commitId },
         completionOptions
       }
   return attempt(() =>

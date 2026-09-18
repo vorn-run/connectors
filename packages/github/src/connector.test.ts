@@ -479,9 +479,9 @@ describe('pull request review actions', () => {
   it('merges the way the step says, keeping the branch', async () => {
     calls.length = 0
     await expect(
-      run('mergePullRequest', { number: 42, method: 'rebase', keepBranch: true, title: 'T' })
+      run('mergePullRequest', { number: 42, method: 'rebase', keepBranch: true, title: 'T', sha: 'r' })
     ).resolves.toMatchObject({ branchDeleted: false })
-    expect(last('merge')).toMatchObject({ merge_method: 'rebase', commit_title: 'T' })
+    expect(last('merge')).toMatchObject({ merge_method: 'rebase', commit_title: 'T', sha: 'r' })
     expect(last('deleteRef')).toBeUndefined()
   })
 

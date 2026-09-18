@@ -84,8 +84,10 @@ A review workflow is typically: `pullRequestOpened` → `getPullRequest` and
 `listPullRequestChanges` → an agent reads the diff → `commentOnPullRequest` per
 finding → `votePullRequest`.
 
-**Completing.** Merging now pins the merge to the commit that was read, so
-Azure DevOps refuses it if anything was pushed since — nothing lands unreviewed.
+**Completing.** Pass the `sourceCommit` your review step read as `commitId`
+(e.g. `{{steps.getPullRequest.sourceCommit}}`): Azure DevOps then refuses to
+merge if anything was pushed since, so nothing lands unreviewed. Left blank, the
+branch is merged as it stands when the step runs.
 Where branch policies require approvals, prefer `autoComplete: true`: the pull
 request merges itself, as you, the moment the last policy passes. A policy that
 blocks an immediate completion comes back in Azure DevOps's own words. The

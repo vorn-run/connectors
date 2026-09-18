@@ -70,8 +70,10 @@ A review workflow is typically: **A pull request is opened** →
 `listPullRequestFiles` → an agent reads the diffs → `reviewPullRequest` with its
 verdict and line comments.
 
-**Merging** sends the head commit it read as `sha`, so GitHub refuses the merge
-if anything was pushed since — nothing lands unreviewed. Required approvals and
+**Merging.** Pass the `headSha` your review step read as `sha` (e.g.
+`{{steps.getPullRequest.headSha}}`): GitHub then refuses the merge if anything
+was pushed since, so nothing lands unreviewed. Left blank, the head is merged
+as it stands when the step runs. Required approvals and
 checks are branch protection's to enforce; its refusal is reported as
 `Pull request #N cannot be merged: <GitHub's reason>`. A branch on a fork is
 never deleted, and one the repository already deleted counts as deleted.

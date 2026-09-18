@@ -380,6 +380,13 @@ describe('merge', () => {
     expect(rest.git.deleteRef).toHaveBeenCalledWith({ ...WHERE, ref: 'heads/feature/cache' })
   })
 
+  it('pins the merge to the commit a review step read, not the head now', async () => {
+    // Otherwise a push between the review and the merge would be merged unreviewed.
+    const { api, rest } = fakeApi()
+    await merge(api, WHERE, 42, { ...options, sha: 'reviewed-sha' })
+    expect(rest.pulls.merge).toHaveBeenCalledWith(expect.objectContaining({ sha: 'reviewed-sha' }))
+  })
+
   it('keeps the branch when asked', async () => {
     const { api, rest } = fakeApi()
     await merge(api, WHERE, 42, { method: 'rebase', deleteBranch: false })

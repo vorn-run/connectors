@@ -8,7 +8,7 @@ Code review from a workflow step.
 
 - **Read:** `getPullRequest` (with each reviewer's latest verdict), `listPullRequestFiles` (with diffs), `listPullRequestComments` (line comments and conversation).
 - **Say:** `commentOnPullRequest` (conversation, a line or a whole file, or a reply), `reviewPullRequest` (approve, request changes or comment, with line comments, as one review), `requestReviewers`.
-- **Merge:** `mergePullRequest` — squash, merge or rebase, only at the head commit it read, deleting the branch unless told to keep it. Branch protection's refusal comes back in GitHub's words.
+- **Merge:** `mergePullRequest` — squash, merge or rebase, refused if anything was pushed after the reviewed `sha`, deleting the branch unless told to keep it. Branch protection's refusal comes back in GitHub's words.
 
 ## 0.2.1
 

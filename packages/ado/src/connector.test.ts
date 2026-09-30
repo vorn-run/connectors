@@ -105,8 +105,7 @@ describe('ado connector', () => {
         'System.State',
         'System.ChangedDate',
         'System.WorkItemType',
-        'System.Description',
-        'System.AssignedTo'
+        'System.Description'
       ])
     })
 

@@ -52,7 +52,7 @@ const DESCRIPTION_FIELD = 'System.Description'
 const ASSIGNED_FIELD = 'System.AssignedTo'
 
 /** What a poll reads per item; asking for every field costs Azure DevOps database time on each poll. */
-const POLL_FIELDS = [TITLE_FIELD, STATE_FIELD, CHANGED_FIELD, TYPE_FIELD, DESCRIPTION_FIELD, ASSIGNED_FIELD]
+const POLL_FIELDS = [TITLE_FIELD, STATE_FIELD, CHANGED_FIELD, TYPE_FIELD, DESCRIPTION_FIELD]
 
 /** The type every board has, so an action can be called without picking one. */
 const DEFAULT_WORK_ITEM_TYPE = 'Task'

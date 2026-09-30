@@ -6,7 +6,7 @@ All notable changes to `@vornrun/connector-ado`.
 
 Polls cost Azure DevOps less, and a throttled call says so.
 
-- The work item trigger reads only the six fields a row needs, instead of every field of every item.
+- The work item trigger reads only the five fields a row needs, instead of every field of every item.
 - When Azure DevOps blocks a request for exceeding the account's usage (`RequestBlockedException`, often `DBCPU`), the step fails as a retryable upstream error. The error names the resource, how long to wait, and where the usage page is, instead of the raw JSON.
 - The `query` hint shows a date-bounded WIQL query, which keeps each poll cheap.
 

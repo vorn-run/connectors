@@ -51,6 +51,9 @@ const TYPE_FIELD = 'System.WorkItemType'
 const DESCRIPTION_FIELD = 'System.Description'
 const ASSIGNED_FIELD = 'System.AssignedTo'
 
+/** What a poll reads per item; asking for every field costs Azure DevOps database time on each poll. */
+const POLL_FIELDS = [TITLE_FIELD, STATE_FIELD, CHANGED_FIELD, TYPE_FIELD, DESCRIPTION_FIELD, ASSIGNED_FIELD]
+
 /** The type every board has, so an action can be called without picking one. */
 const DEFAULT_WORK_ITEM_TYPE = 'Task'
 
@@ -135,7 +138,7 @@ export function createAdoConnector(options: AdoConnectorOptions = {}) {
 
     const wit = await api.wit()
     const ids = await queryWorkItemIds(wit, { project, query, top })
-    const items = await readWorkItems(wit, ids)
+    const items = await readWorkItems(wit, ids, POLL_FIELDS)
 
     return items.map((item) => {
       const fields = item.fields ?? {}
@@ -192,7 +195,8 @@ export function createAdoConnector(options: AdoConnectorOptions = {}) {
         // requests, or only runs actions, has no query to give.
         description:
           'Work items to poll, for the work item trigger, e.g. SELECT [System.Id] FROM WorkItems ' +
-          "WHERE [System.State] = 'New' ORDER BY [System.ChangedDate] DESC"
+          "WHERE [System.State] = 'New' AND [System.ChangedDate] >= @Today - 7 " +
+          'ORDER BY [System.ChangedDate] DESC. A date bound keeps each poll cheap.'
       },
       {
         key: 'repository',

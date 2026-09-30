@@ -40,6 +40,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@azure/core-process@npm:^1.0.0":
+  version: 1.0.0
+  resolution: "@azure/core-process@npm:1.0.0"
+  checksum: 10c0/351283f1a9214a68ba6b6b2c0ce38fb42edc5adb861c350b1308b6bca6a790fc6d57f7aba3aa4fbaacbb2ae6dd095b0e014c0a5cf83e5e2e5c742813e17ce687
+  languageName: node
+  linkType: hard
+
 "@azure/core-rest-pipeline@npm:^1.17.0, @azure/core-rest-pipeline@npm:^1.22.0":
   version: 1.25.0
   resolution: "@azure/core-rest-pipeline@npm:1.25.0"
@@ -94,6 +101,26 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@azure/identity@npm:^4.13.3":
+  version: 4.13.3
+  resolution: "@azure/identity@npm:4.13.3"
+  dependencies:
+    "@azure/abort-controller": "npm:^2.0.0"
+    "@azure/core-auth": "npm:^1.9.0"
+    "@azure/core-client": "npm:^1.9.2"
+    "@azure/core-process": "npm:^1.0.0"
+    "@azure/core-rest-pipeline": "npm:^1.17.0"
+    "@azure/core-tracing": "npm:^1.0.0"
+    "@azure/core-util": "npm:^1.11.0"
+    "@azure/logger": "npm:^1.0.0"
+    "@azure/msal-browser": "npm:^5.5.0"
+    "@azure/msal-node": "npm:^6.0.0"
+    open: "npm:^10.1.0"
+    tslib: "npm:^2.2.0"
+  checksum: 10c0/bea0ecdea2bce865cdae468bd90df300b0874980302d315b754257684be3048eb225d15ddae32cde40cad3afcd30c39c35ed0458b6ebec32bfff9b28f82fd762
+  languageName: node
+  linkType: hard
+
 "@azure/logger@npm:^1.0.0, @azure/logger@npm:^1.3.0":
   version: 1.4.0
   resolution: "@azure/logger@npm:1.4.0"
@@ -120,6 +147,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@azure/msal-common@npm:16.14.1":
+  version: 16.14.1
+  resolution: "@azure/msal-common@npm:16.14.1"
+  checksum: 10c0/99abadb8ce40cf234e534776806e17a76904d9f99af069e20e6e7513cb3956428809672cb7fc2e1bde6ab0684b7027225514fe0d11671017b985ce7db8886087
+  languageName: node
+  linkType: hard
+
 "@azure/msal-node@npm:^5.1.0":
   version: 5.5.0
   resolution: "@azure/msal-node@npm:5.5.0"
@@ -127,6 +161,16 @@ __metadata:
     "@azure/msal-common": "npm:16.12.0"
     jsonwebtoken: "npm:^9.0.0"
   checksum: 10c0/badfc93aedb4055537330bab3f6d105c7144488b884e6279bf37687b8146455a04dd2ce3791702c4c834cd96044e16d644658e5bea9e7d7c6146e48ae64253ef
+  languageName: node
+  linkType: hard
+
+"@azure/msal-node@npm:^6.0.0":
+  version: 6.0.1
+  resolution: "@azure/msal-node@npm:6.0.1"
+  dependencies:
+    "@azure/msal-common": "npm:16.14.1"
+    jsonwebtoken: "npm:^9.0.0"
+  checksum: 10c0/feab144530e708b3d9c7e50a30e3339a460fc4d9879c8841795ffea49bab78395963c0740235a9e585d8c81587291ed286ff6b99fdd5236748ff662e2aea75c8
   languageName: node
   linkType: hard
 
@@ -586,10 +630,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@notionhq/client@npm:^5.24.0":
-  version: 5.24.0
-  resolution: "@notionhq/client@npm:5.24.0"
-  checksum: 10c0/b348ec997e128afe4b7759731a1d47687043ea99c7215dc08527c972d198e7487019ee64b3f23357d52e67727f0a11c4389c53c435fb71868a2b74f4471d54db
+"@notionhq/client@npm:^5.26.0":
+  version: 5.26.0
+  resolution: "@notionhq/client@npm:5.26.0"
+  checksum: 10c0/d1b72851b955b1188ab8440b911f0c05e423ab816c4c0180c63098d3bd99a7a10c2b28d30aeae1abfbb66b2b6d5074ab8501fb8d4a4de268e91505ce3010902d
   languageName: node
   linkType: hard
 
@@ -1214,10 +1258,10 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@vornrun/connector-ado@workspace:packages/ado"
   dependencies:
-    "@azure/identity": "npm:^4.13.1"
+    "@azure/identity": "npm:^4.13.3"
     "@types/node": "npm:^22.10.2"
     "@vitest/coverage-v8": "npm:^4.1.10"
-    "@vornrun/connector-sdk": "npm:^0.7.2"
+    "@vornrun/connector-sdk": "npm:^0.7.5"
     azure-devops-node-api: "npm:15.1.2"
     tsup: "npm:^8.5.1"
     typescript: "npm:^6.0.3"
@@ -1233,7 +1277,7 @@ __metadata:
   dependencies:
     "@types/node": "npm:^22.10.2"
     "@vitest/coverage-v8": "npm:^4.1.10"
-    "@vornrun/connector-sdk": "npm:^0.7.2"
+    "@vornrun/connector-sdk": "npm:^0.7.5"
     tsup: "npm:^8.5.1"
     typescript: "npm:^6.0.3"
     vitest: "npm:^4.1.10"
@@ -1248,7 +1292,7 @@ __metadata:
   dependencies:
     "@types/node": "npm:^22.10.2"
     "@vitest/coverage-v8": "npm:^4.1.10"
-    "@vornrun/connector-sdk": "npm:^0.7.2"
+    "@vornrun/connector-sdk": "npm:^0.7.5"
     tsup: "npm:^8.5.1"
     typescript: "npm:^6.0.3"
     vitest: "npm:^4.1.10"
@@ -1263,7 +1307,7 @@ __metadata:
   dependencies:
     "@types/node": "npm:^22.10.2"
     "@vitest/coverage-v8": "npm:^4.1.10"
-    "@vornrun/connector-sdk": "npm:^0.7.2"
+    "@vornrun/connector-sdk": "npm:^0.7.5"
     tsup: "npm:^8.5.1"
     typescript: "npm:^6.0.3"
     vitest: "npm:^4.1.10"
@@ -1281,7 +1325,7 @@ __metadata:
     "@octokit/rest": "npm:^22.0.1"
     "@types/node": "npm:^22.10.2"
     "@vitest/coverage-v8": "npm:^4.1.10"
-    "@vornrun/connector-sdk": "npm:^0.7.2"
+    "@vornrun/connector-sdk": "npm:^0.7.5"
     tsup: "npm:^8.5.1"
     typescript: "npm:^6.0.3"
     vitest: "npm:^4.1.10"
@@ -1296,7 +1340,7 @@ __metadata:
   dependencies:
     "@types/node": "npm:^22.10.2"
     "@vitest/coverage-v8": "npm:^4.1.10"
-    "@vornrun/connector-sdk": "npm:^0.7.2"
+    "@vornrun/connector-sdk": "npm:^0.7.5"
     tsup: "npm:^8.5.1"
     typescript: "npm:^6.0.3"
     vitest: "npm:^4.1.10"
@@ -1311,7 +1355,7 @@ __metadata:
   dependencies:
     "@types/node": "npm:^22.10.2"
     "@vitest/coverage-v8": "npm:^4.1.10"
-    "@vornrun/connector-sdk": "npm:^0.7.2"
+    "@vornrun/connector-sdk": "npm:^0.7.5"
     tsup: "npm:^8.5.1"
     typescript: "npm:^6.0.3"
     vitest: "npm:^4.1.10"
@@ -1326,7 +1370,7 @@ __metadata:
   dependencies:
     "@types/node": "npm:^22.10.2"
     "@vitest/coverage-v8": "npm:^4.1.10"
-    "@vornrun/connector-sdk": "npm:^0.7.2"
+    "@vornrun/connector-sdk": "npm:^0.7.5"
     tsup: "npm:^8.5.1"
     typescript: "npm:^6.0.3"
     vitest: "npm:^4.1.10"
@@ -1339,10 +1383,10 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@vornrun/connector-kusto@workspace:packages/kusto"
   dependencies:
-    "@azure/identity": "npm:^4.13.1"
+    "@azure/identity": "npm:^4.13.3"
     "@types/node": "npm:^22.10.2"
     "@vitest/coverage-v8": "npm:^4.1.10"
-    "@vornrun/connector-sdk": "npm:^0.7.2"
+    "@vornrun/connector-sdk": "npm:^0.7.5"
     azure-kusto-data: "npm:7.2.0"
     tsup: "npm:^8.5.1"
     typescript: "npm:^6.0.3"
@@ -1358,7 +1402,7 @@ __metadata:
   dependencies:
     "@types/node": "npm:^22.10.2"
     "@vitest/coverage-v8": "npm:^4.1.10"
-    "@vornrun/connector-sdk": "npm:^0.7.2"
+    "@vornrun/connector-sdk": "npm:^0.7.5"
     tsup: "npm:^8.5.1"
     typescript: "npm:^6.0.3"
     vitest: "npm:^4.1.10"
@@ -1373,7 +1417,7 @@ __metadata:
   dependencies:
     "@types/node": "npm:^22.10.2"
     "@vitest/coverage-v8": "npm:^4.1.10"
-    "@vornrun/connector-sdk": "npm:^0.7.2"
+    "@vornrun/connector-sdk": "npm:^0.7.5"
     mysql2: "npm:^3"
     tsup: "npm:^8.5.1"
     typescript: "npm:^6.0.3"
@@ -1387,10 +1431,10 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@vornrun/connector-notion@workspace:packages/notion"
   dependencies:
-    "@notionhq/client": "npm:^5.24.0"
+    "@notionhq/client": "npm:^5.26.0"
     "@types/node": "npm:^22.10.2"
     "@vitest/coverage-v8": "npm:^4.1.10"
-    "@vornrun/connector-sdk": "npm:^0.7.2"
+    "@vornrun/connector-sdk": "npm:^0.7.5"
     tsup: "npm:^8.5.1"
     typescript: "npm:^6.0.3"
     vitest: "npm:^4.1.10"
@@ -1405,7 +1449,7 @@ __metadata:
   dependencies:
     "@types/node": "npm:^22.10.2"
     "@vitest/coverage-v8": "npm:^4.1.10"
-    "@vornrun/connector-sdk": "npm:^0.7.2"
+    "@vornrun/connector-sdk": "npm:^0.7.5"
     tsup: "npm:^8.5.1"
     typescript: "npm:^6.0.3"
     vitest: "npm:^4.1.10"
@@ -1420,7 +1464,7 @@ __metadata:
   dependencies:
     "@types/node": "npm:^22.10.2"
     "@vitest/coverage-v8": "npm:^4.1.10"
-    "@vornrun/connector-sdk": "npm:^0.7.2"
+    "@vornrun/connector-sdk": "npm:^0.7.5"
     tsup: "npm:^8.5.1"
     typescript: "npm:^6.0.3"
     vitest: "npm:^4.1.10"
@@ -1435,7 +1479,7 @@ __metadata:
   dependencies:
     "@types/node": "npm:^22.10.2"
     "@vitest/coverage-v8": "npm:^4.1.10"
-    "@vornrun/connector-sdk": "npm:^0.7.2"
+    "@vornrun/connector-sdk": "npm:^0.7.5"
     postgres: "npm:^3.4.9"
     tsup: "npm:^8.5.1"
     typescript: "npm:^6.0.3"
@@ -1451,7 +1495,7 @@ __metadata:
   dependencies:
     "@types/node": "npm:^22.10.2"
     "@vitest/coverage-v8": "npm:^4.1.10"
-    "@vornrun/connector-sdk": "npm:^0.7.2"
+    "@vornrun/connector-sdk": "npm:^0.7.5"
     tsup: "npm:^8.5.1"
     typescript: "npm:^6.0.3"
     vitest: "npm:^4.1.10"
@@ -1460,15 +1504,15 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@vornrun/connector-sdk@npm:^0.7.2":
-  version: 0.7.2
-  resolution: "@vornrun/connector-sdk@npm:0.7.2"
+"@vornrun/connector-sdk@npm:^0.7.5":
+  version: 0.7.5
+  resolution: "@vornrun/connector-sdk@npm:0.7.5"
   dependencies:
     esbuild: "npm:^0.28.2"
     tar: "npm:^7.5.21"
   bin:
     vorn-connector: dist/cli.js
-  checksum: 10c0/5ea69d20fba2cf7f43fa04497e5fe38361cc3487aa803888459f07fc6d1dde76d6d64b1943f08abcc8a800eb5708d99c5d1b2549518e02a709b7eaa2d0036d30
+  checksum: 10c0/6735f5b306975fd16437b6abd92ddada6c581282b12b0e4883cdb96ef65bea8f2aa3efd90c146a128899468b28ec0daeb8ba52d934f9e3852e125173b6b71a40
   languageName: node
   linkType: hard
 
@@ -1478,7 +1522,7 @@ __metadata:
   dependencies:
     "@types/node": "npm:^22.10.2"
     "@vitest/coverage-v8": "npm:^4.1.10"
-    "@vornrun/connector-sdk": "npm:^0.7.2"
+    "@vornrun/connector-sdk": "npm:^0.7.5"
     tsup: "npm:^8.5.1"
     typescript: "npm:^6.0.3"
     vitest: "npm:^4.1.10"
@@ -1493,7 +1537,7 @@ __metadata:
   dependencies:
     "@types/node": "npm:^22.10.2"
     "@vitest/coverage-v8": "npm:^4.1.10"
-    "@vornrun/connector-sdk": "npm:^0.7.2"
+    "@vornrun/connector-sdk": "npm:^0.7.5"
     tsup: "npm:^8.5.1"
     typescript: "npm:^6.0.3"
     vitest: "npm:^4.1.10"
@@ -1508,7 +1552,7 @@ __metadata:
   dependencies:
     "@types/node": "npm:^22.10.2"
     "@vitest/coverage-v8": "npm:^4.1.10"
-    "@vornrun/connector-sdk": "npm:^0.7.2"
+    "@vornrun/connector-sdk": "npm:^0.7.5"
     marked: "npm:^18.0.11"
     tsup: "npm:^8.5.1"
     typescript: "npm:^6.0.3"
@@ -1524,7 +1568,7 @@ __metadata:
   dependencies:
     "@types/node": "npm:^22.10.2"
     "@vitest/coverage-v8": "npm:^4.1.10"
-    "@vornrun/connector-sdk": "npm:^0.7.2"
+    "@vornrun/connector-sdk": "npm:^0.7.5"
     tsup: "npm:^8.5.1"
     typescript: "npm:^6.0.3"
     vitest: "npm:^4.1.10"
@@ -1539,7 +1583,7 @@ __metadata:
   dependencies:
     "@types/node": "npm:^22.10.2"
     "@vitest/coverage-v8": "npm:^4.1.10"
-    "@vornrun/connector-sdk": "npm:^0.7.2"
+    "@vornrun/connector-sdk": "npm:^0.7.5"
     tsup: "npm:^8.5.1"
     typescript: "npm:^6.0.3"
     vitest: "npm:^4.1.10"
@@ -1554,7 +1598,7 @@ __metadata:
   dependencies:
     "@types/node": "npm:^22.10.2"
     "@vitest/coverage-v8": "npm:^4.1.10"
-    "@vornrun/connector-sdk": "npm:^0.7.2"
+    "@vornrun/connector-sdk": "npm:^0.7.5"
     tsup: "npm:^8.5.1"
     typescript: "npm:^6.0.3"
     vitest: "npm:^4.1.10"

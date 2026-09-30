@@ -97,6 +97,18 @@ describe('ado connector', () => {
       expect(call.top).toBe(5)
     })
 
+    it('reads only the fields a work item row needs, not every field', async () => {
+      const { wit } = respondWith([{ id: 1, fields: { 'System.Title': 'A' } }])
+      await harness(wit, CONFIG).poll('workItem')
+      expect((wit.getWorkItems as ReturnType<typeof vi.fn>).mock.calls[0][1]).toEqual([
+        'System.Title',
+        'System.State',
+        'System.ChangedDate',
+        'System.WorkItemType',
+        'System.Description'
+      ])
+    })
+
     it('falls back to the default when top is not a number', async () => {
       // The field is free text in the UI, and `Number('lots')` is NaN, which
       // the API would reject long after the mistake was made.

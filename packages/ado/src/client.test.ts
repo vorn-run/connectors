@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
+import { UpstreamStatusError } from '@vornrun/connector-sdk'
 import {
   createConnection,
   createWorkItem,
@@ -15,6 +16,7 @@ import {
   readWorkItems,
   updateWorkItem,
   ADO_SCOPE,
+  explain,
   type WitApi,
   type WorkItem
 } from './client'
@@ -178,6 +180,64 @@ describe('readWorkItems', () => {
       })
     })
     await expect(readWorkItems(wit, [1])).rejects.toThrow(/sign-in page/)
+  })
+
+  it('asks for only the fields it was given, on every batch', async () => {
+    const wit = fakeWit()
+    const fields = ['System.Title', 'System.State']
+    await readWorkItems(wit, Array.from({ length: 250 }, (_, i) => i + 1), fields)
+    const calls = (wit.getWorkItems as ReturnType<typeof vi.fn>).mock.calls
+    expect(calls.map((c) => c[1])).toEqual([fields, fields])
+  })
+})
+
+/** The shape typed-rest-client rejects with, status and headers attached. */
+function httpError(message: string, statusCode?: number, responseHeaders?: Record<string, string>) {
+  return Object.assign(new Error(message), { statusCode, responseHeaders })
+}
+
+const BLOCKED =
+  "Request was blocked due to exceeding usage of resource 'DBCPU' in namespace ''."
+
+describe('explain, when Azure DevOps throttles', () => {
+  function caught(error: unknown): UpstreamStatusError {
+    try {
+      explain(error)
+    } catch (e) {
+      return e as UpstreamStatusError
+    }
+    throw new Error('explain returned')
+  }
+
+  it('turns a 429 into a retryable upstream error naming the wait', () => {
+    const e = caught(httpError('Too many requests', 429, { 'retry-after': '30', 'x-ratelimit-resource': 'DBCPU' }))
+    expect(e).toBeInstanceOf(UpstreamStatusError)
+    expect(e.status).toBe(429)
+    expect(e.message).toMatch(/\(DBCPU\)/)
+    expect(e.message).toMatch(/about 30 seconds/)
+    expect(e.message).toMatch(/_usersSettings\/usage/)
+  })
+
+  it('recognises the blocked-request message even without a status', () => {
+    const e = caught(httpError(BLOCKED))
+    expect(e.status).toBe(429)
+    expect(e.message).toMatch(/\(DBCPU\)/)
+    expect(e.message).toMatch(/in a few minutes/)
+  })
+
+  it('falls back to the rate-limit delay header when there is no Retry-After', () => {
+    const e = caught(httpError(BLOCKED, 429, { 'x-ratelimit-delay': '12.5' }))
+    expect(e.message).toMatch(/about 13 seconds/)
+  })
+
+  it('reads a header that arrives as a list', () => {
+    const e = caught(Object.assign(new Error(BLOCKED), { responseHeaders: { 'retry-after': ['5'] } }))
+    expect(e.message).toMatch(/about 5 seconds/)
+  })
+
+  it('leaves other failures as they were', () => {
+    expect(caught(httpError('Not found', 404)).message).toBe('Not found')
+    expect(() => explain('plain text')).toThrow('plain text')
   })
 })
 

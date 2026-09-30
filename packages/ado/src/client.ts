@@ -1,4 +1,5 @@
 import * as azdev from 'azure-devops-node-api'
+import { UpstreamStatusError, retryAfterMs } from '@vornrun/connector-sdk'
 import type { GitApi } from './git'
 
 /**
@@ -43,7 +44,7 @@ export type WitApi = {
     timePrecision?: boolean,
     top?: number
   ): Promise<{ workItems?: { id?: number }[] }>
-  getWorkItems(ids: number[]): Promise<WorkItem[]>
+  getWorkItems(ids: number[], fields?: string[]): Promise<WorkItem[]>
   createWorkItem(
     customHeaders: unknown,
     document: JsonPatchOperation[],
@@ -216,6 +217,10 @@ export async function ambientToken(): Promise<string> {
  */
 export function explain(error: unknown): never {
   const message = error instanceof Error ? error.message : String(error)
+  const status = (error as { statusCode?: unknown } | null)?.statusCode
+  if (status === 429 || /RequestBlockedException|exceeding usage of resource/i.test(message)) {
+    throw throttled(message, (error as { responseHeaders?: Headers } | null)?.responseHeaders)
+  }
   if (/<!DOCTYPE|<html|Unexpected token|non-JSON|203/i.test(message)) {
     throw new Error(
       'Azure DevOps returned a sign-in page rather than data: the token is not valid for this ' +
@@ -223,6 +228,34 @@ export function explain(error: unknown): never {
     )
   }
   throw error instanceof Error ? error : new Error(message)
+}
+
+type Headers = Record<string, string | string[] | undefined>
+
+function header(headers: Headers | undefined, name: string): string | null {
+  const value = headers?.[name]
+  return (Array.isArray(value) ? value[0] : value) ?? null
+}
+
+/**
+ * Azure DevOps meters each identity over a sliding window of about five minutes.
+ *
+ * The answer is retryable, but not by retrying now: every blocked call spends more of the same
+ * budget, so the error says how long to wait and leaves the retry to the next poll or step.
+ */
+function throttled(message: string, headers: Headers | undefined): UpstreamStatusError {
+  const resource = header(headers, 'x-ratelimit-resource') ?? /resource '([^']+)'/.exec(message)?.[1]
+  const retryMs =
+    retryAfterMs(header(headers, 'retry-after'), Date.now()) ??
+    (Number(header(headers, 'x-ratelimit-delay')) || 0) * 1000
+  const wait = retryMs > 0 ? `in about ${Math.ceil(retryMs / 1000)} seconds` : 'in a few minutes'
+  return new UpstreamStatusError(
+    429,
+    `Azure DevOps is throttling the signed-in account${resource ? ` (${resource})` : ''}. ` +
+      `Try again ${wait}. The budget is shared by everything running as that account; see ` +
+      'https://dev.azure.com/<organization>/_usersSettings/usage for what is using it, and ' +
+      'narrow the WIQL query or lengthen the poll interval if polling is the cause.'
+  )
 }
 
 /** Run a WIQL query and return the ids it matched. */
@@ -245,14 +278,18 @@ export async function queryWorkItemIds(
   }
 }
 
-/** Read the fields of the ids a query returned, in pages the API accepts. */
-export async function readWorkItems(wit: WitApi, ids: number[]): Promise<WorkItem[]> {
+/** Read the ids a query returned, in pages the API accepts, asking only for `fields` when given. */
+export async function readWorkItems(
+  wit: WitApi,
+  ids: number[],
+  fields?: string[]
+): Promise<WorkItem[]> {
   if (ids.length === 0) return []
 
   const items: WorkItem[] = []
   try {
     for (let i = 0; i < ids.length; i += BATCH_LIMIT) {
-      items.push(...(await wit.getWorkItems(ids.slice(i, i + BATCH_LIMIT))))
+      items.push(...(await wit.getWorkItems(ids.slice(i, i + BATCH_LIMIT), fields)))
     }
   } catch (error) {
     explain(error)

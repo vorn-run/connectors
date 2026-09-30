@@ -28,6 +28,15 @@ stored in the connection.
 | `repository` | no | Narrows the pull request trigger to one repository; where `createPullRequest` opens one |
 | `top` | no | Upper bound on work items or pull requests read in one poll |
 
+### Rate limits
+
+Azure DevOps meters each account over a window of about five minutes, and the connector runs as
+whoever is signed in, so it shares that budget with everything else running as that account.
+When the budget runs out, a call fails with a retryable error that says how long to wait. To
+keep polls cheap, bound the query by date (`[System.ChangedDate] >= @Today - 7`) and keep the
+poll interval as long as the workflow allows. `https://dev.azure.com/<organization>/_usersSettings/usage`
+shows what is using the budget.
+
 ## Triggers
 
 **Work item matches the query.** Each work item the query newly returns starts

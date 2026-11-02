@@ -38,6 +38,15 @@ pub struct Manifest {
     icon: Option<Icon>,
     #[serde(default)]
     service: Option<Service>,
+    #[serde(default)]
+    kit: Option<Kit>,
+}
+
+/// What the catalog shows of a kit before it is installed: its window.
+#[derive(Debug, Deserialize)]
+struct Kit {
+    #[serde(default)]
+    layout: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -85,6 +94,12 @@ impl Manifest {
         });
         if let Some(icon) = &self.icon {
             listing["icon"] = serde_json::json!({ "viewBox": icon.view_box, "paths": icon.paths });
+        }
+        if let Some(kit) = &self.kit {
+            listing["tags"] = serde_json::json!(["kit"]);
+            if let Some(layout) = &kit.layout {
+                listing["layout"] = layout.clone();
+            }
         }
         format!("{listing:#}\n")
     }
@@ -278,6 +293,18 @@ mod tests {
             ("vorn-extension.toml".to_owned(), b"id = \"a.b\"\n".to_vec()),
             ("icon.svg".to_owned(), b"<svg/>".to_vec()),
         ])
+    }
+
+    #[test]
+    fn a_kit_lists_its_tag_and_window() {
+        let text = "id = \"local.board\"\nname = \"Board\"\nversion = \"1.0.0\"\n\n[kit.layout]\nsplit = \"rows\"\n[[kit.layout.blocks]]\npart = \"cards\"\n";
+        let m: Manifest = toml::from_str(text).unwrap();
+        let listing: serde_json::Value = serde_json::from_str(&m.listing("ab")).unwrap();
+        assert_eq!(listing["tags"], serde_json::json!(["kit"]));
+        assert_eq!(listing["layout"]["blocks"][0]["part"], "cards");
+        let plain: Manifest = toml::from_str("id = \"a\"\nname = \"A\"\nversion = \"1.0.0\"\n").unwrap();
+        let listing: serde_json::Value = serde_json::from_str(&plain.listing("ab")).unwrap();
+        assert!(listing.get("tags").is_none() && listing.get("layout").is_none());
     }
 
     #[test]

@@ -302,7 +302,8 @@ mod tests {
         let listing: serde_json::Value = serde_json::from_str(&m.listing("ab")).unwrap();
         assert_eq!(listing["tags"], serde_json::json!(["kit"]));
         assert_eq!(listing["layout"]["blocks"][0]["part"], "cards");
-        let plain: Manifest = toml::from_str("id = \"a\"\nname = \"A\"\nversion = \"1.0.0\"\n").unwrap();
+        let plain: Manifest =
+            toml::from_str("id = \"a\"\nname = \"A\"\nversion = \"1.0.0\"\n").unwrap();
         let listing: serde_json::Value = serde_json::from_str(&plain.listing("ab")).unwrap();
         assert!(listing.get("tags").is_none() && listing.get("layout").is_none());
     }

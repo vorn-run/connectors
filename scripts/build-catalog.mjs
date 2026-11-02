@@ -167,7 +167,10 @@ function rustEntryFor(dir) {
     path: dir,
     packUrl: `https://github.com/vorn-run/extensions/releases/download/${RUST_TAG(dir, version)}/${id}-${version}.vorn.tgz`,
     sha256: pack.sha256,
-    ...(pack.icon && { icon: pack.icon })
+    ...(pack.icon && { icon: pack.icon }),
+    // A kit's window, so the catalog can draw it before it is installed.
+    ...(pack.tags && { tags: pack.tags }),
+    ...(pack.layout && { layout: pack.layout })
   }
 }
 

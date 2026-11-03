@@ -3125,14 +3125,14 @@
     {
       "id": "kanban",
       "name": "Kanban",
-      "description": "Shows your sessions in columns by what they are doing: running, waiting on you, done and idle, with the selected one full size below if you like.",
+      "description": "Shows your sessions in columns by what they are doing: running, waiting on you, done and idle. On the board, a card opens its terminal over the columns.",
       "kind": "extension",
       "version": "0.1.0",
       "capabilities": [],
       "git": "https://github.com/vorn-run/extensions.git",
       "path": "kanban",
       "packUrl": "https://github.com/vorn-run/extensions/releases/download/kanban-v0.1.0/kanban-0.1.0.vorn.tgz",
-      "sha256": "7795f92e92db5690e60c581016baef759742f211c03ed6447d6feb29b4e0ccde",
+      "sha256": "91f9fb131fb920be438325100f94001ac0bb35122b8473c804110a76e8e74305",
       "icon": {
         "paths": [
           "M3 4h5v16H3z",

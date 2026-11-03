@@ -2,4 +2,4 @@
 
 ## 0.1.0
 
-- Adds two card views: Kanban, sessions in columns by status, and Board and terminal, the same columns in one line each with the selected session full size below.
+- Adds two card views: Kanban, sessions in columns by status, and Board, the same columns as board cards, where a card opens its session's terminal over the board.

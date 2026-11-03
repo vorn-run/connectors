@@ -3123,6 +3123,26 @@
       }
     },
     {
+      "id": "kanban",
+      "name": "Kanban",
+      "description": "Shows your sessions in columns by what they are doing: running, waiting on you, done and idle. On the board, a card opens its terminal over the columns.",
+      "kind": "extension",
+      "version": "0.1.0",
+      "capabilities": [],
+      "git": "https://github.com/vorn-run/extensions.git",
+      "path": "kanban",
+      "packUrl": "https://github.com/vorn-run/extensions/releases/download/kanban-v0.1.0/kanban-0.1.0.vorn.tgz",
+      "sha256": "91f9fb131fb920be438325100f94001ac0bb35122b8473c804110a76e8e74305",
+      "icon": {
+        "paths": [
+          "M3 4h5v16H3z",
+          "M10 4h5v11h-5z",
+          "M17 4h4v7h-4z"
+        ],
+        "viewBox": "0 0 24 24"
+      }
+    },
+    {
       "id": "vorn.ssh",
       "name": "SSH",
       "description": "Remote hosts to run sessions on over SSH, and the SSH keys they log in with: the SSH & Hosts settings page, the host choice when adding a project, and testing a host.",

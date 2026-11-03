@@ -1,0 +1,32 @@
+# Card views from a manifest alone: no program, nothing to build.
+id = "kanban"
+name = "Kanban"
+version = "0.1.0"
+api = "vorn:extension@1.0"
+publisher = "Vorn"
+description = "Shows your sessions in columns by what they are doing: running, waiting on you, done and idle. On the board, a card opens its terminal over the columns."
+
+[icon]
+view_box = "0 0 24 24"
+paths = ["M3 4h5v16H3z", "M10 4h5v11h-5z", "M17 4h4v7h-4z"]
+
+[[contributes.views]]
+id = "kanban"
+title = "Kanban"
+description = "Columns by status: done and idle sessions one line each, the rest small"
+icon = "columns-3"
+columns = "status"
+card = "mini"
+
+[contributes.views.by_status]
+finished = "line"
+idle = "line"
+
+[[contributes.views]]
+id = "board"
+title = "Board"
+description = "Columns by status as board cards; a card opens its terminal over the board"
+icon = "square-kanban"
+columns = "status"
+style = "board"
+open = "popover"

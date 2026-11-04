@@ -13,6 +13,7 @@ pub const ADAPTERS: &[(&str, bool)] = &[
     ("opencode", true),
     ("gemini", true),
     ("hermes", false),
+    ("cursor", false),
 ];
 
 /// The package folder of the adapter named `name`.

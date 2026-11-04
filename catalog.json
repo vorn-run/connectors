@@ -2990,6 +2990,24 @@
       }
     },
     {
+      "id": "vorn.agents.cursor",
+      "name": "Cursor CLI",
+      "description": "Runs Cursor's CLI agent: launches and resumes it, runs it headless and reads its status.",
+      "kind": "extension",
+      "version": "1.0.0",
+      "capabilities": [],
+      "git": "https://github.com/vorn-run/extensions.git",
+      "path": "adapters/cursor",
+      "packUrl": "https://github.com/vorn-run/extensions/releases/download/adapters-cursor-v1.0.0/vorn.agents.cursor-1.0.0.vorn.tgz",
+      "sha256": "8995d991bb3aa6b95fce425adae71419cc7146c9bd439625c2a61247394b5dec",
+      "icon": {
+        "paths": [
+          "M12 2l9 5v10l-9 5-9-5V7zm0 2.3L5 8.2v7.6l7 3.9 7-3.9V8.2z"
+        ],
+        "viewBox": "0 0 24 24"
+      }
+    },
+    {
       "id": "vorn.agents.gemini",
       "name": "Gemini CLI",
       "description": "Runs Gemini CLI: launches it, lists its past sessions and reads its status.",

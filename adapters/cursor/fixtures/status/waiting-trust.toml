@@ -1,0 +1,25 @@
+# A Cursor CLI screen, laid out from cursor-agent 2026.10.22's own text at 80 columns.
+status = "waiting"
+screen = '''
+
+  ╭────────────────────────────────────────────────────────────────────────────╮
+  │                                                                            │
+  │  ⚠ Workspace Trust Required                                                │
+  │                                                                            │
+  │  Cursor Agent can execute code and access files in this directory.         │
+  │                                                                            │
+  │  Do you trust the contents of this directory?                              │
+  │                                                                            │
+  │    /home/me/src/app                                                        │
+  │                                                                            │
+  │  ▶ [a] Trust this workspace                                                │
+  │    [q] Quit                                                                │
+  │                                                                            │
+  ╰────────────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+'''

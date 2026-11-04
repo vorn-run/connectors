@@ -1,0 +1,26 @@
+# A Cursor CLI screen, laid out from cursor-agent 2026.10.22's own text at 80 columns.
+status = "idle"
+screen = '''
+
+  Cursor Agent
+  v2026.10.22-27dcf5f
+
+
+  List the files in this folder
+
+  $ ls 4ms
+
+  There are two files here: Cargo.toml and README.md.
+
+ ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+  → Add a follow-up
+ ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
+  Auto
+  ~/src/app · main
+
+
+
+
+
+
+'''

@@ -1,0 +1,24 @@
+# A Cursor CLI screen, laid out from cursor-agent 2026.10.22's own text at 80 columns.
+status = "waiting"
+screen = '''
+
+  Cursor Agent
+  v2026.10.22-27dcf5f
+
+
+  Which branch should the fix go on?
+   → main
+     release
+
+ ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+  → Answer questions (Enter to select/next, Esc to skip)
+ ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
+  Auto
+  ~/src/app · main
+
+
+
+
+
+
+'''

@@ -1,0 +1,27 @@
+# A Cursor CLI screen, laid out from cursor-agent 2026.10.22's own text at 80 columns.
+status = "waiting"
+screen = '''
+
+  Cursor Agent
+  v2026.10.22-27dcf5f
+
+
+  Run the shell command: echo hello
+
+  $ echo hello Waiting for approval...
+
+────────────────────────────────────────────────────────────────────────────────
+ $ echo hello in .
+ 
+ Run this command?
+ Not in allowlist: echo
+  → Run (once)                                   (y)
+    Add Shell(echo) to allowlist?                (tab)
+    Skip & tell the agent what to do instead     (esc or n)
+
+
+
+
+
+
+'''
